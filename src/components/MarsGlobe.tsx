@@ -43,9 +43,9 @@ function Planet() {
   const map = useMemo(makeMarsTexture, []);
   const pins = useMemo(
     () =>
-      [
+      ([
         [18, -133], [-18, 77], [-8, -70], [40, 10], [-30, 150],
-      ].map(([lat, lon]) => {
+      ] as [number, number][]).map(([lat, lon]) => {
         const phi = ((90 - lat) * Math.PI) / 180, th = ((lon + 180) * Math.PI) / 180;
         return new THREE.Vector3(-Math.sin(phi) * Math.cos(th), Math.cos(phi), Math.sin(phi) * Math.sin(th)).multiplyScalar(2.02);
       }),
