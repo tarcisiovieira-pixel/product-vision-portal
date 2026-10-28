@@ -62,7 +62,7 @@ function Planet() {
       </mesh>
       <mesh scale={1.06}>
         <sphereGeometry args={[2, 64, 64]} />
-        <meshBasicMaterial color="#ff4d00" transparent opacity={0.07} side={THREE.BackSide} />
+        <meshBasicMaterial color="#ff4d00" transparent opacity={0.12} side={THREE.BackSide} blending={THREE.AdditiveBlending} depthWrite={false} />
       </mesh>
       {pins.map((p, i) => (
         <mesh key={i} position={p}>
