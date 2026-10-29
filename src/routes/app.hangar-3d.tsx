@@ -10,7 +10,7 @@ export const Route = createFileRoute("/app/hangar-3d")({
   head: () => ({ meta: [{ title: "Hangar 3D — ARES Mobility" }, { name: "description", content: "Inspeção 3D dos veículos da frota marciana." }] }),
   loader: ({ context }) =>
     Promise.all([context.queryClient.ensureQueryData(vehiclesQuery), context.queryClient.ensureQueryData(hangarsQuery)]),
-  errorComponent: ({ error }) => <div className="p-10 text-destructive">{error.message}</div>,
+  errorComponent: ({ error }) => <div className="p-10 text-destructive">{String((error as Error)?.message ?? error)}</div>,
   component: Hangar,
 });
 

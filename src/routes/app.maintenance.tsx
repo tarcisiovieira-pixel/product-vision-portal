@@ -7,7 +7,7 @@ import { statusLabel, vehiclesQuery, wearScore } from "@/lib/ares-data";
 export const Route = createFileRoute("/app/maintenance")({
   head: () => ({ meta: [{ title: "Manutenção — ARES Mobility" }, { name: "description", content: "Telemetria e ordens de manutenção da frota marciana." }] }),
   loader: ({ context }) => context.queryClient.ensureQueryData(vehiclesQuery),
-  errorComponent: ({ error }) => <div className="p-10 text-destructive">{error.message}</div>,
+  errorComponent: ({ error }) => <div className="p-10 text-destructive">{String((error as Error)?.message ?? error)}</div>,
   component: Maintenance,
 });
 
