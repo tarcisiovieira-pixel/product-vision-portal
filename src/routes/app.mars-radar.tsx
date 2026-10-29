@@ -16,7 +16,7 @@ export const Route = createFileRoute("/app/mars-radar")({
       context.queryClient.ensureQueryData(hangarsQuery),
       context.queryClient.ensureQueryData(weatherQuery),
     ]),
-  errorComponent: ({ error }) => <div className="p-10 text-destructive">{error.message}</div>,
+  errorComponent: ({ error }) => <div className="p-10 text-destructive">{String((error as Error)?.message ?? error)}</div>,
   component: MarsRadar,
 });
 
@@ -33,7 +33,7 @@ function MarsRadar() {
       .channel(`radar-${Math.random().toString(36).slice(2)}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "vehicles" }, () => qc.invalidateQueries({ queryKey: ["vehicles"] }))
       .on("postgres_changes", { event: "*", schema: "public", table: "weather_events" }, () => qc.invalidateQueries({ queryKey: ["weather"] }))
-      .subscribe((s) => setLive(s === "SUBSCRIBED"));
+      .subscribe((s: string) => setLive(s === "SUBSCRIBED"));
     return () => { supabase.removeChannel(ch); };
   }, [qc]);
 

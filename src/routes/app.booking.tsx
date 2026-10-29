@@ -18,7 +18,7 @@ export const Route = createFileRoute("/app/booking")({
       context.queryClient.ensureQueryData(weatherQuery),
       context.queryClient.ensureQueryData(rentalsQuery),
     ]),
-  errorComponent: ({ error }) => <div className="p-10 text-destructive">{error.message}</div>,
+  errorComponent: ({ error }) => <div className="p-10 text-destructive">{String((error as Error)?.message ?? error)}</div>,
   component: Booking,
 });
 

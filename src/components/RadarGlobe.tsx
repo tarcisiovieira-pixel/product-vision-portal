@@ -39,7 +39,7 @@ function Storm({ w }: { w: WeatherEvent }) {
 }
 
 export default function RadarGlobe({ vehicles, hangars, weather, selected, onSelect }: {
-  vehicles: Vehicle[]; hangars: Hangar[]; weather: WeatherEvent[]; selected?: string; onSelect: (id: string) => void;
+  vehicles: Vehicle[]; hangars: Hangar[]; weather: WeatherEvent[]; selected?: string | undefined; onSelect: (id: string) => void;
 }) {
   const map = useMemo(marsTexture, []);
   return (
