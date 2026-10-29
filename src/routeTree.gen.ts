@@ -10,12 +10,23 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AppRouteImport } from './routes/app'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as PainelRouteImport } from './routes/painel'
+import { Route as AppIndexRouteImport } from './routes/app.index'
+import { Route as AppBookingRouteImport } from './routes/app.booking'
+import { Route as AppHangar3dRouteImport } from './routes/app.hangar-3d'
+import { Route as AppMaintenanceRouteImport } from './routes/app.maintenance'
+import { Route as AppMarsRadarRouteImport } from './routes/app.mars-radar'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AppRoute = AppRouteImport.update({
+  id: '/app',
+  path: '/app',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoginRoute = LoginRouteImport.update({
@@ -28,33 +39,103 @@ const PainelRoute = PainelRouteImport.update({
   path: '/painel',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AppIndexRoute = AppIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppBookingRoute = AppBookingRouteImport.update({
+  id: '/booking',
+  path: '/booking',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppHangar3dRoute = AppHangar3dRouteImport.update({
+  id: '/hangar-3d',
+  path: '/hangar-3d',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppMaintenanceRoute = AppMaintenanceRouteImport.update({
+  id: '/maintenance',
+  path: '/maintenance',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppMarsRadarRoute = AppMarsRadarRouteImport.update({
+  id: '/mars-radar',
+  path: '/mars-radar',
+  getParentRoute: () => AppRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/app': typeof AppRouteWithChildren
   '/login': typeof LoginRoute
   '/painel': typeof PainelRoute
+  '/app/booking': typeof AppBookingRoute
+  '/app/hangar-3d': typeof AppHangar3dRoute
+  '/app/maintenance': typeof AppMaintenanceRoute
+  '/app/mars-radar': typeof AppMarsRadarRoute
+  '/app/': typeof AppIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/painel': typeof PainelRoute
+  '/app/booking': typeof AppBookingRoute
+  '/app/hangar-3d': typeof AppHangar3dRoute
+  '/app/maintenance': typeof AppMaintenanceRoute
+  '/app/mars-radar': typeof AppMarsRadarRoute
+  '/app': typeof AppIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/app': typeof AppRouteWithChildren
   '/login': typeof LoginRoute
   '/painel': typeof PainelRoute
+  '/app/booking': typeof AppBookingRoute
+  '/app/hangar-3d': typeof AppHangar3dRoute
+  '/app/maintenance': typeof AppMaintenanceRoute
+  '/app/mars-radar': typeof AppMarsRadarRoute
+  '/app/': typeof AppIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/login' | '/painel'
+  fullPaths:
+    | '/'
+    | '/app'
+    | '/login'
+    | '/painel'
+    | '/app/booking'
+    | '/app/hangar-3d'
+    | '/app/maintenance'
+    | '/app/mars-radar'
+    | '/app/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/login' | '/painel'
-  id: '__root__' | '/' | '/login' | '/painel'
+  to:
+    | '/'
+    | '/login'
+    | '/painel'
+    | '/app/booking'
+    | '/app/hangar-3d'
+    | '/app/maintenance'
+    | '/app/mars-radar'
+    | '/app'
+  id:
+    | '__root__'
+    | '/'
+    | '/app'
+    | '/login'
+    | '/painel'
+    | '/app/booking'
+    | '/app/hangar-3d'
+    | '/app/maintenance'
+    | '/app/mars-radar'
+    | '/app/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AppRoute: typeof AppRouteWithChildren
   LoginRoute: typeof LoginRoute
   PainelRoute: typeof PainelRoute
 }
@@ -66,6 +147,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/app': {
+      id: '/app'
+      path: '/app'
+      fullPath: '/app'
+      preLoaderRoute: typeof AppRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login': {
@@ -82,11 +170,65 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PainelRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/app/': {
+      id: '/app/'
+      path: '/'
+      fullPath: '/app/'
+      preLoaderRoute: typeof AppIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/booking': {
+      id: '/app/booking'
+      path: '/booking'
+      fullPath: '/app/booking'
+      preLoaderRoute: typeof AppBookingRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/hangar-3d': {
+      id: '/app/hangar-3d'
+      path: '/hangar-3d'
+      fullPath: '/app/hangar-3d'
+      preLoaderRoute: typeof AppHangar3dRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/maintenance': {
+      id: '/app/maintenance'
+      path: '/maintenance'
+      fullPath: '/app/maintenance'
+      preLoaderRoute: typeof AppMaintenanceRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/mars-radar': {
+      id: '/app/mars-radar'
+      path: '/mars-radar'
+      fullPath: '/app/mars-radar'
+      preLoaderRoute: typeof AppMarsRadarRouteImport
+      parentRoute: typeof AppRoute
+    }
   }
 }
 
+interface AppRouteChildren {
+  AppBookingRoute: typeof AppBookingRoute
+  AppHangar3dRoute: typeof AppHangar3dRoute
+  AppMaintenanceRoute: typeof AppMaintenanceRoute
+  AppMarsRadarRoute: typeof AppMarsRadarRoute
+  AppIndexRoute: typeof AppIndexRoute
+}
+
+const AppRouteChildren: AppRouteChildren = {
+  AppBookingRoute: AppBookingRoute,
+  AppHangar3dRoute: AppHangar3dRoute,
+  AppMaintenanceRoute: AppMaintenanceRoute,
+  AppMarsRadarRoute: AppMarsRadarRoute,
+  AppIndexRoute: AppIndexRoute,
+}
+
+const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AppRoute: AppRouteWithChildren,
   LoginRoute: LoginRoute,
   PainelRoute: PainelRoute,
 }
