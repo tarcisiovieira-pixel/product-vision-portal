@@ -1,0 +1,19 @@
+# Blueprint do Render — só a API. O front é publicado pelo Lovable.
+services:
+  - type: web
+    name: ares-api
+    runtime: node
+    rootDir: backend
+    buildCommand: npm ci && npm run build
+    startCommand: npm start
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_PUBLISHABLE_KEY
+        sync: false
+      - key: CORS_ORIGINS
+        sync: false # URL(s) do front no Lovable, separadas por vírgula
