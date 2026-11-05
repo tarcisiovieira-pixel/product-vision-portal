@@ -16,9 +16,7 @@ jobs:
           cache: npm
       - run: npm install --no-audit --no-fund
       - run: npm run typecheck
-        continue-on-error: true # TODO Fase 2: remover quando tsc zerar
       - run: npm run lint
-        continue-on-error: true # TODO Fase 2: remover quando eslint zerar
       - run: npm test
       - run: npm run build
 

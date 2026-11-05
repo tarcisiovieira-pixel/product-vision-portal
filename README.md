@@ -38,16 +38,18 @@ Tela (Lovable)  ──►  API própria (Render)  ──►  Banco Supabase
 - [x] **Scripts novos:** `npm run typecheck` e `npm run check`
 - [x] **Testes mais limpos** (sem o ruído do canvas)
 - [x] **API nova criada** em `backend/` (Fastify): validação de configuração, headers de segurança, CORS restrito, limite de requisições, login por token do Supabase, `/health` e `/v1/me`, com 8 testes
+- [x] **Fase 2 concluída:** 0 erros de tipo (eram 115) e 0 erros de lint (eram 6.560). Corrigidos bugs reais: `navigate` inexistente em `app.booking` (quebrava ao abrir o voo 3D), hooks chamados fora de ordem em 4 telas, `.catch` inexistente em chamadas do Supabase, dados demo fora do formato do banco
+- [x] **Servidor antigo (Express) removido**
 - [x] **Arquivo de deploy do Render** (`render.yaml`) e **CI** no GitHub (`.github/workflows/ci.yml`)
 
 ## 4. O que falta fazer 🔜
 
 Em ordem de prioridade:
 
-1. **Corrigir erros de código (Fase 2)** — zerar os 115 erros de tipo e os 5 bugs de "hooks" do React. Depois disso o CI passa a ser obrigatório.
+1. ~~Corrigir erros de código (Fase 2)~~ ✅ feito. O CI agora é estrito.
 2. **Fechar as brechas do banco (Fase 3)** — nova migration para: tirar o acesso anônimo da telemetria, limitar quem edita rotas e manutenção, remover função duplicada de reserva.
 3. **Mover as regras para a API** — um fluxo por vez: reservas → manutenção → marketplace. A tela passa a chamar a API.
-4. **Apagar o servidor antigo (Express)** em `server/`, depois que a API nova cobrir as rotas.
+4. ~~Apagar o servidor antigo (Express)~~ ✅ feito.
 5. **Modo demo seguro** — trocar o "login falso no navegador" por um usuário demo de verdade no Supabase.
 6. **Visual novo (Fase 4)** — design system, animações, 3D com pós-processamento, landing e login cinematográficos.
 7. **IA** — copiloto de bordo (GPS com assistente), relatórios e manutenção preditiva, sempre via API.
@@ -86,7 +88,6 @@ Teste rápido: abra `http://localhost:3001/health` — deve responder `{"status"
 npm run check            # front: tipos + lint + testes + build
 cd backend && npm run check   # API: tipos + testes + build
 ```
-> Hoje o `typecheck` e o `lint` do front ainda mostram erros. Isso é esperado e será corrigido na Fase 2.
 
 ## 7. Regras de trabalho (importante)
 
@@ -100,7 +101,6 @@ cd backend && npm run check   # API: tipos + testes + build
 ```
 src/          Front (telas, componentes, 3D)
 backend/      API Fastify (próprio package.json)
-server/       API antiga em Express — será removida
 supabase/     Migrations do banco
 docs/         Auditoria, decisões e plano
 scripts/      Utilitários de captura/teste com navegador
