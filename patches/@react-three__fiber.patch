@@ -1,0 +1,144 @@
+diff --git a/dist/events-0dab3c53.cjs.dev.js b/dist/events-0dab3c53.cjs.dev.js
+index 705fbd514d4207a07fb3c6c28e631903746d5789..8f11e109225bddce7b6e978f83d1485deae9c02c 100644
+--- a/dist/events-0dab3c53.cjs.dev.js
++++ b/dist/events-0dab3c53.cjs.dev.js
+@@ -280,7 +280,7 @@ const REACT_INTERNAL_PROPS = ['children', 'key', 'ref'];
+ function getInstanceProps(pendingProps) {
+   const props = {};
+   for (const key in pendingProps) {
+-    if (!REACT_INTERNAL_PROPS.includes(key)) props[key] = pendingProps[key];
++    if (!REACT_INTERNAL_PROPS.includes(key) && !key.startsWith('data-')) props[key] = pendingProps[key];
+   }
+   return props;
+ }
+@@ -309,6 +309,7 @@ function prepare(target, root, type, props) {
+   return instance;
+ }
+ function resolve(root, key) {
++  if (typeof key === 'string' && key.startsWith('data-')) return { root, key, target: undefined };
+   if (!key.includes('-')) return {
+     root,
+     key,
+@@ -421,7 +422,7 @@ function diffProps(instance, newProps) {
+   // Sort through props
+   for (const prop in newProps) {
+     // Skip reserved keys
+-    if (RESERVED_PROPS.includes(prop)) continue;
++    if (RESERVED_PROPS.includes(prop) || (typeof prop === 'string' && prop.startsWith('data-'))) continue;
+     // Skip if props match
+     if (is.equ(newProps[prop], instance.props[prop])) continue;
+ 
+@@ -473,7 +474,7 @@ function applyProps(object, props) {
+     let value = props[prop];
+ 
+     // Don't mutate reserved keys
+-    if (RESERVED_PROPS.includes(prop)) continue;
++    if (RESERVED_PROPS.includes(prop) || (typeof prop === 'string' && prop.startsWith('data-'))) continue;
+ 
+     // Deal with pointer events, including removing them if undefined
+     if (instance && EVENT_REGEX.test(prop)) {
+@@ -498,7 +499,7 @@ function applyProps(object, props) {
+     } = resolve(object, prop);
+ 
+     // Throw an error if we attempted to set a pierced prop to a non-object
+-    if (target === undefined && (typeof root !== 'object' || root === null)) {
++    if (target === undefined && (typeof root !== 'object' || root === null) && (!prop || !prop.startsWith('data-'))) {
+       throw Error(`R3F: Cannot set "${prop}". Ensure it is an object before setting "${key}".`);
+     }
+ 
+diff --git a/dist/events-98e95d43.cjs.prod.js b/dist/events-98e95d43.cjs.prod.js
+index c265e9e358f1fd6d7155216b013471ab445b9ce4..e22b9315a521ed1c14649ad891a365e735902c8d 100644
+--- a/dist/events-98e95d43.cjs.prod.js
++++ b/dist/events-98e95d43.cjs.prod.js
+@@ -280,7 +280,7 @@ const REACT_INTERNAL_PROPS = ['children', 'key', 'ref'];
+ function getInstanceProps(pendingProps) {
+   const props = {};
+   for (const key in pendingProps) {
+-    if (!REACT_INTERNAL_PROPS.includes(key)) props[key] = pendingProps[key];
++    if (!REACT_INTERNAL_PROPS.includes(key) && !key.startsWith('data-')) props[key] = pendingProps[key];
+   }
+   return props;
+ }
+@@ -309,6 +309,7 @@ function prepare(target, root, type, props) {
+   return instance;
+ }
+ function resolve(root, key) {
++  if (typeof key === 'string' && key.startsWith('data-')) return { root, key, target: undefined };
+   if (!key.includes('-')) return {
+     root,
+     key,
+@@ -421,7 +422,7 @@ function diffProps(instance, newProps) {
+   // Sort through props
+   for (const prop in newProps) {
+     // Skip reserved keys
+-    if (RESERVED_PROPS.includes(prop)) continue;
++    if (RESERVED_PROPS.includes(prop) || (typeof prop === 'string' && prop.startsWith('data-'))) continue;
+     // Skip if props match
+     if (is.equ(newProps[prop], instance.props[prop])) continue;
+ 
+@@ -473,7 +474,7 @@ function applyProps(object, props) {
+     let value = props[prop];
+ 
+     // Don't mutate reserved keys
+-    if (RESERVED_PROPS.includes(prop)) continue;
++    if (RESERVED_PROPS.includes(prop) || (typeof prop === 'string' && prop.startsWith('data-'))) continue;
+ 
+     // Deal with pointer events, including removing them if undefined
+     if (instance && EVENT_REGEX.test(prop)) {
+@@ -498,7 +499,7 @@ function applyProps(object, props) {
+     } = resolve(object, prop);
+ 
+     // Throw an error if we attempted to set a pierced prop to a non-object
+-    if (target === undefined && (typeof root !== 'object' || root === null)) {
++    if (target === undefined && (typeof root !== 'object' || root === null) && (!prop || !prop.startsWith('data-'))) {
+       throw Error(`R3F: Cannot set "${prop}". Ensure it is an object before setting "${key}".`);
+     }
+ 
+diff --git a/dist/events-e51d7528.esm.js b/dist/events-e51d7528.esm.js
+index 6c801a280936890feb78c502a0bf47cd2b478e15..36d7e473d7f82c5d4c0a5136fe7bed309563d9bb 100644
+--- a/dist/events-e51d7528.esm.js
++++ b/dist/events-e51d7528.esm.js
+@@ -255,7 +255,7 @@ const REACT_INTERNAL_PROPS = ['children', 'key', 'ref'];
+ function getInstanceProps(pendingProps) {
+   const props = {};
+   for (const key in pendingProps) {
+-    if (!REACT_INTERNAL_PROPS.includes(key)) props[key] = pendingProps[key];
++    if (!REACT_INTERNAL_PROPS.includes(key) && !key.startsWith('data-')) props[key] = pendingProps[key];
+   }
+   return props;
+ }
+@@ -284,6 +284,7 @@ function prepare(target, root, type, props) {
+   return instance;
+ }
+ function resolve(root, key) {
++  if (typeof key === 'string' && key.startsWith('data-')) return { root, key, target: undefined };
+   if (!key.includes('-')) return {
+     root,
+     key,
+@@ -396,7 +397,7 @@ function diffProps(instance, newProps) {
+   // Sort through props
+   for (const prop in newProps) {
+     // Skip reserved keys
+-    if (RESERVED_PROPS.includes(prop)) continue;
++    if (RESERVED_PROPS.includes(prop) || (typeof prop === 'string' && prop.startsWith('data-'))) continue;
+     // Skip if props match
+     if (is.equ(newProps[prop], instance.props[prop])) continue;
+ 
+@@ -448,7 +449,7 @@ function applyProps(object, props) {
+     let value = props[prop];
+ 
+     // Don't mutate reserved keys
+-    if (RESERVED_PROPS.includes(prop)) continue;
++    if (RESERVED_PROPS.includes(prop) || (typeof prop === 'string' && prop.startsWith('data-'))) continue;
+ 
+     // Deal with pointer events, including removing them if undefined
+     if (instance && EVENT_REGEX.test(prop)) {
+@@ -473,7 +474,7 @@ function applyProps(object, props) {
+     } = resolve(object, prop);
+ 
+     // Throw an error if we attempted to set a pierced prop to a non-object
+-    if (target === undefined && (typeof root !== 'object' || root === null)) {
++    if (target === undefined && (typeof root !== 'object' || root === null) && (!prop || !prop.startsWith('data-'))) {
+       throw Error(`R3F: Cannot set "${prop}". Ensure it is an object before setting "${key}".`);
+     }
+ 

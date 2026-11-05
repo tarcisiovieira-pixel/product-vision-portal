@@ -12,4 +12,22 @@ export default defineConfig({
     // nitro/vite builds from this
     server: { entry: "server" },
   },
+  vite: {
+    plugins: [
+      {
+        name: "strip-r3f-data-tsd-source",
+        enforce: "pre",
+        transform(code: string, id: string) {
+          if (id.includes("node_modules")) return null;
+          if (!code.includes("data-tsd-")) return null;
+          return {
+            code: code
+              .replace(/\s+data-tsd-[a-z]+=(?:\{[^}]*\}|"[^"]*"|'[^']*')/g, "")
+              .replace(/(["'])data-tsd-[a-z]+\1\s*:\s*(?:\{[^}]*\}|"[^"]*"|'[^']*'|[^,}\n]+),?/g, ""),
+            map: null,
+          };
+        },
+      },
+    ],
+  },
 });
