@@ -17,7 +17,9 @@ import { Route as AppIndexRouteImport } from './routes/app.index'
 import { Route as AppBookingRouteImport } from './routes/app.booking'
 import { Route as AppHangar3dRouteImport } from './routes/app.hangar-3d'
 import { Route as AppMaintenanceRouteImport } from './routes/app.maintenance'
+import { Route as AppMarketplaceRouteImport } from './routes/app.marketplace'
 import { Route as AppMarsRadarRouteImport } from './routes/app.mars-radar'
+import { Route as AppMyRentalsRouteImport } from './routes/app.my-rentals'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -59,9 +61,19 @@ const AppMaintenanceRoute = AppMaintenanceRouteImport.update({
   path: '/maintenance',
   getParentRoute: () => AppRoute,
 } as any)
+const AppMarketplaceRoute = AppMarketplaceRouteImport.update({
+  id: '/marketplace',
+  path: '/marketplace',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppMarsRadarRoute = AppMarsRadarRouteImport.update({
   id: '/mars-radar',
   path: '/mars-radar',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppMyRentalsRoute = AppMyRentalsRouteImport.update({
+  id: '/my-rentals',
+  path: '/my-rentals',
   getParentRoute: () => AppRoute,
 } as any)
 
@@ -73,7 +85,9 @@ export interface FileRoutesByFullPath {
   '/app/booking': typeof AppBookingRoute
   '/app/hangar-3d': typeof AppHangar3dRoute
   '/app/maintenance': typeof AppMaintenanceRoute
+  '/app/marketplace': typeof AppMarketplaceRoute
   '/app/mars-radar': typeof AppMarsRadarRoute
+  '/app/my-rentals': typeof AppMyRentalsRoute
   '/app/': typeof AppIndexRoute
 }
 export interface FileRoutesByTo {
@@ -83,7 +97,9 @@ export interface FileRoutesByTo {
   '/app/booking': typeof AppBookingRoute
   '/app/hangar-3d': typeof AppHangar3dRoute
   '/app/maintenance': typeof AppMaintenanceRoute
+  '/app/marketplace': typeof AppMarketplaceRoute
   '/app/mars-radar': typeof AppMarsRadarRoute
+  '/app/my-rentals': typeof AppMyRentalsRoute
   '/app': typeof AppIndexRoute
 }
 export interface FileRoutesById {
@@ -95,7 +111,9 @@ export interface FileRoutesById {
   '/app/booking': typeof AppBookingRoute
   '/app/hangar-3d': typeof AppHangar3dRoute
   '/app/maintenance': typeof AppMaintenanceRoute
+  '/app/marketplace': typeof AppMarketplaceRoute
   '/app/mars-radar': typeof AppMarsRadarRoute
+  '/app/my-rentals': typeof AppMyRentalsRoute
   '/app/': typeof AppIndexRoute
 }
 export interface FileRouteTypes {
@@ -108,7 +126,9 @@ export interface FileRouteTypes {
     | '/app/booking'
     | '/app/hangar-3d'
     | '/app/maintenance'
+    | '/app/marketplace'
     | '/app/mars-radar'
+    | '/app/my-rentals'
     | '/app/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -118,7 +138,9 @@ export interface FileRouteTypes {
     | '/app/booking'
     | '/app/hangar-3d'
     | '/app/maintenance'
+    | '/app/marketplace'
     | '/app/mars-radar'
+    | '/app/my-rentals'
     | '/app'
   id:
     | '__root__'
@@ -129,7 +151,9 @@ export interface FileRouteTypes {
     | '/app/booking'
     | '/app/hangar-3d'
     | '/app/maintenance'
+    | '/app/marketplace'
     | '/app/mars-radar'
+    | '/app/my-rentals'
     | '/app/'
   fileRoutesById: FileRoutesById
 }
@@ -198,11 +222,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppMaintenanceRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/marketplace': {
+      id: '/app/marketplace'
+      path: '/marketplace'
+      fullPath: '/app/marketplace'
+      preLoaderRoute: typeof AppMarketplaceRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/mars-radar': {
       id: '/app/mars-radar'
       path: '/mars-radar'
       fullPath: '/app/mars-radar'
       preLoaderRoute: typeof AppMarsRadarRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/my-rentals': {
+      id: '/app/my-rentals'
+      path: '/my-rentals'
+      fullPath: '/app/my-rentals'
+      preLoaderRoute: typeof AppMyRentalsRouteImport
       parentRoute: typeof AppRoute
     }
   }
@@ -212,7 +250,9 @@ interface AppRouteChildren {
   AppBookingRoute: typeof AppBookingRoute
   AppHangar3dRoute: typeof AppHangar3dRoute
   AppMaintenanceRoute: typeof AppMaintenanceRoute
+  AppMarketplaceRoute: typeof AppMarketplaceRoute
   AppMarsRadarRoute: typeof AppMarsRadarRoute
+  AppMyRentalsRoute: typeof AppMyRentalsRoute
   AppIndexRoute: typeof AppIndexRoute
 }
 
@@ -220,7 +260,9 @@ const AppRouteChildren: AppRouteChildren = {
   AppBookingRoute: AppBookingRoute,
   AppHangar3dRoute: AppHangar3dRoute,
   AppMaintenanceRoute: AppMaintenanceRoute,
+  AppMarketplaceRoute: AppMarketplaceRoute,
   AppMarsRadarRoute: AppMarsRadarRoute,
+  AppMyRentalsRoute: AppMyRentalsRoute,
   AppIndexRoute: AppIndexRoute,
 }
 

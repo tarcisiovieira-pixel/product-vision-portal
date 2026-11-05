@@ -1,13 +1,24 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { lazy, Suspense, useState } from "react";
+import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
+import { lazy, Suspense, useState, useEffect } from "react";
 import { ClientOnly } from "@tanstack/react-router";
 import { motion } from "framer-motion";
-import { Fingerprint, Lock, Mail, ShieldCheck } from "lucide-react";
+import { AlertCircle, Fingerprint, Lock, Mail, ShieldCheck, Zap } from "lucide-react";
+import { toast } from "sonner";
 import { AresLogo } from "@/components/AresLogo";
+import { supabase } from "@/integrations/supabase/client";
 
 const MarsGlobe = lazy(() => import("@/components/MarsGlobe"));
 
 export const Route = createFileRoute("/login")({
+  beforeLoad: async () => {
+    if (typeof window !== "undefined" && localStorage.getItem("ares_demo_session")) {
+      throw redirect({ to: "/app/booking" });
+    }
+    const { data: sessionData } = await supabase.auth.getSession();
+    if (sessionData?.session) {
+      throw redirect({ to: "/app/booking" });
+    }
+  },
   head: () => ({
     meta: [
       { title: "Acesso do Colono — ARES Mobility" },
@@ -21,18 +32,154 @@ export const Route = createFileRoute("/login")({
   component: Login,
 });
 
-const licenses = ["Atmosférico", "Carga Pesada", "Orbital"] as const;
+const licenses = [
+  { id: "atmospheric", label: "Atmosférico" },
+  { id: "heavy_cargo", label: "Carga Pesada" },
+  { id: "orbital", label: "Orbital" },
+] as const;
+
+type PilotLicenseType = (typeof licenses)[number]["id"];
+
+const DEMO_EMAIL = "demo@aresmobility.com";
+const DEMO_PASSWORD = "DemoMars#2026";
 
 function Login() {
   const nav = useNavigate();
   const [mode, setMode] = useState<"in" | "up">("in");
-  const [license, setLicense] = useState<(typeof licenses)[number]>("Atmosférico");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [credentialId, setCredentialId] = useState("");
+  const [license, setLicense] = useState<PilotLicenseType>("atmospheric");
   const [loading, setLoading] = useState(false);
+  const [authError, setAuthError] = useState<string | null>(null);
 
-  const submit = (e: React.FormEvent) => {
+  // Checa se já existe sessão no cliente
+  useEffect(() => {
+    if (typeof window !== "undefined" && localStorage.getItem("ares_demo_session")) {
+      nav({ to: "/app/booking", replace: true });
+      return;
+    }
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) {
+        nav({ to: "/app/booking", replace: true });
+      }
+    });
+  }, [nav]);
+
+  const handleDemoAccess = async () => {
+    setLoading(true);
+    setAuthError(null);
+    try {
+      // 1. Tentar login direto via Supabase Auth com timeout resiliente de 2.5s
+      const signInPromise = supabase.auth.signInWithPassword({
+        email: DEMO_EMAIL,
+        password: DEMO_PASSWORD,
+      });
+      const timeoutPromise = new Promise<{ data: any; error: any }>((_, reject) =>
+        setTimeout(() => reject(new Error("Supabase timeout")), 2500),
+      );
+      const { data: signInData, error: signInError } = (await Promise.race([
+        signInPromise,
+        timeoutPromise,
+      ])) as any;
+
+      if (!signInError && signInData?.session) {
+        if (typeof window !== "undefined") {
+          localStorage.removeItem("ares_demo_session");
+        }
+        toast.success("Acesso Demo liberado via Supabase! Bem-vindo a Marte, Comandante.");
+        await nav({ to: "/app/booking", replace: true });
+        return;
+      }
+    } catch {
+      // continua para fallback resiliente instantâneo
+    }
+
+    // 2. Fallback resiliente: Login instantâneo independente de confirmação de e-mail ou limites SMTP
+    const demoProfile = {
+      id: "00000000-0000-0000-0000-000000000001",
+      user_id: "demo-commander-ares",
+      space_credential_id: "ARS-DEMO-01",
+      pilot_license: "orbital" as PilotLicenseType,
+      martian_credits: 25000,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+    if (typeof window !== "undefined") {
+      localStorage.setItem("ares_demo_session", JSON.stringify(demoProfile));
+    }
+    toast.success("Acesso Demo liberado! Bem-vindo a Marte, Comandante.", {
+      description: "Credencial ARS-DEMO-01 ativa · Licença Orbital · MC$ 25.000",
+    });
+    await nav({ to: "/app/booking", replace: true });
+    setLoading(false);
+  };
+
+  const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setTimeout(() => nav({ to: "/painel" }), 1200);
+    setAuthError(null);
+
+    try {
+      if (mode === "in") {
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email: email.trim(),
+          password,
+        });
+
+        if (error) {
+          throw error;
+        }
+
+        if (data.session) {
+          if (typeof window !== "undefined") {
+            localStorage.removeItem("ares_demo_session");
+          }
+          toast.success("Sessão orbital iniciada!");
+          await nav({ to: "/app/booking", replace: true });
+        }
+      } else {
+        const autoCredId = credentialId.trim() || `ARS-${Math.floor(1000 + Math.random() * 9000)}-EXP`;
+        const { data, error } = await supabase.auth.signUp({
+          email: email.trim(),
+          password,
+          options: {
+            data: {
+              space_credential_id: autoCredId,
+              pilot_license: license,
+            },
+          },
+        });
+
+        if (error) {
+          throw error;
+        }
+
+        if (data.session) {
+          if (typeof window !== "undefined") {
+            localStorage.removeItem("ares_demo_session");
+          }
+          toast.success("Credencial registrada com sucesso! 25.000 créditos liberados.");
+          await nav({ to: "/app/booking", replace: true });
+        } else {
+          toast.success("Credencial criada com sucesso!");
+          toast.info("Confirmação de e-mail ativa no Supabase. Para entrar agora sem aguardar confirmação, utilize o botão 'Acesso Rápido Demo'.");
+          setMode("in");
+        }
+      }
+    } catch (err: any) {
+      console.error("Auth error:", err);
+      let message = err.message || "Erro na autenticação. Verifique os dados inseridos.";
+      if (message.toLowerCase().includes("email not confirmed")) {
+        message = "Confirmação de e-mail pendente no Supabase. Dica: use o botão 'Acesso Rápido Demo' acima para testar imediatamente, ou confirme o link no seu e-mail / desative 'Confirm email' no painel Supabase (Authentication > Providers > Email).";
+      } else if (message.toLowerCase().includes("invalid login credentials")) {
+        message = "Credenciais inválidas. Verifique seu e-mail e senha de acesso.";
+      }
+      setAuthError(message);
+      toast.error("Falha na autenticação", { description: message });
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -65,53 +212,154 @@ function Login() {
           {mode === "in" ? "Bem-vindo de volta, colono." : "Registrar credencial"}
         </h1>
 
-        <div className="mt-8 grid grid-cols-2 border">
-          {(["in", "up"] as const).map((m) => (
-            <button key={m} onClick={() => setMode(m)} className={`py-2 text-sm uppercase tracking-widest transition ${mode === m ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}>
-              {m === "in" ? "Entrar" : "Cadastrar"}
-            </button>
-          ))}
+        {/* Abas Entrar / Cadastrar */}
+        <div className="mt-6 grid grid-cols-2 gap-2 border-b border-border/50 pb-2">
+          <button
+            type="button"
+            onClick={() => { setMode("in"); setAuthError(null); }}
+            className={`py-2 text-center font-mono text-xs uppercase tracking-wider transition ${
+              mode === "in" ? "border-b-2 border-primary font-bold text-primary" : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            Entrar
+          </button>
+          <button
+            type="button"
+            onClick={() => { setMode("up"); setAuthError(null); }}
+            className={`py-2 text-center font-mono text-xs uppercase tracking-wider transition ${
+              mode === "up" ? "border-b-2 border-primary font-bold text-primary" : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            Cadastrar
+          </button>
         </div>
 
-        <form onSubmit={submit} className="mt-8 space-y-4">
-          {mode === "up" && (
-            <Field icon={Fingerprint} label="ID de credencial espacial" placeholder="ARS-0000-XXXX" />
-          )}
-          <Field icon={Mail} label="E-mail" type="email" placeholder="colono@jezero.mars" />
-          <Field icon={Lock} label="Senha" type="password" placeholder="••••••••" />
+        {/* Botão de Acesso Rápido Demo */}
+        <div className="mt-4">
+          <button
+            type="button"
+            disabled={loading}
+            onClick={handleDemoAccess}
+            className="cut-corner group flex w-full items-center justify-center gap-2 border border-telemetry/60 bg-telemetry/10 py-3.5 font-mono text-xs font-semibold uppercase tracking-widest text-telemetry transition-all hover:bg-telemetry/20 hover:shadow-[0_0_20px_rgba(34,211,238,0.3)] disabled:opacity-50"
+          >
+            <Zap className="h-4 w-4 text-telemetry transition-transform group-hover:scale-110" />
+            <span>Acesso Rápido Demo</span>
+            <span className="text-[10px] text-telemetry/70">(Sem cadastro)</span>
+          </button>
+          <div className="mt-2 text-center">
+            <span className="font-mono text-[10px] text-muted-foreground">ou utilize suas credenciais espaciais abaixo</span>
+          </div>
+        </div>
+
+        {authError && (
+          <div className="mt-4 flex items-start gap-2 border border-destructive/50 bg-destructive/10 p-3 font-mono text-xs text-destructive">
+            <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+            <div className="space-y-1">
+              <p className="font-semibold">Falha de Autorização</p>
+              <p className="text-[11px] leading-relaxed">{authError}</p>
+            </div>
+          </div>
+        )}
+
+        <form onSubmit={submit} className="mt-6 space-y-4 font-mono text-xs">
+          <div>
+            <label className="text-muted-foreground">E-MAIL DO COLONO</label>
+            <div className="mt-1.5 flex items-center border bg-background/50 px-3">
+              <Mail className="h-4 w-4 text-muted-foreground" />
+              <input
+                type="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="colono@jezero.mars"
+                className="w-full bg-transparent p-2 text-foreground focus:outline-none"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="text-muted-foreground">CÓDIGO DE ACESSO</label>
+            <div className="mt-1.5 flex items-center border bg-background/50 px-3">
+              <Lock className="h-4 w-4 text-muted-foreground" />
+              <input
+                type="password"
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••••••"
+                className="w-full bg-transparent p-2 text-foreground focus:outline-none"
+              />
+            </div>
+          </div>
 
           {mode === "up" && (
-            <div>
-              <p className="mb-2 font-mono text-xs uppercase tracking-widest text-muted-foreground">Habilitação de piloto</p>
-              <div className="grid grid-cols-3 gap-2">
-                {licenses.map((l) => (
-                  <button type="button" key={l} onClick={() => setLicense(l)} className={`border px-2 py-2 text-xs transition ${license === l ? "border-telemetry text-telemetry" : "text-muted-foreground"}`}>
-                    {l}
-                  </button>
-                ))}
+            <div className="space-y-4">
+              <div>
+                <label className="text-muted-foreground">ID DA CREDENCIAL ESPACIAL (OPCIONAL)</label>
+                <div className="mt-1.5 flex items-center border bg-background/50 px-3">
+                  <Fingerprint className="h-4 w-4 text-muted-foreground" />
+                  <input
+                    type="text"
+                    value={credentialId}
+                    onChange={(e) => setCredentialId(e.target.value)}
+                    placeholder="ARS-4218-XXXX"
+                    className="w-full bg-transparent p-2 text-foreground uppercase focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="text-muted-foreground">Habilitação de piloto</label>
+                <div className="mt-1.5 grid grid-cols-3 gap-2">
+                  {licenses.map((lic) => (
+                    <button
+                      key={lic.id}
+                      type="button"
+                      onClick={() => setLicense(lic.id)}
+                      className={`border p-2 text-center text-[11px] uppercase transition ${
+                        license === lic.id ? "border-primary bg-primary/20 text-primary font-bold" : "text-muted-foreground hover:border-muted-foreground"
+                      }`}
+                    >
+                      {lic.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 border border-telemetry/40 bg-telemetry/5 p-3 text-[11px] text-telemetry">
+                <ShieldCheck className="h-4 w-4 shrink-0" />
+                <span>Bônus inaugural: 25.000 Créditos Marcianos creditados na ativação da credencial.</span>
               </div>
             </div>
           )}
 
-          <button disabled={loading} className="cut-corner mt-4 flex w-full items-center justify-center gap-2 bg-mars-gradient py-4 font-semibold uppercase tracking-widest text-primary-foreground shadow-glow disabled:opacity-70">
-            <ShieldCheck className="h-5 w-5" />
-            {loading ? "Sincronizando com a órbita..." : mode === "in" ? "Iniciar sessão" : "Criar credencial"}
+          <button
+            type="submit"
+            disabled={loading}
+            className="cut-corner mt-4 w-full bg-mars-gradient py-3.5 font-sans font-semibold uppercase tracking-widest text-primary-foreground shadow-glow disabled:opacity-50"
+          >
+            {loading ? "Sincronizando com Jezero..." : mode === "in" ? "Acessar Terminal" : "Emitir Credencial"}
           </button>
         </form>
-        <p className="mt-8 font-mono text-[10px] text-muted-foreground">CANAL CRIPTOGRAFADO · LATÊNCIA TERRA 14m 02s</p>
+
+        <div className="mt-6 flex items-center justify-between font-mono text-xs text-muted-foreground">
+          {mode === "in" ? (
+            <>
+              <span>Primeiro ciclo em Marte?</span>
+              <button onClick={() => { setMode("up"); setAuthError(null); }} className="text-primary hover:underline">
+                Criar credencial
+              </button>
+            </>
+          ) : (
+            <>
+              <span>Já possui credencial?</span>
+              <button onClick={() => { setMode("in"); setAuthError(null); }} className="text-primary hover:underline">
+                Acessar terminal
+              </button>
+            </>
+          )}
+        </div>
       </motion.div>
     </div>
-  );
-}
-
-function Field({ icon: Icon, label, ...props }: { icon: typeof Mail; label: string } & React.InputHTMLAttributes<HTMLInputElement>) {
-  return (
-    <label className="block">
-      <span className="mb-2 block font-mono text-xs uppercase tracking-widest text-muted-foreground">{label}</span>
-      <div className="flex items-center gap-3 border bg-background/50 px-3 focus-within:border-primary">
-        <Icon className="h-4 w-4 text-muted-foreground" />
-        <input required {...props} className="w-full bg-transparent py-3 font-mono text-sm outline-none placeholder:text-muted-foreground/50" />
-      </div>
-    </label>
   );
 }
