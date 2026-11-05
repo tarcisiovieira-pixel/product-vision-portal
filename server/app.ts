@@ -12,8 +12,15 @@ import {
 } from "../src/lib/ares-seed-data";
 
 // Configuração do Supabase Client Seguro no Backend
-const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || "https://qxlzdpahifwiyzmxlpef.supabase.co";
-const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_PUBLISHABLE_KEY || process.env.VITE_SUPABASE_PUBLISHABLE_KEY || "sb_publishable_v14V2TJpZxGcSSaDY-_B1A_014sG4c9";
+const SUPABASE_URL =
+  process.env.SUPABASE_URL ||
+  process.env.VITE_SUPABASE_URL ||
+  "https://qxlzdpahifwiyzmxlpef.supabase.co";
+const SUPABASE_KEY =
+  process.env.SUPABASE_SERVICE_ROLE_KEY ||
+  process.env.SUPABASE_PUBLISHABLE_KEY ||
+  process.env.VITE_SUPABASE_PUBLISHABLE_KEY ||
+  "sb_publishable_v14V2TJpZxGcSSaDY-_B1A_014sG4c9";
 
 export const supabaseServer = createClient(SUPABASE_URL, SUPABASE_KEY, {
   auth: { persistSession: false, autoRefreshToken: false },
@@ -38,7 +45,11 @@ export function createApp() {
     cors({
       origin: (origin, callback) => {
         // Permite requisições sem origin (ex: mobile apps, curl, testes) ou origens permitidas
-        if (!origin || /^http:\/\/localhost:(8080|3000|5173|3001)$/.test(origin) || /^http:\/\/127\.0\.0\.1:(8080|3000|5173|3001)$/.test(origin)) {
+        if (
+          !origin ||
+          /^http:\/\/localhost:(8080|3000|5173|3001)$/.test(origin) ||
+          /^http:\/\/127\.0\.0\.1:(8080|3000|5173|3001)$/.test(origin)
+        ) {
           callback(null, true);
         } else {
           callback(new Error("Bloqueado por política CORS do ARES Backend"));
@@ -59,7 +70,9 @@ export function createApp() {
     limit: 150,
     standardHeaders: "draft-7",
     legacyHeaders: false,
-    message: { error: "Muitas requisições originadas deste IP. Limite de tráfego espacial atingido." },
+    message: {
+      error: "Muitas requisições originadas deste IP. Limite de tráfego espacial atingido.",
+    },
   });
 
   const authLimiter = rateLimit({
@@ -153,7 +166,11 @@ export function createApp() {
 
     const token = authHeader.replace("Bearer ", "").trim();
     if (token === "demo-jwt-martian-token-validated") {
-      return res.json({ authenticated: true, user: { email: "demo@aresmobility.com" }, profile: DEMO_PROFILE });
+      return res.json({
+        authenticated: true,
+        user: { email: "demo@aresmobility.com" },
+        profile: DEMO_PROFILE,
+      });
     }
 
     try {
@@ -220,10 +237,14 @@ export function createApp() {
 
     // 1. Validação de Parâmetros
     if (!vehicle_id || !pickup_hangar_id || !dropoff_hangar_id) {
-      return res.status(400).json({ error: "Parâmetros incompletos (veículo e hangares são obrigatórios)." });
+      return res
+        .status(400)
+        .json({ error: "Parâmetros incompletos (veículo e hangares são obrigatórios)." });
     }
     if (typeof start_sol !== "number" || typeof end_sol !== "number" || end_sol <= start_sol) {
-      return res.status(400).json({ error: "Período inválido: sol final deve ser estritamente maior que o inicial." });
+      return res
+        .status(400)
+        .json({ error: "Período inválido: sol final deve ser estritamente maior que o inicial." });
     }
 
     const veh = memoryVehicles.find((v) => v.id === vehicle_id);
@@ -233,10 +254,14 @@ export function createApp() {
 
     // 2. Validação de Licença de Piloto no Backend
     if (veh.category === "interplanetary_rocket" && user_license !== "orbital") {
-      return res.status(403).json({ error: "Habilitação insuficiente! Foguetes exigem licença Orbital." });
+      return res
+        .status(403)
+        .json({ error: "Habilitação insuficiente! Foguetes exigem licença Orbital." });
     }
     if (veh.category === "space_truck" && !["heavy_cargo", "orbital"].includes(user_license)) {
-      return res.status(403).json({ error: "Habilitação insuficiente! Caminhões Espaciais exigem Carga Pesada ou Orbital." });
+      return res.status(403).json({
+        error: "Habilitação insuficiente! Caminhões Espaciais exigem Carga Pesada ou Orbital.",
+      });
     }
 
     // 3. Cálculo de Tarifa e Adicionais
@@ -312,7 +337,12 @@ export function createApp() {
     rental.end_sol = (rental.end_sol ?? rental.start_sol) + 1;
     rental.total_credits = Number(rental.total_credits) + extraDaily;
 
-    return res.json({ success: true, rental, newEndSol: rental.end_sol, newTotal: rental.total_credits });
+    return res.json({
+      success: true,
+      rental,
+      newEndSol: rental.end_sol,
+      newTotal: rental.total_credits,
+    });
   });
 
   // Cancelar Reserva
@@ -323,7 +353,9 @@ export function createApp() {
       return res.status(404).json({ error: "Reserva não encontrada." });
     }
     if (rental.status === "in_flight") {
-      return res.status(400).json({ error: "Não é possível cancelar uma espaçonave em voo orbital." });
+      return res
+        .status(400)
+        .json({ error: "Não é possível cancelar uma espaçonave em voo orbital." });
     }
 
     rental.status = "cancelled" as any;

@@ -16,7 +16,10 @@ async function capture() {
   await page.setViewport({ width: 1280, height: 900 });
 
   console.log("Navigating to /app/hangar-3d...");
-  await page.goto("http://localhost:8080/app/hangar-3d", { waitUntil: "domcontentloaded", timeout: 20000 });
+  await page.goto("http://localhost:8080/app/hangar-3d", {
+    waitUntil: "domcontentloaded",
+    timeout: 20000,
+  });
 
   await page.waitForSelector("::-p-text(APX-01)", { timeout: 10000 });
   console.log("Selecting APX-01...");

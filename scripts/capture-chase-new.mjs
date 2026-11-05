@@ -16,7 +16,9 @@ async function capture() {
   await page.setViewport({ width: 1280, height: 800 });
 
   await page.goto("http://localhost:8080/", { waitUntil: "domcontentloaded", timeout: 20000 });
-  const btn = await page.waitForSelector("button ::-p-text(Acompanhar Percurso 3D)", { timeout: 10000 });
+  const btn = await page.waitForSelector("button ::-p-text(Acompanhar Percurso 3D)", {
+    timeout: 10000,
+  });
   await btn.click();
 
   // Wait 3 seconds for 3D canvas rendering and shaders to stabilize

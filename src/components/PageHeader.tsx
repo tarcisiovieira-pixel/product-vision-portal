@@ -1,4 +1,12 @@
-export function PageHeader({ kicker, title, children }: { kicker: string; title: string; children?: React.ReactNode }) {
+export function PageHeader({
+  kicker,
+  title,
+  children,
+}: {
+  kicker: string;
+  title: string;
+  children?: React.ReactNode;
+}) {
   return (
     <div className="flex flex-wrap items-end justify-between gap-4">
       <div>
@@ -10,8 +18,15 @@ export function PageHeader({ kicker, title, children }: { kicker: string; title:
   );
 }
 
-export function Bar({ value, tone = "telemetry" }: { value: number; tone?: "telemetry" | "warning" | "destructive" }) {
-  const cls = tone === "warning" ? "bg-warning" : tone === "destructive" ? "bg-destructive" : "bg-telemetry";
+export function Bar({
+  value,
+  tone = "telemetry",
+}: {
+  value: number;
+  tone?: "telemetry" | "warning" | "destructive";
+}) {
+  const cls =
+    tone === "warning" ? "bg-warning" : tone === "destructive" ? "bg-destructive" : "bg-telemetry";
   return (
     <div className="h-1 bg-muted">
       <div className={`h-full ${cls}`} style={{ width: `${Math.max(0, Math.min(100, value))}%` }} />

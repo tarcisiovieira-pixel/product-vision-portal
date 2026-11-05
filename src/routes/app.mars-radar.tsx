@@ -20,7 +20,13 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/PageHeader";
-import { hangarsQuery, statusLabel, vehiclesQuery, weatherQuery, type Vehicle } from "@/lib/ares-data";
+import {
+  hangarsQuery,
+  statusLabel,
+  vehiclesQuery,
+  weatherQuery,
+  type Vehicle,
+} from "@/lib/ares-data";
 import { useLiveTelemetry } from "@/lib/telemetry-engine";
 import { FlightChaseViewer3D } from "@/components/FlightChaseViewer3D";
 
@@ -30,7 +36,10 @@ export const Route = createFileRoute("/app/mars-radar")({
   head: () => ({
     meta: [
       { title: "Radar Marte — Rastreamento 3D da Frota & Percurso — ARES Mobility" },
-      { name: "description", content: "Rastreamento GPS da frota e percurso 3D das naves em tempo real." },
+      {
+        name: "description",
+        content: "Rastreamento GPS da frota e percurso 3D das naves em tempo real.",
+      },
     ],
   }),
   loader: ({ context }) =>
@@ -39,7 +48,9 @@ export const Route = createFileRoute("/app/mars-radar")({
       context.queryClient.ensureQueryData(hangarsQuery),
       context.queryClient.ensureQueryData(weatherQuery),
     ]),
-  errorComponent: ({ error }) => <div className="p-10 text-destructive">{String((error as Error)?.message ?? error)}</div>,
+  errorComponent: ({ error }) => (
+    <div className="p-10 text-destructive">{String((error as Error)?.message ?? error)}</div>
+  ),
   component: MarsRadar,
 });
 
@@ -55,7 +66,11 @@ function MarsRadar() {
   const [chasingVehicle, setChasingVehicle] = useState<Vehicle | null>(null);
 
   // Motor de Telemetria ao Vivo
-  const { simulatedVehicles, simulatedStorms, activeAlerts } = useLiveTelemetry(vehicles, weather, hangars);
+  const { simulatedVehicles, simulatedStorms, activeAlerts } = useLiveTelemetry(
+    vehicles,
+    weather,
+    hangars,
+  );
 
   useEffect(() => {
     const ch = supabase
@@ -78,7 +93,8 @@ function MarsRadar() {
   const assignedHangar = hangars.find((h) => h.id === sel?.hangar_id);
 
   // Nave atualmente em voo ativo para o botão do cabeçalho
-  const activeInFlightCraft = simulatedVehicles.find((v) => v.status === "in_flight") || simulatedVehicles[1] || sel;
+  const activeInFlightCraft =
+    simulatedVehicles.find((v) => v.status === "in_flight") || simulatedVehicles[1] || sel;
 
   return (
     <div className="space-y-6 p-6 md:p-10">
@@ -88,8 +104,12 @@ function MarsRadar() {
             <Radio className="h-4 w-4 animate-pulse" />
             FREQUÊNCIA ORBITAL 1.420 GHz
           </span>
-          <span className={`flex items-center gap-2 font-mono text-xs ${live ? "text-telemetry" : "text-muted-foreground"}`}>
-            <span className={`h-2 w-2 rounded-full ${live ? "animate-pulse bg-telemetry" : "bg-muted-foreground"}`} />
+          <span
+            className={`flex items-center gap-2 font-mono text-xs ${live ? "text-telemetry" : "text-muted-foreground"}`}
+          >
+            <span
+              className={`h-2 w-2 rounded-full ${live ? "animate-pulse bg-telemetry" : "bg-muted-foreground"}`}
+            />
             {live ? "REDE REALTIME ONLINE" : "SIMULAÇÃO AREOGRÁFICA"}
           </span>
           <button
@@ -136,14 +156,17 @@ function MarsRadar() {
               selected={selected}
               onSelect={setSelected}
               onChaseVehicle={(v) => setChasingVehicle(v)}
-              onInspectHangar={(v) => navigate({ to: "/app/hangar-3d", search: { vehicleId: v.id } })}
+              onInspectHangar={(v) =>
+                navigate({ to: "/app/hangar-3d", search: { vehicleId: v.id } })
+              }
               onOpenMaintenance={() => navigate({ to: "/app/maintenance" })}
             />
           </Suspense>
 
           <div className="pointer-events-none absolute bottom-4 left-4 space-y-1 font-mono text-[10px] text-muted-foreground">
             <p className="flex items-center gap-1.5 text-telemetry">
-              <Zap className="h-3 w-3" /> TELEMETRIA AREOGRÁFICA COERENTE: NAVES DOCADAS EM HANGAR & VOO ORBITAL
+              <Zap className="h-3 w-3" /> TELEMETRIA AREOGRÁFICA COERENTE: NAVES DOCADAS EM HANGAR &
+              VOO ORBITAL
             </p>
             <p>CLIQUE EM QUALQUER NAVE NO GLOBO PARA SELEÇÃO E AÇÕES OPERACIONAIS</p>
           </div>
@@ -151,7 +174,9 @@ function MarsRadar() {
           <div className="absolute top-4 right-4 flex items-center gap-2 font-mono text-xs">
             <button
               type="button"
-              onClick={() => setChasingVehicle(sel.status === "in_flight" ? sel : activeInFlightCraft)}
+              onClick={() =>
+                setChasingVehicle(sel.status === "in_flight" ? sel : activeInFlightCraft)
+              }
               className="glass cut-corner flex items-center gap-1.5 border border-telemetry/60 px-3 py-1.5 text-telemetry hover:bg-telemetry/15 transition"
             >
               <Camera className="h-3.5 w-3.5" />
@@ -190,7 +215,10 @@ function MarsRadar() {
               {/* Informação de Localização Fisiográfica */}
               <div className="bg-background/60 p-2 border border-border/50 text-[11px] space-y-0.5">
                 <span className="text-muted-foreground block text-[10px] uppercase tracking-wider">
-                  {sel.status === "in_flight" ? "Trajetória Orbital" : "Base de Estacionamento / Garagem"}:
+                  {sel.status === "in_flight"
+                    ? "Trajetória Orbital"
+                    : "Base de Estacionamento / Garagem"}
+                  :
                 </span>
                 <span className="font-semibold text-foreground">
                   {sel.status === "in_flight"
@@ -210,13 +238,17 @@ function MarsRadar() {
                 <div>
                   <span className="text-muted-foreground">VELOCIDADE:</span>
                   <p className="font-bold text-foreground">
-                    {sel.status === "in_flight" ? `${sel.simSpeedKmh.toLocaleString("pt-BR")} km/h` : "0 km/h (Estática)"}
+                    {sel.status === "in_flight"
+                      ? `${sel.simSpeedKmh.toLocaleString("pt-BR")} km/h`
+                      : "0 km/h (Estática)"}
                   </p>
                 </div>
                 <div>
                   <span className="text-muted-foreground">ALTITUDE:</span>
                   <p className="font-bold text-primary">
-                    {sel.status === "in_flight" ? `${sel.simAltitudeKm.toFixed(1)} km` : "0.0 km (Solo)"}
+                    {sel.status === "in_flight"
+                      ? `${sel.simAltitudeKm.toFixed(1)} km`
+                      : "0.0 km (Solo)"}
                   </p>
                 </div>
                 <div>
@@ -229,7 +261,11 @@ function MarsRadar() {
                 </div>
                 <div>
                   <span className="text-muted-foreground">FILTRO SÍLICA:</span>
-                  <p className={sel.dust_filter_pct < 50 ? "text-warning font-bold" : "text-foreground"}>
+                  <p
+                    className={
+                      sel.dust_filter_pct < 50 ? "text-warning font-bold" : "text-foreground"
+                    }
+                  >
                     {sel.dust_filter_pct}%
                   </p>
                 </div>
@@ -256,7 +292,9 @@ function MarsRadar() {
                 <div className="space-y-2 mt-3">
                   <button
                     type="button"
-                    onClick={() => navigate({ to: "/app/hangar-3d", search: { vehicleId: sel.id } })}
+                    onClick={() =>
+                      navigate({ to: "/app/hangar-3d", search: { vehicleId: sel.id } })
+                    }
                     className="cut-corner flex w-full items-center justify-center gap-2 border border-emerald-500/80 bg-emerald-500/15 py-2.5 font-bold uppercase tracking-wider text-emerald-400 hover:bg-emerald-500/25 transition shadow-glow"
                   >
                     <Building2 className="h-4 w-4" />
@@ -288,7 +326,8 @@ function MarsRadar() {
             </div>
           ) : (
             <div className="glass p-4 font-mono text-xs text-muted-foreground">
-              Selecione uma aeronave no globo ou na lista abaixo para inspecionar a telemetria ao vivo.
+              Selecione uma aeronave no globo ou na lista abaixo para inspecionar a telemetria ao
+              vivo.
             </div>
           )}
 
@@ -303,10 +342,14 @@ function MarsRadar() {
                 <p className="text-muted-foreground">
                   Sev {w.severity}/5 · Vento {w.wind_speed_kmh} km/h · Raio {w.pulseRadiusKm} km
                 </p>
-                <p className="text-[10px] text-warning/80">Radiação: {w.radiation_msv ?? 0.15} mSv/h</p>
+                <p className="text-[10px] text-warning/80">
+                  Radiação: {w.radiation_msv ?? 0.15} mSv/h
+                </p>
               </div>
             ))}
-            {activeStorms.length === 0 && <p className="text-xs text-muted-foreground">Nenhuma tempestade ativa no momento.</p>}
+            {activeStorms.length === 0 && (
+              <p className="text-xs text-muted-foreground">Nenhuma tempestade ativa no momento.</p>
+            )}
           </div>
 
           {/* Rastreamento da Frota (FROTA GPS) com Scrollbar Futurista */}
@@ -335,7 +378,9 @@ function MarsRadar() {
                     }`}
                   >
                     <div className="text-left flex items-center gap-2">
-                      <span className={isSelected ? "text-primary" : "text-foreground font-semibold"}>
+                      <span
+                        className={isSelected ? "text-primary" : "text-foreground font-semibold"}
+                      >
                         {v.callsign}
                       </span>
                       <span
@@ -349,10 +394,18 @@ function MarsRadar() {
                                 : "bg-destructive/15 text-destructive"
                         }`}
                       >
-                        {isFlight ? "Em voo" : isAvailable ? "Hangar" : isMaint ? "Manutenção" : "Abrigo"}
+                        {isFlight
+                          ? "Em voo"
+                          : isAvailable
+                            ? "Hangar"
+                            : isMaint
+                              ? "Manutenção"
+                              : "Abrigo"}
                       </span>
                     </div>
-                    <span className={`text-[11px] ${isFlight ? "text-telemetry font-bold" : "text-muted-foreground"}`}>
+                    <span
+                      className={`text-[11px] ${isFlight ? "text-telemetry font-bold" : "text-muted-foreground"}`}
+                    >
                       {isFlight ? `${v.simSpeedKmh} km/h` : "0 km/h"}
                     </span>
                   </button>

@@ -77,13 +77,16 @@ export function FleetShowcase({
               Escolha seu veículo para decolar em Marte
             </h2>
             <p className="mt-2 text-muted-foreground">
-              Carros voadores pressurizados, caminhões blindados para cânions e foguetes interplanetários classe Starship.
+              Carros voadores pressurizados, caminhões blindados para cânions e foguetes
+              interplanetários classe Starship.
             </p>
           </div>
 
           <div className="flex items-center gap-2 font-mono text-xs text-telemetry border border-telemetry/30 bg-telemetry/5 px-4 py-2">
             <Zap className="h-4 w-4 shrink-0 text-telemetry" />
-            <span>{vehicles.length} Aeronaves disponíveis em {hangars.length} Hangares</span>
+            <span>
+              {vehicles.length} Aeronaves disponíveis em {hangars.length} Hangares
+            </span>
           </div>
         </div>
 
@@ -137,8 +140,8 @@ export function FleetShowcase({
                         isAvailable
                           ? "border-emerald-500/50 bg-emerald-500/10 text-emerald-400"
                           : v.status === "in_flight"
-                          ? "border-telemetry/50 bg-telemetry/10 text-telemetry"
-                          : "border-destructive/50 bg-destructive/10 text-destructive"
+                            ? "border-telemetry/50 bg-telemetry/10 text-telemetry"
+                            : "border-destructive/50 bg-destructive/10 text-destructive"
                       }`}
                     >
                       {statusLabel[v.status]}
@@ -167,7 +170,9 @@ export function FleetShowcase({
 
                   {/* Hangar & Weather Tag */}
                   <div className="mt-3 flex items-center justify-between font-mono text-xs text-muted-foreground border-b border-border/40 pb-3">
-                    <span>Hangar: <strong className="text-foreground">{h?.name ?? "Órbita"}</strong></span>
+                    <span>
+                      Hangar: <strong className="text-foreground">{h?.name ?? "Órbita"}</strong>
+                    </span>
                     {hasStorm && (
                       <span className="flex items-center gap-1 text-[10px] text-warning bg-warning/10 px-2 py-0.5 border border-warning/30">
                         <AlertTriangle className="h-3 w-3" /> Tempestade no Domo
@@ -199,7 +204,10 @@ export function FleetShowcase({
                   {/* Required License Badge */}
                   <div className="mt-4 flex items-center gap-2 font-mono text-[11px] text-muted-foreground">
                     <ShieldCheck className="h-4 w-4 text-telemetry shrink-0" />
-                    <span>Licença mínima: <strong className="text-telemetry">{getRequiredLicense(v.category)}</strong></span>
+                    <span>
+                      Licença mínima:{" "}
+                      <strong className="text-telemetry">{getRequiredLicense(v.category)}</strong>
+                    </span>
                   </div>
                 </div>
 
@@ -214,7 +222,8 @@ export function FleetShowcase({
                     </div>
 
                     <span className="font-mono text-[11px] text-muted-foreground">
-                      Total: MC$ {estimatedTotal.toLocaleString("pt-BR")} ({sols} {sols === 1 ? "Sol" : "Sols"})
+                      Total: MC$ {estimatedTotal.toLocaleString("pt-BR")} ({sols}{" "}
+                      {sols === 1 ? "Sol" : "Sols"})
                     </span>
                   </div>
 

@@ -23,7 +23,10 @@ export default defineConfig({
           return {
             code: code
               .replace(/\s+data-tsd-[a-z]+=(?:\{[^}]*\}|"[^"]*"|'[^']*')/g, "")
-              .replace(/(["'])data-tsd-[a-z]+\1\s*:\s*(?:\{[^}]*\}|"[^"]*"|'[^']*'|[^,}\n]+),?/g, ""),
+              .replace(
+                /(["'])data-tsd-[a-z]+\1\s*:\s*(?:\{[^}]*\}|"[^"]*"|'[^']*'|[^,}\n]+),?/g,
+                "",
+              ),
             map: null,
           };
         },

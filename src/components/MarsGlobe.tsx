@@ -26,7 +26,7 @@ function makeMarsTexture() {
 
   // Seeded pseudo-random for deterministic rendering
   let s = 19;
-  const r = () => ((s = (s * 16807) % 2147483647) / 2147483647);
+  const r = () => (s = (s * 16807) % 2147483647) / 2147483647;
 
   // Craters and geological basins (with seamless periodic wrapping)
   for (let i = 0; i < 900; i++) {
@@ -77,13 +77,15 @@ function Planet() {
   // Real Martian Surface Outposts
   const pins = useMemo(
     () =>
-      ([
-        [18.65, -133.8], // Olympus Mons Hub
-        [18.38, 77.58], // Jezero Crater Station
-        [-8.0, -70.0], // Valles Marineris Dock
-        [46.7, -22.0], // Acidalia Outpost
-        [-5.4, 137.8], // Gale Crater Base
-      ] as [number, number][]).map(([lat, lon]) => {
+      (
+        [
+          [18.65, -133.8], // Olympus Mons Hub
+          [18.38, 77.58], // Jezero Crater Station
+          [-8.0, -70.0], // Valles Marineris Dock
+          [46.7, -22.0], // Acidalia Outpost
+          [-5.4, 137.8], // Gale Crater Base
+        ] as [number, number][]
+      ).map(([lat, lon]) => {
         const phi = ((90 - lat) * Math.PI) / 180;
         const th = ((lon + 180) * Math.PI) / 180;
         return new THREE.Vector3(

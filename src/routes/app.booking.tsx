@@ -59,7 +59,9 @@ export const Route = createFileRoute("/app/booking")({
       context.queryClient.ensureQueryData(weatherQuery),
       context.queryClient.ensureQueryData(rentalsQuery),
     ]),
-  errorComponent: ({ error }) => <div className="p-10 text-destructive">{String((error as Error)?.message ?? error)}</div>,
+  errorComponent: ({ error }) => (
+    <div className="p-10 text-destructive">{String((error as Error)?.message ?? error)}</div>
+  ),
   component: Booking,
 });
 
@@ -112,7 +114,7 @@ function Booking() {
   );
 
   const storm = weather.find((w) => w.active && w.severity >= 3);
-  const isSevereStormBlock = (pickupHangar?.storm_alert || (storm && storm.severity >= 4));
+  const isSevereStormBlock = pickupHangar?.storm_alert || (storm && storm.severity >= 4);
 
   // Custo diário de adicionais
   const dailyExtrasRate = useMemo(() => {
@@ -162,7 +164,9 @@ function Booking() {
           created_at: new Date().toISOString(),
         };
 
-        const existingRentals: Rental[] = JSON.parse(localStorage.getItem("ares_demo_rentals") || "[]");
+        const existingRentals: Rental[] = JSON.parse(
+          localStorage.getItem("ares_demo_rentals") || "[]",
+        );
         localStorage.setItem("ares_demo_rentals", JSON.stringify([newRental, ...existingRentals]));
 
         return { vehicle: v, rentalId: newRental.id };
@@ -259,7 +263,9 @@ function Booking() {
           <div className="flex items-center gap-2">
             <Gift className="h-4 w-4 shrink-0 text-amber-400" />
             <span>
-              <strong>Cupom Ativo:</strong> {JSON.parse(localStorage.getItem("ares_active_promo") || "{}").coupon} · {JSON.parse(localStorage.getItem("ares_active_promo") || "{}").discountDesc}
+              <strong>Cupom Ativo:</strong>{" "}
+              {JSON.parse(localStorage.getItem("ares_active_promo") || "{}").coupon} ·{" "}
+              {JSON.parse(localStorage.getItem("ares_active_promo") || "{}").discountDesc}
             </span>
           </div>
           <button
@@ -293,7 +299,9 @@ function Booking() {
             )}
             <div className="space-y-1">
               <p className="font-semibold uppercase tracking-wider">{bookingNotice.message}</p>
-              {bookingNotice.details && <p className="text-xs text-muted-foreground">{bookingNotice.details}</p>}
+              {bookingNotice.details && (
+                <p className="text-xs text-muted-foreground">{bookingNotice.details}</p>
+              )}
             </div>
           </div>
           <button
@@ -310,9 +318,24 @@ function Booking() {
       {/* Seleção de Hangar e Período */}
       <div className="cut-corner glass space-y-4 p-6">
         <div className="grid gap-4 md:grid-cols-5">
-          <Select label="Hangar Retirada" value={pickup} onChange={setPickup} options={hangars.map((h) => [h.id, h.name])} />
-          <Select label="Hangar Devolução" value={dropoff} onChange={setDropoff} options={hangars.map((h) => [h.id, h.name])} />
-          <NumberField label="Sol de início" value={startSol} min={CURRENT_SOL} onChange={setStartSol} />
+          <Select
+            label="Hangar Retirada"
+            value={pickup}
+            onChange={setPickup}
+            options={hangars.map((h) => [h.id, h.name])}
+          />
+          <Select
+            label="Hangar Devolução"
+            value={dropoff}
+            onChange={setDropoff}
+            options={hangars.map((h) => [h.id, h.name])}
+          />
+          <NumberField
+            label="Sol de início"
+            value={startSol}
+            min={CURRENT_SOL}
+            onChange={setStartSol}
+          />
           <NumberField label="Duração (sols)" value={sols} min={1} onChange={setSols} />
           <Select
             label="Categoria"
@@ -333,7 +356,8 @@ function Booking() {
           </div>
           <div className="flex items-center gap-4">
             <span>
-              Distância Great-Circle: <strong className="text-telemetry">{distanceKm.toLocaleString("pt-BR")} km</strong>
+              Distância Great-Circle:{" "}
+              <strong className="text-telemetry">{distanceKm.toLocaleString("pt-BR")} km</strong>
             </span>
           </div>
         </div>
@@ -342,15 +366,18 @@ function Booking() {
       {/* Seção de Opcionais Espaciais de Marte */}
       <div className="glass space-y-3 p-5">
         <h3 className="font-mono text-xs uppercase tracking-widest text-primary">
-          Opcionais de Suporte à Vida & Segurança Marciana (+MC$ {dailyExtrasRate.toLocaleString("pt-BR")}/sol)
+          Opcionais de Suporte à Vida & Segurança Marciana (+MC${" "}
+          {dailyExtrasRate.toLocaleString("pt-BR")}/sol)
         </h3>
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {/* Barreira Anti-Tempestade de Areia & Escudo Iônico */}
-          <label className={`cut-corner flex cursor-pointer items-start gap-3 border p-3 transition sm:col-span-2 lg:col-span-4 ${
-            stormBarrierShield
-              ? "border-telemetry/80 bg-telemetry/15 text-telemetry"
-              : "border-muted bg-surface/50 text-muted-foreground hover:border-telemetry/50"
-          }`}>
+          <label
+            className={`cut-corner flex cursor-pointer items-start gap-3 border p-3 transition sm:col-span-2 lg:col-span-4 ${
+              stormBarrierShield
+                ? "border-telemetry/80 bg-telemetry/15 text-telemetry"
+                : "border-muted bg-surface/50 text-muted-foreground hover:border-telemetry/50"
+            }`}
+          >
             <input
               type="checkbox"
               checked={stormBarrierShield}
@@ -380,7 +407,9 @@ function Booking() {
             />
             <div className="text-xs">
               <span className="font-semibold text-foreground">Seguro de Sílica</span>
-              <p className="font-mono text-[11px] text-muted-foreground">+MC$ 120/sol · Cobertura contra rególito</p>
+              <p className="font-mono text-[11px] text-muted-foreground">
+                +MC$ 120/sol · Cobertura contra rególito
+              </p>
             </div>
           </label>
 
@@ -393,7 +422,9 @@ function Booking() {
             />
             <div className="text-xs">
               <span className="font-semibold text-foreground">Tanque Extra de O₂</span>
-              <p className="font-mono text-[11px] text-muted-foreground">+MC$ 180/sol · +120h de oxigênio</p>
+              <p className="font-mono text-[11px] text-muted-foreground">
+                +MC$ 180/sol · +120h de oxigênio
+              </p>
             </div>
           </label>
 
@@ -406,7 +437,9 @@ function Booking() {
             />
             <div className="text-xs">
               <span className="font-semibold text-foreground">Autopiloto Neural N5</span>
-              <p className="font-mono text-[11px] text-muted-foreground">+MC$ 350/sol · Navegação orbital por IA</p>
+              <p className="font-mono text-[11px] text-muted-foreground">
+                +MC$ 350/sol · Navegação orbital por IA
+              </p>
             </div>
           </label>
 
@@ -438,20 +471,31 @@ function Booking() {
 
       {/* Alerta de Tempestade & Status da Barreira */}
       {(pickupHangar?.storm_alert || storm) && (
-        <div className={`flex items-center gap-3 border px-4 py-3 text-sm font-mono ${
-          stormBarrierShield
-            ? "border-emerald-500/50 bg-emerald-500/10 text-emerald-400"
-            : "border-warning/40 bg-warning/10 text-warning"
-        }`}>
-          {stormBarrierShield ? <ShieldCheck className="h-5 w-5 shrink-0 text-emerald-400" /> : <CloudLightning className="h-5 w-5 shrink-0" />}
+        <div
+          className={`flex items-center gap-3 border px-4 py-3 text-sm font-mono ${
+            stormBarrierShield
+              ? "border-emerald-500/50 bg-emerald-500/10 text-emerald-400"
+              : "border-warning/40 bg-warning/10 text-warning"
+          }`}
+        >
+          {stormBarrierShield ? (
+            <ShieldCheck className="h-5 w-5 shrink-0 text-emerald-400" />
+          ) : (
+            <CloudLightning className="h-5 w-5 shrink-0" />
+          )}
           <div>
             {stormBarrierShield ? (
               <p className="text-xs">
-                <span className="font-bold">Barreira Ativa:</span> Escudo defletor habilitado. Decolagem autorizada com segurança.
+                <span className="font-bold">Barreira Ativa:</span> Escudo defletor habilitado.
+                Decolagem autorizada com segurança.
               </p>
             ) : (
               <p className="text-xs">
-                <span className="font-bold">Alerta Climático:</span> {pickupHangar?.storm_alert ? `Ventos severos em ${pickupHangar.name}` : `${storm!.name} ativa (${storm!.wind_speed_kmh} km/h)`}. Ative a Barreira Anti-Tempestade para liberar a decolagem.
+                <span className="font-bold">Alerta Climático:</span>{" "}
+                {pickupHangar?.storm_alert
+                  ? `Ventos severos em ${pickupHangar.name}`
+                  : `${storm!.name} ativa (${storm!.wind_speed_kmh} km/h)`}
+                . Ative a Barreira Anti-Tempestade para liberar a decolagem.
               </p>
             )}
           </div>
@@ -460,7 +504,11 @@ function Booking() {
 
       {/* Grid de Veículos */}
       <div className="grid gap-6 md:grid-cols-3">
-        {list.length === 0 && <p className="text-muted-foreground">Nenhum veículo disponível no hangar para os filtros escolhidos.</p>}
+        {list.length === 0 && (
+          <p className="text-muted-foreground">
+            Nenhum veículo disponível no hangar para os filtros escolhidos.
+          </p>
+        )}
         {list.map((v) => {
           const Icon = icons[v.category];
           const baseDaily = Number(v.daily_rate_sol);
@@ -474,7 +522,9 @@ function Booking() {
             <div
               key={v.id}
               className={`cut-corner flex flex-col border p-6 transition ${
-                hasLicense ? "bg-surface hover:border-primary/60" : "border-destructive/30 bg-surface/30 opacity-80"
+                hasLicense
+                  ? "bg-surface hover:border-primary/60"
+                  : "border-destructive/30 bg-surface/30 opacity-80"
               }`}
             >
               <div className="flex items-center justify-between">
@@ -486,7 +536,10 @@ function Booking() {
 
               <h3 className="mt-4 font-display text-xl font-semibold">{v.name}</h3>
               <p className="font-mono text-xs text-muted-foreground">
-                {v.callsign} · <span className={okStatus ? "text-telemetry" : "text-warning"}>{statusLabel[v.status]}</span>
+                {v.callsign} ·{" "}
+                <span className={okStatus ? "text-telemetry" : "text-warning"}>
+                  {statusLabel[v.status]}
+                </span>
               </p>
 
               {/* Selo de Validação de Licença */}
@@ -497,7 +550,8 @@ function Booking() {
                   </span>
                 ) : (
                   <span className="inline-flex items-center gap-1.5 font-mono text-[11px] text-destructive font-semibold">
-                    <ShieldAlert className="h-3.5 w-3.5" /> Exige Licença {getRequiredLicense(v.category)}
+                    <ShieldAlert className="h-3.5 w-3.5" /> Exige Licença{" "}
+                    {getRequiredLicense(v.category)}
                   </span>
                 )}
               </div>
@@ -515,7 +569,10 @@ function Booking() {
               <div className="mt-6 border-t pt-4">
                 <p className="font-display text-2xl font-bold">
                   MC$ {totalDaily.toLocaleString("pt-BR")}
-                  <span className="text-xs font-normal text-muted-foreground"> / Sol (com adicionais)</span>
+                  <span className="text-xs font-normal text-muted-foreground">
+                    {" "}
+                    / Sol (com adicionais)
+                  </span>
                 </p>
                 <p className="font-mono text-xs text-muted-foreground">
                   Total para {sols} sols: MC$ {totalBooking.toLocaleString("pt-BR")}
@@ -569,11 +626,16 @@ function Booking() {
         </div>
 
         {rentals.length === 0 ? (
-          <p className="text-sm text-muted-foreground">Nenhuma reserva ativa vinculada à sua credencial espacial.</p>
+          <p className="text-sm text-muted-foreground">
+            Nenhuma reserva ativa vinculada à sua credencial espacial.
+          </p>
         ) : (
           <div className="divide-y border font-mono text-xs">
             {rentals.map((r) => (
-              <div key={r.id} className="flex flex-wrap items-center justify-between gap-4 p-4 hover:bg-surface/50">
+              <div
+                key={r.id}
+                className="flex flex-wrap items-center justify-between gap-4 p-4 hover:bg-surface/50"
+              >
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
                     <span className="font-semibold text-primary">{vName(r.vehicle_id)}</span>
@@ -582,10 +644,14 @@ function Booking() {
                     </span>
                   </div>
                   <p className="text-muted-foreground">
-                    {hName(r.pickup_hangar_id)} → {hName(r.dropoff_hangar_id)} · Sols {r.start_sol} a {r.end_sol}
+                    {hName(r.pickup_hangar_id)} → {hName(r.dropoff_hangar_id)} · Sols {r.start_sol}{" "}
+                    a {r.end_sol}
                   </p>
                   <p className="text-[11px] text-telemetry">
-                    Chave Quântica: <code className="font-mono font-bold text-foreground">{r.quantum_key ?? "Q-KEY#8F4A92"}</code>
+                    Chave Quântica:{" "}
+                    <code className="font-mono font-bold text-foreground">
+                      {r.quantum_key ?? "Q-KEY#8F4A92"}
+                    </code>
                   </p>
                 </div>
 
@@ -600,7 +666,8 @@ function Booking() {
                   <button
                     type="button"
                     onClick={() => {
-                      const targetVeh = vehicles.find((veh) => veh.id === r.vehicle_id) || vehicles[0];
+                      const targetVeh =
+                        vehicles.find((veh) => veh.id === r.vehicle_id) || vehicles[0];
                       setChasingVehicle(targetVeh);
                     }}
                     className="cut-corner flex items-center gap-1.5 border border-primary/60 bg-primary/10 px-3 py-2 text-xs font-semibold uppercase tracking-wider text-primary transition hover:bg-primary/20"
@@ -652,7 +719,9 @@ function Booking() {
             <div className="flex items-center justify-between border-b border-telemetry/30 pb-4">
               <div className="flex items-center gap-2 text-telemetry">
                 <Radio className="h-5 w-5 animate-pulse" />
-                <h3 className="font-display text-lg font-bold uppercase tracking-wider">Boarding Pass Quântico</h3>
+                <h3 className="font-display text-lg font-bold uppercase tracking-wider">
+                  Boarding Pass Quântico
+                </h3>
               </div>
               <button
                 onClick={() => {
@@ -667,11 +736,15 @@ function Booking() {
 
             {/* Chave Criptográfica */}
             <div className="border border-telemetry/40 bg-telemetry/10 p-4 text-center">
-              <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Chave Criptográfica Quântica</p>
+              <p className="text-[10px] uppercase tracking-widest text-muted-foreground">
+                Chave Criptográfica Quântica
+              </p>
               <p className="mt-1 font-mono text-2xl font-bold tracking-widest text-telemetry">
                 {activeBoardingPass.quantum_key ?? "Q-KEY#8F4A92"}
               </p>
-              <p className="mt-1 text-[10px] text-muted-foreground">ASSINATURA RSA-MARS-4096 BIT · ACESSO DIRETO À ESCLUSA</p>
+              <p className="mt-1 text-[10px] text-muted-foreground">
+                ASSINATURA RSA-MARS-4096 BIT · ACESSO DIRETO À ESCLUSA
+              </p>
             </div>
 
             {remoteActionNotice && (
@@ -683,12 +756,16 @@ function Booking() {
 
             {/* Controles Remotos do Veículo */}
             <div className="space-y-2">
-              <p className="text-[10px] uppercase tracking-widest text-primary">Comandos Remotos via Enlace Orbital</p>
+              <p className="text-[10px] uppercase tracking-widest text-primary">
+                Comandos Remotos via Enlace Orbital
+              </p>
               <div className="grid grid-cols-3 gap-2">
                 <button
                   type="button"
                   onClick={() => {
-                    setRemoteActionNotice("Esclusa de ar principal destravada. Pressurização externa verificada.");
+                    setRemoteActionNotice(
+                      "Esclusa de ar principal destravada. Pressurização externa verificada.",
+                    );
                     toast.success("Esclusa destravada com sucesso!");
                   }}
                   className="cut-corner flex flex-col items-center justify-center gap-1 border border-muted bg-surface/80 p-3 text-center transition hover:border-telemetry hover:text-telemetry"
@@ -700,7 +777,9 @@ function Booking() {
                 <button
                   type="button"
                   onClick={() => {
-                    setRemoteActionNotice("Cabine pré-pressurizada para 101.3 kPa com mistura 78% N₂ / 21% O₂.");
+                    setRemoteActionNotice(
+                      "Cabine pré-pressurizada para 101.3 kPa com mistura 78% N₂ / 21% O₂.",
+                    );
                     toast.success("Cabine pré-pressurizada (101.3 kPa)!");
                   }}
                   className="cut-corner flex flex-col items-center justify-center gap-1 border border-muted bg-surface/80 p-3 text-center transition hover:border-telemetry hover:text-telemetry"
@@ -712,7 +791,9 @@ function Booking() {
                 <button
                   type="button"
                   onClick={() => {
-                    setRemoteActionNotice("Autopiloto Neural ativado. Veículo manobrando para o portão de embarque.");
+                    setRemoteActionNotice(
+                      "Autopiloto Neural ativado. Veículo manobrando para o portão de embarque.",
+                    );
                     toast.success("Aeronave taxiando via Autopiloto!");
                   }}
                   className="cut-corner flex flex-col items-center justify-center gap-1 border border-muted bg-surface/80 p-3 text-center transition hover:border-telemetry hover:text-telemetry"
@@ -732,7 +813,9 @@ function Booking() {
                 </span>
                 <span className="font-bold text-emerald-400">ATIVA (ESCUDO IÔNICO 100%)</span>
               </div>
-              <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Checklist Pré-Voo de Segurança</p>
+              <p className="text-[10px] uppercase tracking-widest text-muted-foreground">
+                Checklist Pré-Voo de Segurança
+              </p>
               <ul className="space-y-1.5 text-[11px] text-muted-foreground">
                 <li className="flex items-center gap-2 text-foreground">
                   <FileCheck2 className="h-3.5 w-3.5 text-telemetry" />
@@ -752,7 +835,8 @@ function Booking() {
               <button
                 type="button"
                 onClick={() => {
-                  const targetVeh = vehicles.find((v) => v.id === activeBoardingPass.vehicle_id) || vehicles[0];
+                  const targetVeh =
+                    vehicles.find((v) => v.id === activeBoardingPass.vehicle_id) || vehicles[0];
                   setActiveBoardingPass(null);
                   setChasingVehicle(targetVeh);
                 }}
@@ -782,7 +866,9 @@ function Select({
 }) {
   return (
     <label className="block">
-      <span className="mb-2 block font-mono text-xs uppercase tracking-widest text-muted-foreground">{label}</span>
+      <span className="mb-2 block font-mono text-xs uppercase tracking-widest text-muted-foreground">
+        {label}
+      </span>
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
@@ -811,7 +897,9 @@ function NumberField({
 }) {
   return (
     <label className="block">
-      <span className="mb-2 block font-mono text-xs uppercase tracking-widest text-muted-foreground">{label}</span>
+      <span className="mb-2 block font-mono text-xs uppercase tracking-widest text-muted-foreground">
+        {label}
+      </span>
       <input
         type="number"
         value={value}

@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { marsDistanceKm, isLicenseValidForCategory, getRequiredLicense, wearScore } from "@/lib/ares-data";
+import {
+  marsDistanceKm,
+  isLicenseValidForCategory,
+  getRequiredLicense,
+  wearScore,
+} from "@/lib/ares-data";
 
 describe("Mars Physics & Telemetry Engine Functions", () => {
   it("calculates great-circle distance accurately on Mars", () => {

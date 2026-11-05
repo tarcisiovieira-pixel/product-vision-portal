@@ -10,7 +10,8 @@ export const Route = createFileRoute("/app/marketplace")({
       { title: "Compra & Venda de Veículos — ARES Mobility" },
       {
         name: "description",
-        content: "Marketplace de naves novas, seminovos certificados e veículos espaciais em Marte.",
+        content:
+          "Marketplace de naves novas, seminovos certificados e veículos espaciais em Marte.",
       },
     ],
   }),
@@ -40,7 +41,9 @@ function MarketplacePage() {
       <div className="hud-grid border border-border/70 p-4 font-mono text-xs text-muted-foreground flex flex-wrap items-center justify-between gap-4">
         <div>
           <span>CREDENCIAIS VINCULADAS: </span>
-          <strong className="text-foreground">{profile?.space_credential_id ?? "ARS-DEMO-01"}</strong>
+          <strong className="text-foreground">
+            {profile?.space_credential_id ?? "ARS-DEMO-01"}
+          </strong>
         </div>
         <div>
           <span>SALDO DISPONÍVEL: </span>
@@ -48,9 +51,7 @@ function MarketplacePage() {
             MC$ {Number(profile?.martian_credits ?? 25000).toLocaleString("pt-BR")}
           </strong>
         </div>
-        <div className="text-telemetry font-bold">
-          ⚡ FINANCIAMENTO HOMOLOGADO EM ATÉ 36 SOLS
-        </div>
+        <div className="text-telemetry font-bold">⚡ FINANCIAMENTO HOMOLOGADO EM ATÉ 36 SOLS</div>
       </div>
 
       <MarketplaceShowcase hangars={hangars} currentProfile={profile} />

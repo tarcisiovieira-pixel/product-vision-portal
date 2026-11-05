@@ -36,7 +36,9 @@ async function testHangarRedirection() {
 
   // 1. Abrir Chase Cam pelo card da frota
   console.log("2. Abrindo visualizador 3D pelo card da frota...");
-  const btnVoo3D = await page.waitForSelector("button ::-p-text(Acompanhar Percurso 3D)", { timeout: 10000 });
+  const btnVoo3D = await page.waitForSelector("button ::-p-text(Acompanhar Percurso 3D)", {
+    timeout: 10000,
+  });
   await btnVoo3D.click();
 
   // 2. Verificar se o painel da direita divide 'EM VOO ATIVO' e 'NA GARAGEM'
@@ -50,7 +52,9 @@ async function testHangarRedirection() {
   await btnApx.click();
 
   // 4. Verificar redirecionamento automático para /app/hangar-3d
-  await page.waitForFunction(() => window.location.pathname.includes("/app/hangar-3d"), { timeout: 10000 });
+  await page.waitForFunction(() => window.location.pathname.includes("/app/hangar-3d"), {
+    timeout: 10000,
+  });
   console.log("5. Redirecionado com sucesso para a garagem dos veículos:", page.url());
 
   // 5. Confirmar que o Hangar 3D carregou e inspecionou APX-01

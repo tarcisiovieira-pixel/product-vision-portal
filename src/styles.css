@@ -134,7 +134,6 @@
   box-shadow: 0 0 14px rgba(0, 240, 255, 0.9) !important;
 }
 
-
 @utility glass {
   background: oklch(0.17 0.015 270 / 55%);
   backdrop-filter: blur(14px);
@@ -142,7 +141,14 @@
 }
 
 @utility cut-corner {
-  clip-path: polygon(14px 0, 100% 0, 100% calc(100% - 14px), calc(100% - 14px) 100%, 0 100%, 0 14px);
+  clip-path: polygon(
+    14px 0,
+    100% 0,
+    100% calc(100% - 14px),
+    calc(100% - 14px) 100%,
+    0 100%,
+    0 14px
+  );
 }
 
 @utility bg-mars-gradient {

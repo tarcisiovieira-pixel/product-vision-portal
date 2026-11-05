@@ -33,7 +33,7 @@ function marsTexture() {
   g.fill();
 
   let s = 19;
-  const r = () => ((s = (s * 16807) % 2147483647) / 2147483647);
+  const r = () => (s = (s * 16807) % 2147483647) / 2147483647;
   // Relevo areográfico, cânions (Valles Marineris) e bacias de impacto
   for (let i = 0; i < 1100; i++) {
     const rad = r() * 26 + 3;
@@ -70,7 +70,7 @@ function earthTexture() {
   g.fillRect(0, 0, 1024, 512);
 
   let s = 42;
-  const r = () => ((s = (s * 16807) % 2147483647) / 2147483647);
+  const r = () => (s = (s * 16807) % 2147483647) / 2147483647;
   for (let i = 0; i < 900; i++) {
     const x = r() * 1024;
     const y = 80 + r() * 350;
@@ -270,9 +270,16 @@ function MartianMoons() {
 // Tempestade de Poeira em Vórtice 3D com Partículas
 // ---------------------------------------------------------------------
 function StormVortex({ w }: { w: WeatherEvent }) {
-  const pos = useMemo(() => new THREE.Vector3(...latLngToVec(w.lat, w.lng, R + 0.02)), [w.lat, w.lng]);
+  const pos = useMemo(
+    () => new THREE.Vector3(...latLngToVec(w.lat, w.lng, R + 0.02)),
+    [w.lat, w.lng],
+  );
   const quat = useMemo(
-    () => new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 0, 1), pos.clone().normalize()),
+    () =>
+      new THREE.Quaternion().setFromUnitVectors(
+        new THREE.Vector3(0, 0, 1),
+        pos.clone().normalize(),
+      ),
     [pos],
   );
   const size = (Number(w.radius_km) / MARS_RADIUS_KM) * R;
@@ -315,14 +322,23 @@ function StormVortex({ w }: { w: WeatherEvent }) {
 function FlightRouteArcs({ hangars }: { hangars: Hangar[] }) {
   const routes = useMemo(() => {
     if (hangars.length < 2) return [];
-    const list: Array<{ start: [number, number, number]; mid: [number, number, number]; end: [number, number, number] }> = [];
+    const list: Array<{
+      start: [number, number, number];
+      mid: [number, number, number];
+      end: [number, number, number];
+    }> = [];
     for (let i = 0; i < hangars.length - 1; i++) {
       const h1 = hangars[i];
       const h2 = hangars[i + 1];
       const p1 = new THREE.Vector3(...latLngToVec(h1.lat, h1.lng, R + 0.02));
       const p2 = new THREE.Vector3(...latLngToVec(h2.lat, h2.lng, R + 0.02));
       // Corredor de voo atmosférico entre hangares marcianos (baixa altitude geodésica)
-      const mid = p1.clone().add(p2).multiplyScalar(0.5).normalize().multiplyScalar(R + 0.08);
+      const mid = p1
+        .clone()
+        .add(p2)
+        .multiplyScalar(0.5)
+        .normalize()
+        .multiplyScalar(R + 0.08);
       list.push({
         start: [p1.x, p1.y, p1.z],
         mid: [mid.x, mid.y, mid.z],
@@ -435,14 +451,15 @@ function GlobeCraftMesh({
 
   if (category === "interplanetary_rocket") {
     return (
-      <group
-        scale={[0.07, 0.07, 0.07]}
-        rotation={isAirborne ? [-Math.PI / 2, 0, 0] : [0, 0, 0]}
-      >
+      <group scale={[0.07, 0.07, 0.07]} rotation={isAirborne ? [-Math.PI / 2, 0, 0] : [0, 0, 0]}>
         {/* Foguete Cilíndrico em Aço Inox */}
         <mesh position={[0, 0.4, 0]}>
           <cylinderGeometry args={[0.25, 0.25, 1.4, 16]} />
-          <meshStandardMaterial color={sel ? "#00f0ff" : "#f0f3f6"} metalness={0.95} roughness={0.15} />
+          <meshStandardMaterial
+            color={sel ? "#00f0ff" : "#f0f3f6"}
+            metalness={0.95}
+            roughness={0.15}
+          />
         </mesh>
         {/* Ogiva Cônica */}
         <mesh position={[0, 1.3, 0]}>
@@ -506,7 +523,11 @@ function GlobeCraftMesh({
       {/* Chassi Aerodinâmico */}
       <mesh position={[0, 0.1, 0]}>
         <boxGeometry args={[0.65, 0.2, 1.2]} />
-        <meshStandardMaterial color={sel ? "#00f0ff" : "#d4d0c8"} metalness={0.85} roughness={0.2} />
+        <meshStandardMaterial
+          color={sel ? "#00f0ff" : "#d4d0c8"}
+          metalness={0.85}
+          roughness={0.2}
+        />
       </mesh>
       {/* Cabine Translúcida Ciano */}
       <mesh position={[0, 0.22, 0.05]}>
@@ -518,7 +539,12 @@ function GlobeCraftMesh({
         {[-0.45, 0.45].map((x, i) => (
           <mesh key={i} position={[x, 0, 0]}>
             <cylinderGeometry args={[0.22, 0.22, 0.02, 8]} />
-            <meshBasicMaterial color="#00f0ff" wireframe transparent opacity={isAirborne ? 0.7 : 0.25} />
+            <meshBasicMaterial
+              color="#00f0ff"
+              wireframe
+              transparent
+              opacity={isAirborne ? 0.7 : 0.25}
+            />
           </mesh>
         ))}
       </group>
@@ -642,7 +668,8 @@ export default function RadarGlobe({
 
       {/* Veículos em Tempo Real com Status Coerente Físico e Operacional */}
       {vehicles.map((v) => {
-        const isAirborne = v.status === "in_flight" && (v.altitude_km > 0.1 || (v.speed_kmh ?? 0) > 0);
+        const isAirborne =
+          v.status === "in_flight" && (v.altitude_km > 0.1 || (v.speed_kmh ?? 0) > 0);
         const sel = v.id === selected;
 
         let p: [number, number, number];
@@ -660,7 +687,9 @@ export default function RadarGlobe({
           const matrix = new THREE.Matrix4().makeBasis(right, correctedUp, tangent);
           quat = new THREE.Quaternion().setFromRotationMatrix(matrix);
         } else {
-          const altitudeOffset = isAirborne ? (Math.max(0.1, v.altitude_km) / MARS_RADIUS_KM) * R * 4 : 0.012;
+          const altitudeOffset = isAirborne
+            ? (Math.max(0.1, v.altitude_km) / MARS_RADIUS_KM) * R * 4
+            : 0.012;
           p = latLngToVec(v.lat, v.lng, R + 0.02 + altitudeOffset);
           const normal = new THREE.Vector3(...p).normalize();
 
@@ -668,7 +697,12 @@ export default function RadarGlobe({
             // Orientação de voo atmosférico alinhada à tangente da rota
             const north = new THREE.Vector3(0, 1, 0);
             const east = new THREE.Vector3().crossVectors(north, normal).normalize();
-            const heading = east.clone().multiplyScalar(0.85).add(north.clone().multiplyScalar(0.4)).projectOnPlane(normal).normalize();
+            const heading = east
+              .clone()
+              .multiplyScalar(0.85)
+              .add(north.clone().multiplyScalar(0.4))
+              .projectOnPlane(normal)
+              .normalize();
             const right = new THREE.Vector3().crossVectors(normal, heading).normalize();
             const matrix = new THREE.Matrix4().makeBasis(right, normal, heading);
             quat = new THREE.Quaternion().setFromRotationMatrix(matrix);
@@ -685,7 +719,12 @@ export default function RadarGlobe({
             {sel && (
               <mesh rotation={[Math.PI / 2, 0, 0]}>
                 <ringGeometry args={[0.12, 0.16, 24]} />
-                <meshBasicMaterial color="#00f0ff" side={THREE.DoubleSide} transparent opacity={0.8} />
+                <meshBasicMaterial
+                  color="#00f0ff"
+                  side={THREE.DoubleSide}
+                  transparent
+                  opacity={0.8}
+                />
               </mesh>
             )}
 
@@ -707,12 +746,22 @@ export default function RadarGlobe({
 
             {/* Card HUD Telemetria Hover / Seleção */}
             {sel && (
-              <Html distanceFactor={6} center position={[0, 0.24, 0]} zIndexRange={[100, 0]} style={{ pointerEvents: "auto" }}>
+              <Html
+                distanceFactor={6}
+                center
+                position={[0, 0.24, 0]}
+                zIndexRange={[100, 0]}
+                style={{ pointerEvents: "auto" }}
+              >
                 <div className="min-w-48 border border-telemetry/80 bg-[#07080c] p-3.5 font-mono text-[10px] shadow-2xl z-50">
                   <div className="flex items-center justify-between border-b border-telemetry/30 pb-1">
                     <span className="font-bold text-primary">{v.callsign}</span>
                     <span className="text-[9px] text-telemetry uppercase tracking-wider">
-                      {v.category === "car_vtol" ? "VTOL" : v.category === "space_truck" ? "Truck" : "Starship"}
+                      {v.category === "car_vtol"
+                        ? "VTOL"
+                        : v.category === "space_truck"
+                          ? "Truck"
+                          : "Starship"}
                     </span>
                   </div>
                   <p className="mt-1 font-semibold text-foreground">{v.name}</p>
@@ -743,7 +792,9 @@ export default function RadarGlobe({
                   <div className="mt-2 flex justify-between border-t border-border/40 pt-1.5 text-muted-foreground text-[9px]">
                     <span>BAT {v.battery_pct}%</span>
                     <span>SÍLICA {v.dust_filter_pct}%</span>
-                    <span className={isAirborne ? "text-telemetry font-bold" : "text-muted-foreground"}>
+                    <span
+                      className={isAirborne ? "text-telemetry font-bold" : "text-muted-foreground"}
+                    >
                       {Math.round(v.speed_kmh ?? 0)} km/h
                     </span>
                   </div>

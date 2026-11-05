@@ -22,7 +22,10 @@ export const Route = createFileRoute("/login")({
   head: () => ({
     meta: [
       { title: "Acesso do Colono — ARES Mobility" },
-      { name: "description", content: "Entre com sua credencial espacial para reservar e acompanhar sua frota em Marte." },
+      {
+        name: "description",
+        content: "Entre com sua credencial espacial para reservar e acompanhar sua frota em Marte.",
+      },
       { property: "og:title", content: "Acesso do Colono — ARES Mobility" },
       { property: "og:description", content: "Entre com sua credencial espacial ARES." },
       { property: "og:type", content: "website" },
@@ -139,7 +142,8 @@ function Login() {
           await nav({ to: "/app/booking", replace: true });
         }
       } else {
-        const autoCredId = credentialId.trim() || `ARS-${Math.floor(1000 + Math.random() * 9000)}-EXP`;
+        const autoCredId =
+          credentialId.trim() || `ARS-${Math.floor(1000 + Math.random() * 9000)}-EXP`;
         const { data, error } = await supabase.auth.signUp({
           email: email.trim(),
           password,
@@ -163,7 +167,9 @@ function Login() {
           await nav({ to: "/app/booking", replace: true });
         } else {
           toast.success("Credencial criada com sucesso!");
-          toast.info("Confirmação de e-mail ativa no Supabase. Para entrar agora sem aguardar confirmação, utilize o botão 'Acesso Rápido Demo'.");
+          toast.info(
+            "Confirmação de e-mail ativa no Supabase. Para entrar agora sem aguardar confirmação, utilize o botão 'Acesso Rápido Demo'.",
+          );
           setMode("in");
         }
       }
@@ -171,7 +177,8 @@ function Login() {
       console.error("Auth error:", err);
       let message = err.message || "Erro na autenticação. Verifique os dados inseridos.";
       if (message.toLowerCase().includes("email not confirmed")) {
-        message = "Confirmação de e-mail pendente no Supabase. Dica: use o botão 'Acesso Rápido Demo' acima para testar imediatamente, ou confirme o link no seu e-mail / desative 'Confirm email' no painel Supabase (Authentication > Providers > Email).";
+        message =
+          "Confirmação de e-mail pendente no Supabase. Dica: use o botão 'Acesso Rápido Demo' acima para testar imediatamente, ou confirme o link no seu e-mail / desative 'Confirm email' no painel Supabase (Authentication > Providers > Email).";
       } else if (message.toLowerCase().includes("invalid login credentials")) {
         message = "Credenciais inválidas. Verifique seu e-mail e senha de acesso.";
       }
@@ -186,13 +193,17 @@ function Login() {
     <div className="scanline relative grid min-h-screen overflow-hidden lg:grid-cols-[1fr_480px]">
       <div className="absolute inset-0 lg:right-[480px]">
         <ClientOnly fallback={null}>
-          <Suspense fallback={null}><MarsGlobe /></Suspense>
+          <Suspense fallback={null}>
+            <MarsGlobe />
+          </Suspense>
         </ClientOnly>
       </div>
 
       {/* HUD overlay */}
       <div className="pointer-events-none relative hidden flex-col justify-between p-10 lg:flex">
-        <div className="pointer-events-auto"><AresLogo /></div>
+        <div className="pointer-events-auto">
+          <AresLogo />
+        </div>
         <div className="space-y-2 font-mono text-xs text-telemetry">
           <p>LAT 18.65°N · LON 133.8°W · OLYMPUS MONS HUB</p>
           <p>PRESSÃO EXT 0.006 atm · TEMP −63 °C</p>
@@ -206,8 +217,12 @@ function Login() {
         transition={{ duration: 0.7 }}
         className="glass relative z-10 flex flex-col justify-center border-y-0 border-r-0 px-8 py-12 md:px-12"
       >
-        <div className="mb-10 lg:hidden"><AresLogo /></div>
-        <p className="font-mono text-xs uppercase tracking-[0.4em] text-primary">Terminal de acesso</p>
+        <div className="mb-10 lg:hidden">
+          <AresLogo />
+        </div>
+        <p className="font-mono text-xs uppercase tracking-[0.4em] text-primary">
+          Terminal de acesso
+        </p>
         <h1 className="mt-3 font-display text-4xl font-bold">
           {mode === "in" ? "Bem-vindo de volta, colono." : "Registrar credencial"}
         </h1>
@@ -216,18 +231,28 @@ function Login() {
         <div className="mt-6 grid grid-cols-2 gap-2 border-b border-border/50 pb-2">
           <button
             type="button"
-            onClick={() => { setMode("in"); setAuthError(null); }}
+            onClick={() => {
+              setMode("in");
+              setAuthError(null);
+            }}
             className={`py-2 text-center font-mono text-xs uppercase tracking-wider transition ${
-              mode === "in" ? "border-b-2 border-primary font-bold text-primary" : "text-muted-foreground hover:text-foreground"
+              mode === "in"
+                ? "border-b-2 border-primary font-bold text-primary"
+                : "text-muted-foreground hover:text-foreground"
             }`}
           >
             Entrar
           </button>
           <button
             type="button"
-            onClick={() => { setMode("up"); setAuthError(null); }}
+            onClick={() => {
+              setMode("up");
+              setAuthError(null);
+            }}
             className={`py-2 text-center font-mono text-xs uppercase tracking-wider transition ${
-              mode === "up" ? "border-b-2 border-primary font-bold text-primary" : "text-muted-foreground hover:text-foreground"
+              mode === "up"
+                ? "border-b-2 border-primary font-bold text-primary"
+                : "text-muted-foreground hover:text-foreground"
             }`}
           >
             Cadastrar
@@ -247,7 +272,9 @@ function Login() {
             <span className="text-[10px] text-telemetry/70">(Sem cadastro)</span>
           </button>
           <div className="mt-2 text-center">
-            <span className="font-mono text-[10px] text-muted-foreground">ou utilize suas credenciais espaciais abaixo</span>
+            <span className="font-mono text-[10px] text-muted-foreground">
+              ou utilize suas credenciais espaciais abaixo
+            </span>
           </div>
         </div>
 
@@ -295,7 +322,9 @@ function Login() {
           {mode === "up" && (
             <div className="space-y-4">
               <div>
-                <label className="text-muted-foreground">ID DA CREDENCIAL ESPACIAL (OPCIONAL)</label>
+                <label className="text-muted-foreground">
+                  ID DA CREDENCIAL ESPACIAL (OPCIONAL)
+                </label>
                 <div className="mt-1.5 flex items-center border bg-background/50 px-3">
                   <Fingerprint className="h-4 w-4 text-muted-foreground" />
                   <input
@@ -317,7 +346,9 @@ function Login() {
                       type="button"
                       onClick={() => setLicense(lic.id)}
                       className={`border p-2 text-center text-[11px] uppercase transition ${
-                        license === lic.id ? "border-primary bg-primary/20 text-primary font-bold" : "text-muted-foreground hover:border-muted-foreground"
+                        license === lic.id
+                          ? "border-primary bg-primary/20 text-primary font-bold"
+                          : "text-muted-foreground hover:border-muted-foreground"
                       }`}
                     >
                       {lic.label}
@@ -328,7 +359,9 @@ function Login() {
 
               <div className="flex items-center gap-2 border border-telemetry/40 bg-telemetry/5 p-3 text-[11px] text-telemetry">
                 <ShieldCheck className="h-4 w-4 shrink-0" />
-                <span>Bônus inaugural: 25.000 Créditos Marcianos creditados na ativação da credencial.</span>
+                <span>
+                  Bônus inaugural: 25.000 Créditos Marcianos creditados na ativação da credencial.
+                </span>
               </div>
             </div>
           )}
@@ -338,7 +371,11 @@ function Login() {
             disabled={loading}
             className="cut-corner mt-4 w-full bg-mars-gradient py-3.5 font-sans font-semibold uppercase tracking-widest text-primary-foreground shadow-glow disabled:opacity-50"
           >
-            {loading ? "Sincronizando com Jezero..." : mode === "in" ? "Acessar Terminal" : "Emitir Credencial"}
+            {loading
+              ? "Sincronizando com Jezero..."
+              : mode === "in"
+                ? "Acessar Terminal"
+                : "Emitir Credencial"}
           </button>
         </form>
 
@@ -346,14 +383,26 @@ function Login() {
           {mode === "in" ? (
             <>
               <span>Primeiro ciclo em Marte?</span>
-              <button onClick={() => { setMode("up"); setAuthError(null); }} className="text-primary hover:underline">
+              <button
+                onClick={() => {
+                  setMode("up");
+                  setAuthError(null);
+                }}
+                className="text-primary hover:underline"
+              >
                 Criar credencial
               </button>
             </>
           ) : (
             <>
               <span>Já possui credencial?</span>
-              <button onClick={() => { setMode("in"); setAuthError(null); }} className="text-primary hover:underline">
+              <button
+                onClick={() => {
+                  setMode("in");
+                  setAuthError(null);
+                }}
+                className="text-primary hover:underline"
+              >
                 Acessar terminal
               </button>
             </>

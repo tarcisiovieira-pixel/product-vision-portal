@@ -80,7 +80,11 @@ function Hotspot({
 // 1. Apex Phantom Hyper-VTOL (Linha Executiva VIP Premium)
 // Design hiperaerodinâmico coeso, chassi em cunha, cúpula fumê e detalhes ouro-titânio
 // ---------------------------------------------------------------------
-function ApexPhantomVtol({ selectedHotspot, onSelectHotspot, showHotspots }: Omit<VehicleModelProps, "category">) {
+function ApexPhantomVtol({
+  selectedHotspot,
+  onSelectHotspot,
+  showHotspots,
+}: Omit<VehicleModelProps, "category">) {
   const turbineRefs = useRef<THREE.Group[]>([]);
   const rearGlow = useRef<THREE.PointLight>(null);
 
@@ -147,7 +151,10 @@ function ApexPhantomVtol({ selectedHotspot, onSelectHotspot, showHotspots }: Omi
             <meshStandardMaterial color={TITANIUM_GOLD} metalness={0.96} roughness={0.12} />
           </mesh>
           {/* Tomada de ar lateral chanfrada */}
-          <mesh position={[-Math.sign(x) * 0.08, -0.05, -0.4]} rotation={[0, Math.sign(x) * 0.2, 0]}>
+          <mesh
+            position={[-Math.sign(x) * 0.08, -0.05, -0.4]}
+            rotation={[0, Math.sign(x) * 0.2, 0]}
+          >
             <boxGeometry args={[0.12, 0.12, 0.7]} />
             <meshStandardMaterial color="#08090b" roughness={0.8} />
           </mesh>
@@ -169,7 +176,11 @@ function ApexPhantomVtol({ selectedHotspot, onSelectHotspot, showHotspots }: Omi
             <torusGeometry args={[0.38, 0.015, 8, 32]} />
             <meshBasicMaterial color={GLOW_CYAN} toneMapped={false} />
           </mesh>
-          <group ref={(el) => { if (el) turbineRefs.current[i] = el; }}>
+          <group
+            ref={(el) => {
+              if (el) turbineRefs.current[i] = el;
+            }}
+          >
             {[0, Math.PI / 3, (Math.PI * 2) / 3].map((ang, idx) => (
               <mesh key={idx} rotation={[0, ang, 0]}>
                 <boxGeometry args={[0.74, 0.015, 0.06]} />
@@ -200,7 +211,13 @@ function ApexPhantomVtol({ selectedHotspot, onSelectHotspot, showHotspots }: Omi
             <meshBasicMaterial color={GLOW_CYAN} toneMapped={false} />
           </mesh>
         ))}
-        <pointLight ref={rearGlow} position={[0, 0, -0.3]} color={GLOW_CYAN} intensity={2.2} distance={3} />
+        <pointLight
+          ref={rearGlow}
+          position={[0, 0, -0.3]}
+          color={GLOW_CYAN}
+          intensity={2.2}
+          distance={3}
+        />
       </group>
 
       {/* 9. PATINS MAGNÉTICOS DE SOLO */}
@@ -214,10 +231,34 @@ function ApexPhantomVtol({ selectedHotspot, onSelectHotspot, showHotspots }: Omi
       {/* Hotspots de Manutenção */}
       {showHotspots && (
         <>
-          <Hotspot position={[0, 0.45, 0.1]} id="o2" name="Cabine Pressurizada VIP & Climatização" selected={selectedHotspot === "o2"} onSelect={onSelectHotspot} />
-          <Hotspot position={[0, 0.05, 0.4]} id="battery" name="Células Ultracapacitoras Graphene-Platinum" selected={selectedHotspot === "battery"} onSelect={onSelectHotspot} />
-          <Hotspot position={[0, 0.15, -1.5]} id="thruster" name="Bipulsor Iônico Supersônico" selected={selectedHotspot === "thruster"} onSelect={onSelectHotspot} />
-          <Hotspot position={[0, 0.1, 1.7]} id="dust" name="Filtro Eletrostático de Rególito Fino" selected={selectedHotspot === "dust"} onSelect={onSelectHotspot} />
+          <Hotspot
+            position={[0, 0.45, 0.1]}
+            id="o2"
+            name="Cabine Pressurizada VIP & Climatização"
+            selected={selectedHotspot === "o2"}
+            onSelect={onSelectHotspot}
+          />
+          <Hotspot
+            position={[0, 0.05, 0.4]}
+            id="battery"
+            name="Células Ultracapacitoras Graphene-Platinum"
+            selected={selectedHotspot === "battery"}
+            onSelect={onSelectHotspot}
+          />
+          <Hotspot
+            position={[0, 0.15, -1.5]}
+            id="thruster"
+            name="Bipulsor Iônico Supersônico"
+            selected={selectedHotspot === "thruster"}
+            onSelect={onSelectHotspot}
+          />
+          <Hotspot
+            position={[0, 0.1, 1.7]}
+            id="dust"
+            name="Filtro Eletrostático de Rególito Fino"
+            selected={selectedHotspot === "dust"}
+            onSelect={onSelectHotspot}
+          />
         </>
       )}
     </group>
@@ -228,7 +269,11 @@ function ApexPhantomVtol({ selectedHotspot, onSelectHotspot, showHotspots }: Omi
 // 2. Valkyrie Martian Roadster GT (Linha Super Sport GT)
 // Hiperesportivo de alta velocidade, spoiler traseiro tipo swan-neck e acabamento Laranja Vulcânico
 // ---------------------------------------------------------------------
-function ValkyrieRoadsterGt({ selectedHotspot, onSelectHotspot, showHotspots }: Omit<VehicleModelProps, "category">) {
+function ValkyrieRoadsterGt({
+  selectedHotspot,
+  onSelectHotspot,
+  showHotspots,
+}: Omit<VehicleModelProps, "category">) {
   const rotorRefs = useRef<THREE.Group[]>([]);
   const flameRef = useRef<THREE.Mesh>(null);
 
@@ -311,7 +356,11 @@ function ValkyrieRoadsterGt({ selectedHotspot, onSelectHotspot, showHotspots }: 
             <torusGeometry args={[0.42, 0.04, 16, 28]} />
             <meshStandardMaterial color={ACCENT_ORANGE} metalness={0.85} roughness={0.25} />
           </mesh>
-          <group ref={(el) => { if (el) rotorRefs.current[i] = el; }}>
+          <group
+            ref={(el) => {
+              if (el) rotorRefs.current[i] = el;
+            }}
+          >
             <mesh>
               <boxGeometry args={[0.78, 0.015, 0.06]} />
               <meshStandardMaterial color="#1c1d22" roughness={0.7} />
@@ -347,10 +396,34 @@ function ValkyrieRoadsterGt({ selectedHotspot, onSelectHotspot, showHotspots }: 
       {/* Hotspots de Manutenção */}
       {showHotspots && (
         <>
-          <Hotspot position={[0, 0.4, 0.2]} id="o2" name="Suporte Atmosférico Cockpit Sport" selected={selectedHotspot === "o2"} onSelect={onSelectHotspot} />
-          <Hotspot position={[0, 0.05, 0.4]} id="battery" name="Células Graphene Racing de Alta Descarga" selected={selectedHotspot === "battery"} onSelect={onSelectHotspot} />
-          <Hotspot position={[0, 0.1, -1.45]} id="thruster" name="Pós-Combustores Plasma Twin-Vector" selected={selectedHotspot === "thruster"} onSelect={onSelectHotspot} />
-          <Hotspot position={[0, 0.05, 1.6]} id="dust" name="Admissão Ativa Ram-Air & Filtro Sílica" selected={selectedHotspot === "dust"} onSelect={onSelectHotspot} />
+          <Hotspot
+            position={[0, 0.4, 0.2]}
+            id="o2"
+            name="Suporte Atmosférico Cockpit Sport"
+            selected={selectedHotspot === "o2"}
+            onSelect={onSelectHotspot}
+          />
+          <Hotspot
+            position={[0, 0.05, 0.4]}
+            id="battery"
+            name="Células Graphene Racing de Alta Descarga"
+            selected={selectedHotspot === "battery"}
+            onSelect={onSelectHotspot}
+          />
+          <Hotspot
+            position={[0, 0.1, -1.45]}
+            id="thruster"
+            name="Pós-Combustores Plasma Twin-Vector"
+            selected={selectedHotspot === "thruster"}
+            onSelect={onSelectHotspot}
+          />
+          <Hotspot
+            position={[0, 0.05, 1.6]}
+            id="dust"
+            name="Admissão Ativa Ram-Air & Filtro Sílica"
+            selected={selectedHotspot === "dust"}
+            onSelect={onSelectHotspot}
+          />
         </>
       )}
     </group>
@@ -360,7 +433,11 @@ function ValkyrieRoadsterGt({ selectedHotspot, onSelectHotspot, showHotspots }: 
 // ---------------------------------------------------------------------
 // 3. CyberCab VTOL Sport (Linha Sport com Widebody & Aletas Altas)
 // ---------------------------------------------------------------------
-function CyberCabVtolSport({ selectedHotspot, onSelectHotspot, showHotspots }: Omit<VehicleModelProps, "category">) {
+function CyberCabVtolSport({
+  selectedHotspot,
+  onSelectHotspot,
+  showHotspots,
+}: Omit<VehicleModelProps, "category">) {
   const rotorRefs = useRef<THREE.Group[]>([]);
   const glowLightRef = useRef<THREE.PointLight>(null);
 
@@ -433,7 +510,11 @@ function CyberCabVtolSport({ selectedHotspot, onSelectHotspot, showHotspots }: O
             <torusGeometry args={[0.44, 0.015, 8, 32]} />
             <meshBasicMaterial color={GLOW_CYAN} toneMapped={false} />
           </mesh>
-          <group ref={(el) => { if (el) rotorRefs.current[i] = el; }}>
+          <group
+            ref={(el) => {
+              if (el) rotorRefs.current[i] = el;
+            }}
+          >
             <mesh>
               <boxGeometry args={[0.9, 0.02, 0.08]} />
               <meshStandardMaterial color="#1a1a1a" roughness={0.8} />
@@ -458,16 +539,46 @@ function CyberCabVtolSport({ selectedHotspot, onSelectHotspot, showHotspots }: O
             <meshBasicMaterial color={GLOW_CYAN} toneMapped={false} />
           </mesh>
         ))}
-        <pointLight ref={glowLightRef} position={[0, 0, -0.4]} color={GLOW_CYAN} intensity={2.2} distance={3} />
+        <pointLight
+          ref={glowLightRef}
+          position={[0, 0, -0.4]}
+          color={GLOW_CYAN}
+          intensity={2.2}
+          distance={3}
+        />
       </group>
 
       {/* Hotspots de Manutenção */}
       {showHotspots && (
         <>
-          <Hotspot position={[0, 0.45, 0]} id="o2" name="Filtro e Pressurização O₂" selected={selectedHotspot === "o2"} onSelect={onSelectHotspot} />
-          <Hotspot position={[0, -0.3, 0.3]} id="battery" name="Células de Bateria de Grafeno" selected={selectedHotspot === "battery"} onSelect={onSelectHotspot} />
-          <Hotspot position={[0, 0, -1.5]} id="thruster" name="Impulsor Vetorial de Cauda" selected={selectedHotspot === "thruster"} onSelect={onSelectHotspot} />
-          <Hotspot position={[0, 0.1, 1.7]} id="dust" name="Filtro Ciclônico de Sílica" selected={selectedHotspot === "dust"} onSelect={onSelectHotspot} />
+          <Hotspot
+            position={[0, 0.45, 0]}
+            id="o2"
+            name="Filtro e Pressurização O₂"
+            selected={selectedHotspot === "o2"}
+            onSelect={onSelectHotspot}
+          />
+          <Hotspot
+            position={[0, -0.3, 0.3]}
+            id="battery"
+            name="Células de Bateria de Grafeno"
+            selected={selectedHotspot === "battery"}
+            onSelect={onSelectHotspot}
+          />
+          <Hotspot
+            position={[0, 0, -1.5]}
+            id="thruster"
+            name="Impulsor Vetorial de Cauda"
+            selected={selectedHotspot === "thruster"}
+            onSelect={onSelectHotspot}
+          />
+          <Hotspot
+            position={[0, 0.1, 1.7]}
+            id="dust"
+            name="Filtro Ciclônico de Sílica"
+            selected={selectedHotspot === "dust"}
+            onSelect={onSelectHotspot}
+          />
         </>
       )}
     </group>
@@ -477,7 +588,11 @@ function CyberCabVtolSport({ selectedHotspot, onSelectHotspot, showHotspots }: O
 // ---------------------------------------------------------------------
 // 4. CyberCab VTOL X2 (Carro Voador Standard Commuter)
 // ---------------------------------------------------------------------
-function CyberCabVtol({ selectedHotspot, onSelectHotspot, showHotspots }: Omit<VehicleModelProps, "category">) {
+function CyberCabVtol({
+  selectedHotspot,
+  onSelectHotspot,
+  showHotspots,
+}: Omit<VehicleModelProps, "category">) {
   const rotorRefs = useRef<THREE.Group[]>([]);
   const glowLightRef = useRef<THREE.PointLight>(null);
 
@@ -559,7 +674,11 @@ function CyberCabVtol({ selectedHotspot, onSelectHotspot, showHotspots }: Omit<V
             <torusGeometry args={[0.44, 0.015, 8, 32]} />
             <meshBasicMaterial color={GLOW_CYAN} toneMapped={false} />
           </mesh>
-          <group ref={(el) => { if (el) rotorRefs.current[i] = el; }}>
+          <group
+            ref={(el) => {
+              if (el) rotorRefs.current[i] = el;
+            }}
+          >
             <mesh>
               <boxGeometry args={[0.9, 0.02, 0.08]} />
               <meshStandardMaterial color="#1a1a1a" roughness={0.8} />
@@ -582,7 +701,13 @@ function CyberCabVtol({ selectedHotspot, onSelectHotspot, showHotspots }: Omit<V
         <cylinderGeometry args={[0.22, 0.28, 0.15, 24]} />
         <meshBasicMaterial color={GLOW_CYAN} toneMapped={false} />
       </mesh>
-      <pointLight ref={glowLightRef} position={[0, 0, -1.6]} color={GLOW_CYAN} intensity={1.8} distance={3} />
+      <pointLight
+        ref={glowLightRef}
+        position={[0, 0, -1.6]}
+        color={GLOW_CYAN}
+        intensity={1.8}
+        distance={3}
+      />
 
       {/* Faixas luminosas decorativas da fuselagem */}
       <mesh position={[0, 0.34, 1.4]} rotation={[0, 0, 0]}>
@@ -593,10 +718,34 @@ function CyberCabVtol({ selectedHotspot, onSelectHotspot, showHotspots }: Omit<V
       {/* Hotspots de Manutenção */}
       {showHotspots && (
         <>
-          <Hotspot position={[0, 0.45, 0]} id="o2" name="Filtro e Pressurização O₂" selected={selectedHotspot === "o2"} onSelect={onSelectHotspot} />
-          <Hotspot position={[0, -0.3, 0.3]} id="battery" name="Células de Bateria de Grafeno" selected={selectedHotspot === "battery"} onSelect={onSelectHotspot} />
-          <Hotspot position={[0, 0, -1.5]} id="thruster" name="Impulsor Vetorial de Cauda" selected={selectedHotspot === "thruster"} onSelect={onSelectHotspot} />
-          <Hotspot position={[0, 0.1, 1.7]} id="dust" name="Filtro Ciclônico de Sílica" selected={selectedHotspot === "dust"} onSelect={onSelectHotspot} />
+          <Hotspot
+            position={[0, 0.45, 0]}
+            id="o2"
+            name="Filtro e Pressurização O₂"
+            selected={selectedHotspot === "o2"}
+            onSelect={onSelectHotspot}
+          />
+          <Hotspot
+            position={[0, -0.3, 0.3]}
+            id="battery"
+            name="Células de Bateria de Grafeno"
+            selected={selectedHotspot === "battery"}
+            onSelect={onSelectHotspot}
+          />
+          <Hotspot
+            position={[0, 0, -1.5]}
+            id="thruster"
+            name="Impulsor Vetorial de Cauda"
+            selected={selectedHotspot === "thruster"}
+            onSelect={onSelectHotspot}
+          />
+          <Hotspot
+            position={[0, 0.1, 1.7]}
+            id="dust"
+            name="Filtro Ciclônico de Sílica"
+            selected={selectedHotspot === "dust"}
+            onSelect={onSelectHotspot}
+          />
         </>
       )}
     </group>
@@ -606,7 +755,11 @@ function CyberCabVtol({ selectedHotspot, onSelectHotspot, showHotspots }: Omit<V
 // ---------------------------------------------------------------------
 // 5. Ares Hauler (Caminhão Espacial Pesado)
 // ---------------------------------------------------------------------
-function AresHauler({ selectedHotspot, onSelectHotspot, showHotspots }: Omit<VehicleModelProps, "category">) {
+function AresHauler({
+  selectedHotspot,
+  onSelectHotspot,
+  showHotspots,
+}: Omit<VehicleModelProps, "category">) {
   const thrusterPulseRef = useRef<THREE.Group>(null);
 
   useFrame(() => {
@@ -679,10 +832,34 @@ function AresHauler({ selectedHotspot, onSelectHotspot, showHotspots }: Omit<Veh
       {/* Hotspots de Manutenção */}
       {showHotspots && (
         <>
-          <Hotspot position={[0, 0.8, 1.5]} id="o2" name="Módulo de Pressurização da Cabine" selected={selectedHotspot === "o2"} onSelect={onSelectHotspot} />
-          <Hotspot position={[0, -0.1, 0.8]} id="battery" name="Baterias Industriais de Lítio-Enxofre" selected={selectedHotspot === "battery"} onSelect={onSelectHotspot} />
-          <Hotspot position={[0, 0.45, -2.2]} id="thruster" name="Propulsores de Plasma Kr-Xe" selected={selectedHotspot === "thruster"} onSelect={onSelectHotspot} />
-          <Hotspot position={[0.9, 0.6, 0.2]} id="dust" name="Filtro de Despoeiramento Eletrostático" selected={selectedHotspot === "dust"} onSelect={onSelectHotspot} />
+          <Hotspot
+            position={[0, 0.8, 1.5]}
+            id="o2"
+            name="Módulo de Pressurização da Cabine"
+            selected={selectedHotspot === "o2"}
+            onSelect={onSelectHotspot}
+          />
+          <Hotspot
+            position={[0, -0.1, 0.8]}
+            id="battery"
+            name="Baterias Industriais de Lítio-Enxofre"
+            selected={selectedHotspot === "battery"}
+            onSelect={onSelectHotspot}
+          />
+          <Hotspot
+            position={[0, 0.45, -2.2]}
+            id="thruster"
+            name="Propulsores de Plasma Kr-Xe"
+            selected={selectedHotspot === "thruster"}
+            onSelect={onSelectHotspot}
+          />
+          <Hotspot
+            position={[0.9, 0.6, 0.2]}
+            id="dust"
+            name="Filtro de Despoeiramento Eletrostático"
+            selected={selectedHotspot === "dust"}
+            onSelect={onSelectHotspot}
+          />
         </>
       )}
     </group>
@@ -692,7 +869,11 @@ function AresHauler({ selectedHotspot, onSelectHotspot, showHotspots }: Omit<Veh
 // ---------------------------------------------------------------------
 // 6. Starship Hopper (Foguete Interplanetário Monocilíndrico)
 // ---------------------------------------------------------------------
-function StarshipHopper({ selectedHotspot, onSelectHotspot, showHotspots }: Omit<VehicleModelProps, "category">) {
+function StarshipHopper({
+  selectedHotspot,
+  onSelectHotspot,
+  showHotspots,
+}: Omit<VehicleModelProps, "category">) {
   const flameRef = useRef<THREE.Mesh>(null);
   const glowLight = useRef<THREE.PointLight>(null);
 
@@ -779,16 +960,46 @@ function StarshipHopper({ selectedHotspot, onSelectHotspot, showHotspots }: Omit
           <coneGeometry args={[0.45, 1.4, 32, 1, true]} />
           <meshBasicMaterial color={GLOW_CYAN} side={THREE.DoubleSide} transparent opacity={0.85} />
         </mesh>
-        <pointLight ref={glowLight} position={[0, -0.2, 0]} color={GLOW_CYAN} intensity={4} distance={6} />
+        <pointLight
+          ref={glowLight}
+          position={[0, -0.2, 0]}
+          color={GLOW_CYAN}
+          intensity={4}
+          distance={6}
+        />
       </group>
 
       {/* Hotspots de Manutenção */}
       {showHotspots && (
         <>
-          <Hotspot position={[0, 4.6, 0.5]} id="o2" name="Módulo de Comando & Suporte O₂" selected={selectedHotspot === "o2"} onSelect={onSelectHotspot} />
-          <Hotspot position={[0.7, 2.2, 0]} id="heat" name="Escudo Térmico Cerâmico PICA-X" selected={selectedHotspot === "heat"} onSelect={onSelectHotspot} />
-          <Hotspot position={[0, 0, 0]} id="thruster" name="Cluster 3x Motores Raptor" selected={selectedHotspot === "thruster"} onSelect={onSelectHotspot} />
-          <Hotspot position={[0, 1.5, 0.75]} id="battery" name="Células Criogênicas de Ignição" selected={selectedHotspot === "battery"} onSelect={onSelectHotspot} />
+          <Hotspot
+            position={[0, 4.6, 0.5]}
+            id="o2"
+            name="Módulo de Comando & Suporte O₂"
+            selected={selectedHotspot === "o2"}
+            onSelect={onSelectHotspot}
+          />
+          <Hotspot
+            position={[0.7, 2.2, 0]}
+            id="heat"
+            name="Escudo Térmico Cerâmico PICA-X"
+            selected={selectedHotspot === "heat"}
+            onSelect={onSelectHotspot}
+          />
+          <Hotspot
+            position={[0, 0, 0]}
+            id="thruster"
+            name="Cluster 3x Motores Raptor"
+            selected={selectedHotspot === "thruster"}
+            onSelect={onSelectHotspot}
+          />
+          <Hotspot
+            position={[0, 1.5, 0.75]}
+            id="battery"
+            name="Células Criogênicas de Ignição"
+            selected={selectedHotspot === "battery"}
+            onSelect={onSelectHotspot}
+          />
         </>
       )}
     </group>

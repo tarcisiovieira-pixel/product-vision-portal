@@ -9,7 +9,11 @@ vi.mock("@tanstack/react-router", async () => {
   return {
     ...actual,
     useNavigate: () => mockNavigate,
-    createFileRoute: () => (config: any) => ({ options: config, component: config.component, ...config }),
+    createFileRoute: () => (config: any) => ({
+      options: config,
+      component: config.component,
+      ...config,
+    }),
     ClientOnly: ({ children }: { children: React.ReactNode }) => children,
     Link: ({ children, to, ...props }: any) => (
       <a href={to} {...props}>

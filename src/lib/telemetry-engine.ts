@@ -15,7 +15,12 @@ export interface SimulatedStorm extends WeatherEvent {
 export interface TelemetryState {
   simulatedVehicles: SimulatedVehicle[];
   simulatedStorms: SimulatedStorm[];
-  activeAlerts: Array<{ id: string; message: string; severity: "info" | "warning" | "danger"; solTime: string }>;
+  activeAlerts: Array<{
+    id: string;
+    message: string;
+    severity: "info" | "warning" | "danger";
+    solTime: string;
+  }>;
   telemetryTicks: number;
 }
 
@@ -33,16 +38,22 @@ function interpolateCoord(
   return [lat, lng];
 }
 
-export function useLiveTelemetry(
-  vehicles: Vehicle[],
-  weather: WeatherEvent[],
-  hangars: Hangar[],
-) {
+export function useLiveTelemetry(vehicles: Vehicle[], weather: WeatherEvent[], hangars: Hangar[]) {
   const [state, setState] = useState<TelemetryState>({
     simulatedVehicles: vehicles.map((v) => ({
       ...v,
-      simSpeedKmh: v.speed_kmh || (v.status === "in_flight" ? (v.category === "interplanetary_rocket" ? 14200 : v.category === "car_vtol" ? 640 : 210) : 0),
-      simAltitudeKm: v.altitude_km || (v.status === "in_flight" ? (v.category === "interplanetary_rocket" ? 64 : 2.2) : 0),
+      simSpeedKmh:
+        v.speed_kmh ||
+        (v.status === "in_flight"
+          ? v.category === "interplanetary_rocket"
+            ? 14200
+            : v.category === "car_vtol"
+              ? 640
+              : 210
+          : 0),
+      simAltitudeKm:
+        v.altitude_km ||
+        (v.status === "in_flight" ? (v.category === "interplanetary_rocket" ? 64 : 2.2) : 0),
       inStorm: false,
     })),
     simulatedStorms: weather.map((w) => ({
@@ -89,8 +100,17 @@ export function useLiveTelemetry(
         const updatedVehicles: SimulatedVehicle[] = vehicles.map((v) => {
           let lat = v.lat;
           let lng = v.lng;
-          let speed = v.status === "in_flight" ? (v.category === "interplanetary_rocket" ? 14200 : v.category === "car_vtol" ? 640 : 210) : 0;
-          let alt = v.altitude_km || (v.status === "in_flight" ? (v.category === "interplanetary_rocket" ? 64 : 2.2) : 0);
+          let speed =
+            v.status === "in_flight"
+              ? v.category === "interplanetary_rocket"
+                ? 14200
+                : v.category === "car_vtol"
+                  ? 640
+                  : 210
+              : 0;
+          let alt =
+            v.altitude_km ||
+            (v.status === "in_flight" ? (v.category === "interplanetary_rocket" ? 64 : 2.2) : 0);
 
           if (v.status === "in_flight") {
             // Movimenta o veículo entre os dois primeiros hangares ou coordenadas
@@ -112,7 +132,10 @@ export function useLiveTelemetry(
             lat = nLat;
             lng = nLng;
             // Efeito de altitude dinâmica (parábola)
-            alt = Math.max(1.2, (v.category === "interplanetary_rocket" ? 70 : 3.5) * Math.sin(p * Math.PI));
+            alt = Math.max(
+              1.2,
+              (v.category === "interplanetary_rocket" ? 70 : 3.5) * Math.sin(p * Math.PI),
+            );
           }
 
           // Checa se intercepta tempestade

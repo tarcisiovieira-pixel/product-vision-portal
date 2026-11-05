@@ -38,7 +38,12 @@ async function runWithFallback<T>(
       console.warn("Supabase query error, using local Martian dataset:", error.message);
       return fallback;
     }
-    if (Array.isArray(data) && data.length === 0 && Array.isArray(fallback) && fallback.length > 0) {
+    if (
+      Array.isArray(data) &&
+      data.length === 0 &&
+      Array.isArray(fallback) &&
+      fallback.length > 0
+    ) {
       return fallback;
     }
     return (data ?? fallback) as T;
@@ -227,14 +232,20 @@ export function marsDistanceKm(lat1: number, lon1: number, lat2: number, lon2: n
   const dLon = ((lon2 - lon1) * Math.PI) / 180;
   const a =
     Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    Math.cos((lat1 * Math.PI) / 180) *
+      Math.cos((lat2 * Math.PI) / 180) *
+      Math.sin(dLon / 2) *
+      Math.sin(dLon / 2);
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   return Math.round(MARS_RADIUS_KM * c);
 }
 
 /** Maintenance urgency 0–100 from wear signals. */
-export function wearScore(v: Pick<Vehicle, "battery_pct" | "dust_filter_pct" | "o2_hours" | "category">) {
-  const o2Target = v.category === "interplanetary_rocket" ? 900 : v.category === "space_truck" ? 120 : 40;
+export function wearScore(
+  v: Pick<Vehicle, "battery_pct" | "dust_filter_pct" | "o2_hours" | "category">,
+) {
+  const o2Target =
+    v.category === "interplanetary_rocket" ? 900 : v.category === "space_truck" ? 120 : 40;
   const o2 = Math.min(100, (Number(v.o2_hours) / o2Target) * 100);
   return Math.round(100 - (v.battery_pct * 0.3 + v.dust_filter_pct * 0.45 + o2 * 0.25));
 }
@@ -263,16 +274,37 @@ export const SPACE_ADDONS = {
     rate: 220,
     desc: "Campo de força defletor contra vendavais e micro-meteoritos de rególito (Autoriza decolagem sob tempestades severas).",
   },
-  silica_insurance: { label: "Seguro contra Tempestade de Sílica", rate: 120, desc: "Cobertura total contra erosão por rególito e saturação de turbinas." },
-  extra_o2_tank: { label: "Tanque Criogênico Extra de O₂", rate: 180, desc: "+120h de suporte de vida pressurizado certificado pela ARES." },
-  neural_autopilot_l5: { label: "Piloto Automático Neural Nível 5", rate: 350, desc: "Navegação por satélite orbital sem intervenção humana." },
-  extra_eva_suits: { label: "Kit de Trajes EVA Reforçados (por unidade)", rate: 100, desc: "Proteção contra radiação e choque térmico até −120°C." },
+  silica_insurance: {
+    label: "Seguro contra Tempestade de Sílica",
+    rate: 120,
+    desc: "Cobertura total contra erosão por rególito e saturação de turbinas.",
+  },
+  extra_o2_tank: {
+    label: "Tanque Criogênico Extra de O₂",
+    rate: 180,
+    desc: "+120h de suporte de vida pressurizado certificado pela ARES.",
+  },
+  neural_autopilot_l5: {
+    label: "Piloto Automático Neural Nível 5",
+    rate: 350,
+    desc: "Navegação por satélite orbital sem intervenção humana.",
+  },
+  extra_eva_suits: {
+    label: "Kit de Trajes EVA Reforçados (por unidade)",
+    rate: 100,
+    desc: "Proteção contra radiação e choque térmico até −120°C.",
+  },
 } as const;
 
 /** Serviços de Manutenção disponíveis */
 export const MAINTENANCE_SERVICES: Record<
   string,
-  { label: string; cost: number; desc: string; target: "dust" | "battery" | "heat" | "o2" | "thruster" }
+  {
+    label: string;
+    cost: number;
+    desc: string;
+    target: "dust" | "battery" | "heat" | "o2" | "thruster";
+  }
 > = {
   silica_clean: {
     label: "Limpeza Ultrassônica de Sílica",

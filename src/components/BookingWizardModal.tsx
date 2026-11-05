@@ -171,7 +171,9 @@ export function BookingWizardModal({
         const p: Profile = prof || {
           id: data.user.id,
           user_id: data.user.id,
-          space_credential_id: data.user.user_metadata?.space_credential_id || `ARS-${data.user.id.slice(0, 4).toUpperCase()}`,
+          space_credential_id:
+            data.user.user_metadata?.space_credential_id ||
+            `ARS-${data.user.id.slice(0, 4).toUpperCase()}`,
           pilot_license: (data.user.user_metadata?.pilot_license as any) || "atmospheric",
           martian_credits: 25000,
           created_at: new Date().toISOString(),
@@ -359,7 +361,10 @@ export function BookingWizardModal({
                   Wizard de Locação ARES · Sol {startSol}
                 </span>
                 <h2 className="font-display text-xl font-bold text-foreground">
-                  Alugar {vehicle.name} <span className="text-muted-foreground font-mono text-sm">({vehicle.callsign})</span>
+                  Alugar {vehicle.name}{" "}
+                  <span className="text-muted-foreground font-mono text-sm">
+                    ({vehicle.callsign})
+                  </span>
                 </h2>
               </div>
             </div>
@@ -386,8 +391,8 @@ export function BookingWizardModal({
                   step === s.num
                     ? "border-primary text-primary font-bold"
                     : step > s.num
-                    ? "border-telemetry text-telemetry"
-                    : "border-border/40 text-muted-foreground"
+                      ? "border-telemetry text-telemetry"
+                      : "border-border/40 text-muted-foreground"
                 }`}
               >
                 <span>{s.label}</span>
@@ -411,15 +416,21 @@ export function BookingWizardModal({
                 <div className="grid gap-4 sm:grid-cols-3 border border-border/50 bg-surface/50 p-4 font-mono text-xs">
                   <div>
                     <span className="text-muted-foreground">CATEGORIA</span>
-                    <p className="font-semibold text-foreground">{categoryLabel[vehicle.category]}</p>
+                    <p className="font-semibold text-foreground">
+                      {categoryLabel[vehicle.category]}
+                    </p>
                   </div>
                   <div>
                     <span className="text-muted-foreground">TARIFA DIÁRIA BASE</span>
-                    <p className="font-display text-lg text-primary">MC$ {vehicle.daily_rate_sol.toLocaleString("pt-BR")} / sol</p>
+                    <p className="font-display text-lg text-primary">
+                      MC$ {vehicle.daily_rate_sol.toLocaleString("pt-BR")} / sol
+                    </p>
                   </div>
                   <div>
                     <span className="text-muted-foreground">HABILITAÇÃO EXIGIDA</span>
-                    <p className="text-telemetry font-semibold">{getRequiredLicense(vehicle.category)}</p>
+                    <p className="text-telemetry font-semibold">
+                      {getRequiredLicense(vehicle.category)}
+                    </p>
                   </div>
                 </div>
 
@@ -515,7 +526,8 @@ export function BookingWizardModal({
                       <div>
                         <p className="font-semibold">Alerta de Tempestade Ativo no Setor</p>
                         <p className="text-[11px] text-warning/90">
-                          Recomendamos a inclusão do Seguro de Sílica no próximo passo para proteção contra rególito abrasivo.
+                          Recomendamos a inclusão do Seguro de Sílica no próximo passo para proteção
+                          contra rególito abrasivo.
                         </p>
                       </div>
                     </div>
@@ -533,7 +545,8 @@ export function BookingWizardModal({
                 className="space-y-4 font-mono text-xs"
               >
                 <p className="text-muted-foreground">
-                  Selecione os pacotes de segurança e suporte para atravessar o relevo hostil de Marte:
+                  Selecione os pacotes de segurança e suporte para atravessar o relevo hostil de
+                  Marte:
                 </p>
 
                 {/* Barreira Anti-Tempestade de Areia & Escudo Iônico */}
@@ -550,9 +563,13 @@ export function BookingWizardModal({
                         <ShieldCheck className="h-4 w-4 text-telemetry" />
                         {SPACE_ADDONS.storm_barrier_shield.label}
                       </span>
-                      <span className="text-telemetry font-bold">+MC$ {SPACE_ADDONS.storm_barrier_shield.rate}/sol</span>
+                      <span className="text-telemetry font-bold">
+                        +MC$ {SPACE_ADDONS.storm_barrier_shield.rate}/sol
+                      </span>
                     </div>
-                    <p className="mt-1 text-[11px] text-muted-foreground">{SPACE_ADDONS.storm_barrier_shield.desc}</p>
+                    <p className="mt-1 text-[11px] text-muted-foreground">
+                      {SPACE_ADDONS.storm_barrier_shield.desc}
+                    </p>
                     <span className="mt-1.5 inline-block text-[10px] text-emerald-400 font-bold">
                       🛡️ Autorização Especial ARES para voos seguros sob tempestades de areia
                     </span>
@@ -569,10 +586,16 @@ export function BookingWizardModal({
                   />
                   <div className="flex-1">
                     <div className="flex items-center justify-between">
-                      <span className="font-semibold text-foreground">{SPACE_ADDONS.silica_insurance.label}</span>
-                      <span className="text-primary font-bold">+MC$ {SPACE_ADDONS.silica_insurance.rate}/sol</span>
+                      <span className="font-semibold text-foreground">
+                        {SPACE_ADDONS.silica_insurance.label}
+                      </span>
+                      <span className="text-primary font-bold">
+                        +MC$ {SPACE_ADDONS.silica_insurance.rate}/sol
+                      </span>
                     </div>
-                    <p className="mt-1 text-[11px] text-muted-foreground">{SPACE_ADDONS.silica_insurance.desc}</p>
+                    <p className="mt-1 text-[11px] text-muted-foreground">
+                      {SPACE_ADDONS.silica_insurance.desc}
+                    </p>
                   </div>
                 </label>
 
@@ -586,10 +609,16 @@ export function BookingWizardModal({
                   />
                   <div className="flex-1">
                     <div className="flex items-center justify-between">
-                      <span className="font-semibold text-foreground">{SPACE_ADDONS.extra_o2_tank.label}</span>
-                      <span className="text-primary font-bold">+MC$ {SPACE_ADDONS.extra_o2_tank.rate}/sol</span>
+                      <span className="font-semibold text-foreground">
+                        {SPACE_ADDONS.extra_o2_tank.label}
+                      </span>
+                      <span className="text-primary font-bold">
+                        +MC$ {SPACE_ADDONS.extra_o2_tank.rate}/sol
+                      </span>
                     </div>
-                    <p className="mt-1 text-[11px] text-muted-foreground">{SPACE_ADDONS.extra_o2_tank.desc}</p>
+                    <p className="mt-1 text-[11px] text-muted-foreground">
+                      {SPACE_ADDONS.extra_o2_tank.desc}
+                    </p>
                   </div>
                 </label>
 
@@ -603,10 +632,16 @@ export function BookingWizardModal({
                   />
                   <div className="flex-1">
                     <div className="flex items-center justify-between">
-                      <span className="font-semibold text-foreground">{SPACE_ADDONS.neural_autopilot_l5.label}</span>
-                      <span className="text-primary font-bold">+MC$ {SPACE_ADDONS.neural_autopilot_l5.rate}/sol</span>
+                      <span className="font-semibold text-foreground">
+                        {SPACE_ADDONS.neural_autopilot_l5.label}
+                      </span>
+                      <span className="text-primary font-bold">
+                        +MC$ {SPACE_ADDONS.neural_autopilot_l5.rate}/sol
+                      </span>
                     </div>
-                    <p className="mt-1 text-[11px] text-muted-foreground">{SPACE_ADDONS.neural_autopilot_l5.desc}</p>
+                    <p className="mt-1 text-[11px] text-muted-foreground">
+                      {SPACE_ADDONS.neural_autopilot_l5.desc}
+                    </p>
                   </div>
                 </label>
 
@@ -614,12 +649,16 @@ export function BookingWizardModal({
                 <div className="border border-border/60 bg-surface/40 p-3.5">
                   <div className="flex items-center justify-between">
                     <div>
-                      <span className="font-semibold text-foreground">{SPACE_ADDONS.extra_eva_suits.label}</span>
-                      <p className="mt-1 text-[11px] text-muted-foreground">{SPACE_ADDONS.extra_eva_suits.desc}</p>
+                      <span className="font-semibold text-foreground">
+                        {SPACE_ADDONS.extra_eva_suits.label}
+                      </span>
+                      <p className="mt-1 text-[11px] text-muted-foreground">
+                        {SPACE_ADDONS.extra_eva_suits.desc}
+                      </p>
                     </div>
                     <div className="flex items-center gap-3">
                       <span className="text-primary font-bold">
-                        +MC$ {(SPACE_ADDONS.extra_eva_suits.rate * evaSuits)}/sol
+                        +MC$ {SPACE_ADDONS.extra_eva_suits.rate * evaSuits}/sol
                       </span>
                       <div className="flex items-center border">
                         <button
@@ -654,7 +693,9 @@ export function BookingWizardModal({
                   </div>
                   <div className="flex items-center justify-between text-muted-foreground mt-1">
                     <span>Período Total:</span>
-                    <span>{sols} Sols (Sols {startSol} a {startSol + sols})</span>
+                    <span>
+                      {sols} Sols (Sols {startSol} a {startSol + sols})
+                    </span>
                   </div>
                   <div className="flex items-center justify-between border-t border-primary/30 pt-3 mt-3">
                     <span className="font-bold text-foreground">TOTAL DA LOCAÇÃO:</span>
@@ -679,7 +720,8 @@ export function BookingWizardModal({
                   <div className="border-2 border-emerald-500/60 bg-emerald-500/10 p-5 space-y-4">
                     <div className="flex items-center justify-between">
                       <span className="text-emerald-400 font-bold flex items-center gap-2">
-                        <CheckCircle2 className="h-5 w-5" /> CREDENCIAL AUTENTICADA & VINCULADA À RESERVA
+                        <CheckCircle2 className="h-5 w-5" /> CREDENCIAL AUTENTICADA & VINCULADA À
+                        RESERVA
                       </span>
                       <button
                         type="button"
@@ -699,11 +741,15 @@ export function BookingWizardModal({
                     <div className="grid grid-cols-2 gap-4 pt-2 border-t border-emerald-500/20">
                       <div>
                         <span className="text-muted-foreground">ID DA CREDENCIAL ESPACIAL</span>
-                        <p className="font-display text-lg font-bold text-foreground">{activeProfile.space_credential_id}</p>
+                        <p className="font-display text-lg font-bold text-foreground">
+                          {activeProfile.space_credential_id}
+                        </p>
                       </div>
                       <div>
                         <span className="text-muted-foreground">HABILITAÇÃO DE PILOTO</span>
-                        <p className="font-bold text-telemetry">{licenseLabel[activeProfile.pilot_license]}</p>
+                        <p className="font-bold text-telemetry">
+                          {licenseLabel[activeProfile.pilot_license]}
+                        </p>
                       </div>
                     </div>
 
@@ -717,18 +763,26 @@ export function BookingWizardModal({
                     {!hasValidLicense && (
                       <div className="border border-destructive/50 bg-destructive/10 p-3 text-destructive space-y-1">
                         <p className="font-semibold flex items-center gap-1.5">
-                          <AlertTriangle className="h-4 w-4" /> Habilitação insuficiente para este veículo!
+                          <AlertTriangle className="h-4 w-4" /> Habilitação insuficiente para este
+                          veículo!
                         </p>
                         <p className="text-[11px]">
-                          O veículo {vehicle.name} exige licença "{getRequiredLicense(vehicle.category)}", mas sua credencial possui apenas "{licenseLabel[activeProfile.pilot_license]}".
+                          O veículo {vehicle.name} exige licença "
+                          {getRequiredLicense(vehicle.category)}", mas sua credencial possui apenas
+                          "{licenseLabel[activeProfile.pilot_license]}".
                         </p>
                         <button
                           type="button"
                           onClick={() => {
-                            const upgraded = { ...activeProfile, pilot_license: "orbital" as const };
+                            const upgraded = {
+                              ...activeProfile,
+                              pilot_license: "orbital" as const,
+                            };
                             setActiveProfile(upgraded);
                             localStorage.setItem("ares_demo_session", JSON.stringify(upgraded));
-                            toast.success("Habilitação elevada para Orbital para autorizar esta reserva!");
+                            toast.success(
+                              "Habilitação elevada para Orbital para autorizar esta reserva!",
+                            );
                           }}
                           className="mt-2 text-primary hover:underline font-bold"
                         >
@@ -743,10 +797,12 @@ export function BookingWizardModal({
                     {/* Alerta de Obrigatoriedade */}
                     <div className="border border-warning/50 bg-warning/10 p-3 text-warning space-y-1">
                       <p className="font-bold flex items-center gap-1.5">
-                        <ShieldAlert className="h-4 w-4 shrink-0" /> Autenticação de Piloto Obrigatória
+                        <ShieldAlert className="h-4 w-4 shrink-0" /> Autenticação de Piloto
+                        Obrigatória
                       </p>
                       <p className="text-[11px] leading-relaxed text-warning/90">
-                        Para evitar reservas anônimas ou não autorizadas no tráfego aéreo marciano, vincule a locação à sua credencial espacial ou crie uma conta em segundos.
+                        Para evitar reservas anônimas ou não autorizadas no tráfego aéreo marciano,
+                        vincule a locação à sua credencial espacial ou crie uma conta em segundos.
                       </p>
                     </div>
 
@@ -756,10 +812,13 @@ export function BookingWizardModal({
                         <span className="text-telemetry font-bold flex items-center gap-1.5">
                           <Zap className="h-4 w-4" /> Acesso Rápido de Demonstração (1-Clique)
                         </span>
-                        <span className="text-[10px] text-telemetry/70">Recomendado para Testes</span>
+                        <span className="text-[10px] text-telemetry/70">
+                          Recomendado para Testes
+                        </span>
                       </div>
                       <p className="mt-1 text-[11px] text-muted-foreground">
-                        Autentique imediatamente com a credencial oficial de Comandante Demo (`ARS-DEMO-01`, Licença Orbital e MC$ 25.000):
+                        Autentique imediatamente com a credencial oficial de Comandante Demo
+                        (`ARS-DEMO-01`, Licença Orbital e MC$ 25.000):
                       </p>
                       <button
                         type="button"
@@ -778,7 +837,10 @@ export function BookingWizardModal({
                     <div className="grid grid-cols-2 gap-2 border-b border-border/50 pb-2">
                       <button
                         type="button"
-                        onClick={() => { setAuthMode("login"); setAuthError(null); }}
+                        onClick={() => {
+                          setAuthMode("login");
+                          setAuthError(null);
+                        }}
                         className={`py-2 text-center uppercase tracking-wider transition ${
                           authMode === "login"
                             ? "border-b-2 border-primary font-bold text-primary"
@@ -789,7 +851,10 @@ export function BookingWizardModal({
                       </button>
                       <button
                         type="button"
-                        onClick={() => { setAuthMode("register"); setAuthError(null); }}
+                        onClick={() => {
+                          setAuthMode("register");
+                          setAuthError(null);
+                        }}
                         className={`py-2 text-center uppercase tracking-wider transition ${
                           authMode === "register"
                             ? "border-b-2 border-primary font-bold text-primary"
@@ -844,7 +909,9 @@ export function BookingWizardModal({
                           disabled={isAuthLoading}
                           className="cut-corner w-full bg-mars-gradient py-2.5 font-sans font-bold uppercase tracking-widest text-primary-foreground shadow-glow disabled:opacity-50"
                         >
-                          {isAuthLoading ? "Verificando Credencial..." : "Autenticar & Vincular Reserva"}
+                          {isAuthLoading
+                            ? "Verificando Credencial..."
+                            : "Autenticar & Vincular Reserva"}
                         </button>
                       </form>
                     ) : (
@@ -866,7 +933,9 @@ export function BookingWizardModal({
                         </div>
 
                         <div>
-                          <label className="text-muted-foreground">CÓDIGO DE ACESSO (MÍNIMO 6 DÍGITOS)</label>
+                          <label className="text-muted-foreground">
+                            CÓDIGO DE ACESSO (MÍNIMO 6 DÍGITOS)
+                          </label>
                           <div className="mt-1 flex items-center border bg-background/80 px-3">
                             <Lock className="h-4 w-4 text-muted-foreground" />
                             <input
@@ -881,7 +950,9 @@ export function BookingWizardModal({
                         </div>
 
                         <div>
-                          <label className="text-muted-foreground">HABILITAÇÃO DE PILOTO DESEJADA</label>
+                          <label className="text-muted-foreground">
+                            HABILITAÇÃO DE PILOTO DESEJADA
+                          </label>
                           <div className="mt-1.5 grid grid-cols-3 gap-2">
                             {(["atmospheric", "heavy_cargo", "orbital"] as const).map((lic) => (
                               <button
@@ -905,7 +976,9 @@ export function BookingWizardModal({
                           disabled={isAuthLoading}
                           className="cut-corner w-full bg-mars-gradient py-2.5 font-sans font-bold uppercase tracking-widest text-primary-foreground shadow-glow disabled:opacity-50"
                         >
-                          {isAuthLoading ? "Emitindo Credencial..." : "Registrar Credencial & Vincular"}
+                          {isAuthLoading
+                            ? "Emitindo Credencial..."
+                            : "Registrar Credencial & Vincular"}
                         </button>
                       </form>
                     )}
@@ -926,12 +999,20 @@ export function BookingWizardModal({
                 <div className="cut-corner border-2 border-primary bg-gradient-to-b from-surface to-background p-6 font-mono text-xs shadow-glow">
                   <div className="flex flex-wrap items-center justify-between border-b border-primary/30 pb-4">
                     <div>
-                      <span className="text-[10px] uppercase tracking-widest text-primary">ARES MOBILITY · BOARDING PASS</span>
-                      <h3 className="font-display text-2xl font-bold text-foreground">{vehicle.name}</h3>
-                      <p className="text-telemetry font-mono">{vehicle.callsign} · {categoryLabel[vehicle.category]}</p>
+                      <span className="text-[10px] uppercase tracking-widest text-primary">
+                        ARES MOBILITY · BOARDING PASS
+                      </span>
+                      <h3 className="font-display text-2xl font-bold text-foreground">
+                        {vehicle.name}
+                      </h3>
+                      <p className="text-telemetry font-mono">
+                        {vehicle.callsign} · {categoryLabel[vehicle.category]}
+                      </p>
                     </div>
                     <div className="text-right">
-                      <span className="text-[10px] uppercase tracking-widest text-muted-foreground">CHAVE QUÂNTICA</span>
+                      <span className="text-[10px] uppercase tracking-widest text-muted-foreground">
+                        CHAVE QUÂNTICA
+                      </span>
                       <p className="font-mono text-lg font-bold text-primary">Q-KEY#8F4A92</p>
                       <span className="inline-block rounded bg-primary/20 px-2 py-0.5 text-[10px] text-primary">
                         EMITIDA & AUTORIZADA
@@ -945,7 +1026,9 @@ export function BookingWizardModal({
                       <p className="font-semibold text-foreground">
                         {pickupHangar.name} → {dropoffHangar.name}
                       </p>
-                      <p className="text-[10px] text-telemetry">{distanceKm.toLocaleString("pt-BR")} km de rota</p>
+                      <p className="text-[10px] text-telemetry">
+                        {distanceKm.toLocaleString("pt-BR")} km de rota
+                      </p>
                     </div>
                     <div>
                       <span className="text-muted-foreground">PILOTO AUTENTICADO</span>
@@ -964,7 +1047,9 @@ export function BookingWizardModal({
                       <ShieldCheck className="h-4 w-4 text-emerald-400" />
                       BARREIRA CONTRA TEMPESTADES:
                     </span>
-                    <span className={`font-bold ${stormBarrierShield ? "text-emerald-400" : "text-muted-foreground"}`}>
+                    <span
+                      className={`font-bold ${stormBarrierShield ? "text-emerald-400" : "text-muted-foreground"}`}
+                    >
                       {stormBarrierShield ? "ATIVA (ESCUDO DEFLETOR IÔNICO 100%)" : "INATIVA"}
                     </span>
                   </div>
@@ -972,7 +1057,8 @@ export function BookingWizardModal({
                   {/* Controles Remotos Espaciais Simulados */}
                   <div className="mt-4 space-y-2">
                     <span className="text-[10px] uppercase tracking-widest text-primary flex items-center gap-1.5">
-                      <Radio className="h-3.5 w-3.5" /> COMANDOS REMOTOS DO VEÍCULO (LINK ORBITAL ATIVO)
+                      <Radio className="h-3.5 w-3.5" /> COMANDOS REMOTOS DO VEÍCULO (LINK ORBITAL
+                      ATIVO)
                     </span>
                     <div className="grid grid-cols-3 gap-2">
                       <button
@@ -990,7 +1076,9 @@ export function BookingWizardModal({
                       <button
                         type="button"
                         onClick={() => {
-                          setRemoteActionNotice("Cabine pressurizada a 101.3 kPa e climatizada a 21°C.");
+                          setRemoteActionNotice(
+                            "Cabine pressurizada a 101.3 kPa e climatizada a 21°C.",
+                          );
                           toast.success("Cabine pressurizada a 101.3 kPa!");
                         }}
                         className="border border-border/80 bg-surface/50 p-2 text-center hover:border-telemetry transition"
@@ -1065,7 +1153,10 @@ export function BookingWizardModal({
 
             <div className="flex items-center gap-4">
               <span className="text-muted-foreground hidden sm:inline">
-                Total: <strong className="text-primary font-display text-base">MC$ {totalCredits.toLocaleString("pt-BR")}</strong>
+                Total:{" "}
+                <strong className="text-primary font-display text-base">
+                  MC$ {totalCredits.toLocaleString("pt-BR")}
+                </strong>
               </span>
 
               {step < 3 ? (
@@ -1086,8 +1177,8 @@ export function BookingWizardModal({
                   {!activeProfile
                     ? "Autenticação Obrigatória para Reservar"
                     : isAuthLoading
-                    ? "Emitindo Chave..."
-                    : "Confirmar & Emitir Chave Quântica"}
+                      ? "Emitindo Chave..."
+                      : "Confirmar & Emitir Chave Quântica"}
                 </button>
               )}
             </div>

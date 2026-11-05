@@ -32,9 +32,26 @@ export default function HangarScene({
       <directionalLight position={[0, -2, 0]} intensity={0.2} color="#ff5a1f" />
 
       <Environment resolution={128}>
-        <Lightformer intensity={2} position={[0, 5, 0]} scale={[10, 10, 1]} rotation-x={Math.PI / 2} />
-        <Lightformer intensity={1.5} color="#ff7a40" position={[-5, 1, -1]} rotation-y={Math.PI / 2} scale={[20, 1, 1]} />
-        <Lightformer intensity={1.0} color="#66e0ff" position={[5, 1, 1]} rotation-y={-Math.PI / 2} scale={[20, 1, 1]} />
+        <Lightformer
+          intensity={2}
+          position={[0, 5, 0]}
+          scale={[10, 10, 1]}
+          rotation-x={Math.PI / 2}
+        />
+        <Lightformer
+          intensity={1.5}
+          color="#ff7a40"
+          position={[-5, 1, -1]}
+          rotation-y={Math.PI / 2}
+          scale={[20, 1, 1]}
+        />
+        <Lightformer
+          intensity={1.0}
+          color="#66e0ff"
+          position={[5, 1, 1]}
+          rotation-y={-Math.PI / 2}
+          scale={[20, 1, 1]}
+        />
       </Environment>
 
       {/* Plataforma de Pouso Hexagonal / Pad de Estacionamento */}
@@ -61,7 +78,14 @@ export default function HangarScene({
       />
 
       <ContactShadows position={[0, -0.85, 0]} opacity={0.7} scale={11} blur={2.2} />
-      <Grid position={[0, -0.86, 0]} args={[20, 20]} cellColor="#2a2220" sectionColor="#ff5a1f" fadeDistance={18} infiniteGrid />
+      <Grid
+        position={[0, -0.86, 0]}
+        args={[20, 20]}
+        cellColor="#2a2220"
+        sectionColor="#ff5a1f"
+        fadeDistance={18}
+        infiniteGrid
+      />
       <OrbitControls
         enablePan={false}
         minDistance={3.0}

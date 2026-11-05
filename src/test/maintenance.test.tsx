@@ -20,8 +20,16 @@ vi.mock("@tanstack/react-router", async () => {
   const actual = await vi.importActual<any>("@tanstack/react-router");
   return {
     ...actual,
-    createFileRoute: () => (config: any) => ({ options: config, component: config.component, ...config }),
-    Link: ({ children, to, ...props }: any) => <a href={to} {...props}>{children}</a>,
+    createFileRoute: () => (config: any) => ({
+      options: config,
+      component: config.component,
+      ...config,
+    }),
+    Link: ({ children, to, ...props }: any) => (
+      <a href={to} {...props}>
+        {children}
+      </a>
+    ),
   };
 });
 
@@ -93,7 +101,7 @@ describe("Maintenance route component", () => {
     render(
       <QueryClientProvider client={qc}>
         <Maintenance />
-      </QueryClientProvider>
+      </QueryClientProvider>,
     );
 
     expect(screen.getByText(/Diagnóstico 3D & Telemetria da Frota/i)).toBeInTheDocument();
@@ -105,10 +113,13 @@ describe("Maintenance route component", () => {
     fireEvent.click(cleanButton);
 
     await waitFor(() => {
-      expect(mockRpc).toHaveBeenCalledWith("execute_maintenance", expect.objectContaining({
-        _vehicle_id: "veh-1",
-        _service_type: "silica_clean",
-      }));
+      expect(mockRpc).toHaveBeenCalledWith(
+        "execute_maintenance",
+        expect.objectContaining({
+          _vehicle_id: "veh-1",
+          _service_type: "silica_clean",
+        }),
+      );
     });
   });
 });

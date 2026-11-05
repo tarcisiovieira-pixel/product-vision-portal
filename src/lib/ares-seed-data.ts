@@ -713,5 +713,3 @@ export const SEED_FLIGHT_TELEMETRY: FlightTelemetryLogItem[] = [
     recorded_at: "2026-10-29T10:14:00Z",
   },
 ];
-
-

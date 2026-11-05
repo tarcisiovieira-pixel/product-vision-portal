@@ -15,8 +15,16 @@ vi.mock("@tanstack/react-router", async () => {
   const actual = await vi.importActual<any>("@tanstack/react-router");
   return {
     ...actual,
-    createFileRoute: () => (config: any) => ({ options: config, component: config.component, ...config }),
-    Link: ({ children, to, className }: any) => <a href={to} className={className}>{children}</a>,
+    createFileRoute: () => (config: any) => ({
+      options: config,
+      component: config.component,
+      ...config,
+    }),
+    Link: ({ children, to, className }: any) => (
+      <a href={to} className={className}>
+        {children}
+      </a>
+    ),
   };
 });
 
@@ -165,7 +173,7 @@ describe("Booking route component", () => {
     render(
       <QueryClientProvider client={qc}>
         <Booking />
-      </QueryClientProvider>
+      </QueryClientProvider>,
     );
 
     expect(screen.getByText(/Para onde vamos voar hoje\?/i)).toBeInTheDocument();
@@ -180,14 +188,17 @@ describe("Booking route component", () => {
     fireEvent.click(bookButtons[0]);
 
     await waitFor(() => {
-      expect(mockRpc).toHaveBeenCalledWith("book_vehicle", expect.objectContaining({
-        _vehicle_id: "veh-1",
-        _pickup: "hng-1",
-        _dropoff: "hng-1",
-        _start_sol: 4219,
-        _end_sol: 4222,
-        _silica_insurance: true,
-      }));
+      expect(mockRpc).toHaveBeenCalledWith(
+        "book_vehicle",
+        expect.objectContaining({
+          _vehicle_id: "veh-1",
+          _pickup: "hng-1",
+          _dropoff: "hng-1",
+          _start_sol: 4219,
+          _end_sol: 4222,
+          _silica_insurance: true,
+        }),
+      );
     });
 
     await waitFor(() => {
@@ -210,7 +221,7 @@ describe("Booking route component", () => {
     render(
       <QueryClientProvider client={qc}>
         <Booking />
-      </QueryClientProvider>
+      </QueryClientProvider>,
     );
 
     // Starship exige licença Orbital
@@ -233,7 +244,7 @@ describe("Booking route component", () => {
     render(
       <QueryClientProvider client={qc}>
         <Booking />
-      </QueryClientProvider>
+      </QueryClientProvider>,
     );
 
     const keyButton = screen.getByRole("button", { name: /Chave Quântica/i });

@@ -53,7 +53,10 @@ export const Route = createFileRoute("/app/my-rentals")({
   head: () => ({
     meta: [
       { title: "Minhas Reservas — ARES Mobility" },
-      { name: "description", content: "Histórico completo de reservas, chaves quânticas e telemetria da frota marciana." },
+      {
+        name: "description",
+        content: "Histórico completo de reservas, chaves quânticas e telemetria da frota marciana.",
+      },
     ],
   }),
   loader: ({ context }) =>
@@ -93,7 +96,9 @@ function MyRentals() {
   const { data: rentals } = useSuspenseQuery(rentalsQuery);
   const { data: profile } = useQuery(profileQuery);
 
-  const [filterStatus, setFilterStatus] = useState<"all" | "in_flight" | "confirmed" | "completed">("all");
+  const [filterStatus, setFilterStatus] = useState<"all" | "in_flight" | "confirmed" | "completed">(
+    "all",
+  );
   const [searchTerm, setSearchTerm] = useState("");
 
   // Modais de Detalhes e Ações
@@ -139,8 +144,13 @@ function MyRentals() {
 
   // Estatísticas
   const stats = useMemo(() => {
-    const active = rentals.filter((r) => r.status === "in_flight" || r.status === "confirmed").length;
-    const totalSols = rentals.reduce((acc, r) => acc + Math.max(1, (r.end_sol ?? r.start_sol) - r.start_sol), 0);
+    const active = rentals.filter(
+      (r) => r.status === "in_flight" || r.status === "confirmed",
+    ).length;
+    const totalSols = rentals.reduce(
+      (acc, r) => acc + Math.max(1, (r.end_sol ?? r.start_sol) - r.start_sol),
+      0,
+    );
     const totalSpent = rentals.reduce((acc, r) => acc + Number(r.total_credits || 0), 0);
     return { count: rentals.length, active, totalSols, totalSpent };
   }, [rentals]);
@@ -267,12 +277,16 @@ function MyRentals() {
       <div className="glass border border-border/50 px-4 py-2.5 rounded font-mono text-xs flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-6">
           <div>
-            <span className="text-[10px] uppercase text-muted-foreground block">Total de Reservas</span>
+            <span className="text-[10px] uppercase text-muted-foreground block">
+              Total de Reservas
+            </span>
             <span className="font-display font-bold text-foreground text-base">{stats.count}</span>
           </div>
 
           <div className="border-l border-border/40 pl-6">
-            <span className="text-[10px] uppercase text-emerald-400 block">Reservas Ativas / Voo</span>
+            <span className="text-[10px] uppercase text-emerald-400 block">
+              Reservas Ativas / Voo
+            </span>
             <span className="font-display font-bold text-emerald-400 text-base flex items-center gap-1.5">
               {stats.active}
               <span className="relative flex h-1.5 w-1.5">
@@ -283,13 +297,19 @@ function MyRentals() {
           </div>
 
           <div className="border-l border-border/40 pl-6 hidden sm:block">
-            <span className="text-[10px] uppercase text-muted-foreground block">Sols em Missão</span>
-            <span className="font-display font-bold text-primary text-base">{stats.totalSols} sols</span>
+            <span className="text-[10px] uppercase text-muted-foreground block">
+              Sols em Missão
+            </span>
+            <span className="font-display font-bold text-primary text-base">
+              {stats.totalSols} sols
+            </span>
           </div>
         </div>
 
         <div>
-          <span className="text-[10px] uppercase text-muted-foreground block text-right">Créditos Marcianos</span>
+          <span className="text-[10px] uppercase text-muted-foreground block text-right">
+            Créditos Marcianos
+          </span>
           <span className="font-display font-bold text-foreground text-base">
             MC$ {stats.totalSpent.toLocaleString("pt-BR")}
           </span>
@@ -337,9 +357,18 @@ function MyRentals() {
           <div className="flex items-center gap-1.5">
             {[
               { id: "all", label: `Todas (${rentals.length})` },
-              { id: "in_flight", label: `Em Voo (${rentals.filter((r) => r.status === "in_flight").length})` },
-              { id: "confirmed", label: `Confirmadas (${rentals.filter((r) => r.status === "confirmed").length})` },
-              { id: "completed", label: `Concluídas (${rentals.filter((r) => r.status === "completed" || r.status === "cancelled").length})` },
+              {
+                id: "in_flight",
+                label: `Em Voo (${rentals.filter((r) => r.status === "in_flight").length})`,
+              },
+              {
+                id: "confirmed",
+                label: `Confirmadas (${rentals.filter((r) => r.status === "confirmed").length})`,
+              },
+              {
+                id: "completed",
+                label: `Concluídas (${rentals.filter((r) => r.status === "completed" || r.status === "cancelled").length})`,
+              },
             ].map((tab) => (
               <button
                 key={tab.id}
@@ -370,7 +399,9 @@ function MyRentals() {
         {filteredRentals.length === 0 ? (
           <div className="cut-corner glass border border-border/60 p-8 text-center space-y-3">
             <Ticket className="mx-auto h-7 w-7 text-muted-foreground/40" />
-            <p className="text-sm font-semibold text-foreground">Nenhuma reserva encontrada neste filtro.</p>
+            <p className="text-sm font-semibold text-foreground">
+              Nenhuma reserva encontrada neste filtro.
+            </p>
             <Link
               to="/app/booking"
               className="cut-corner inline-flex items-center gap-2 border border-primary/70 bg-primary/20 px-3.5 py-1.5 text-xs font-bold uppercase text-primary hover:bg-primary/30 transition shadow-glow mt-2"
@@ -423,7 +454,8 @@ function MyRentals() {
 
                       <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
                         <span className="truncate">
-                          {pickupH?.name?.replace("Hangar ", "") ?? "Origem"} ➔ {dropoffH?.name?.replace("Hangar ", "") ?? "Destino"}
+                          {pickupH?.name?.replace("Hangar ", "") ?? "Origem"} ➔{" "}
+                          {dropoffH?.name?.replace("Hangar ", "") ?? "Destino"}
                         </span>
                         <span>·</span>
                         <span className="text-primary font-medium shrink-0">
@@ -498,7 +530,8 @@ function MyRentals() {
                         <button
                           type="button"
                           onClick={() => {
-                            if (veh) safeNavigate({ to: "/app/hangar-3d", search: { vehicleId: veh.id } });
+                            if (veh)
+                              safeNavigate({ to: "/app/hangar-3d", search: { vehicleId: veh.id } });
                           }}
                           className="cut-corner border border-emerald-500/70 bg-emerald-500/15 hover:bg-emerald-500/25 px-2.5 py-1.5 text-xs font-bold text-emerald-400 transition flex items-center gap-1"
                           title="Inspecionar veículo estacionado na baia 3D"
@@ -530,202 +563,229 @@ function MyRentals() {
       {/* ======================================================== */}
       {/* 5. MODAL POPUP: DETALHES COMPLETOS DA RESERVA           */}
       {/* ======================================================== */}
-      {selectedRentalDetail && (() => {
-        const r = selectedRentalDetail;
-        const veh = vMap.get(r.vehicle_id);
-        const pickupH = hMap.get(r.pickup_hangar_id);
-        const dropoffH = hMap.get(r.dropoff_hangar_id);
-        const distanceKm =
-          pickupH && dropoffH
-            ? marsDistanceKm(pickupH.lat, pickupH.lng, dropoffH.lat, dropoffH.lng)
-            : 0;
-        const durationSols = Math.max(1, (r.end_sol ?? r.start_sol) - r.start_sol);
+      {selectedRentalDetail &&
+        (() => {
+          const r = selectedRentalDetail;
+          const veh = vMap.get(r.vehicle_id);
+          const pickupH = hMap.get(r.pickup_hangar_id);
+          const dropoffH = hMap.get(r.dropoff_hangar_id);
+          const distanceKm =
+            pickupH && dropoffH
+              ? marsDistanceKm(pickupH.lat, pickupH.lng, dropoffH.lat, dropoffH.lng)
+              : 0;
+          const durationSols = Math.max(1, (r.end_sol ?? r.start_sol) - r.start_sol);
 
-        return (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm animate-in fade-in duration-200 font-mono">
-            <div className="cut-corner glass relative w-full max-w-xl space-y-5 border border-primary/40 p-6 text-xs shadow-2xl">
-              {/* Header do Modal */}
-              <div className="flex items-center justify-between border-b border-border/40 pb-3">
-                <div className="flex items-center gap-2.5">
-                  <div className="p-1.5 rounded bg-primary/10 border border-primary/30 text-primary">
-                    <Info className="h-4 w-4" />
-                  </div>
-                  <div>
-                    <h3 className="font-display text-base font-bold text-foreground">
-                      {veh?.name ?? "Nave Marciana"}
-                    </h3>
-                    <p className="text-[10px] text-muted-foreground">
-                      Callsign: <span className="text-primary font-bold">{veh?.callsign ?? "ARS-00"}</span> · ID: {r.id}
-                    </p>
-                  </div>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => setSelectedRentalDetail(null)}
-                  className="text-muted-foreground hover:text-foreground transition p-1"
-                >
-                  <X className="h-5 w-5" />
-                </button>
-              </div>
-
-              {/* Corpo de Detalhes Estruturado */}
-              <div className="space-y-4">
-                {/* 1. ROTA & DISTÂNCIA */}
-                <div className="rounded border border-border/50 bg-background/50 p-3.5 space-y-2">
-                  <span className="text-[10px] uppercase tracking-wider text-muted-foreground block font-bold">
-                    ITINERÁRIO AREOGRÁFICO:
-                  </span>
-                  <div className="grid grid-cols-2 gap-3 text-xs">
+          return (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm animate-in fade-in duration-200 font-mono">
+              <div className="cut-corner glass relative w-full max-w-xl space-y-5 border border-primary/40 p-6 text-xs shadow-2xl">
+                {/* Header do Modal */}
+                <div className="flex items-center justify-between border-b border-border/40 pb-3">
+                  <div className="flex items-center gap-2.5">
+                    <div className="p-1.5 rounded bg-primary/10 border border-primary/30 text-primary">
+                      <Info className="h-4 w-4" />
+                    </div>
                     <div>
-                      <span className="text-muted-foreground text-[10px] block">Ponto de Partida:</span>
-                      <p className="font-semibold text-foreground">{pickupH?.name ?? "Hangar Central"}</p>
-                      <span className="text-[10px] text-muted-foreground">
-                        Coord: {pickupH ? `${pickupH.lat}°N, ${pickupH.lng}°W` : "Setor 1"}
-                      </span>
-                    </div>
-
-                    <div>
-                      <span className="text-muted-foreground text-[10px] block">Ponto de Destino:</span>
-                      <p className="font-semibold text-foreground">{dropoffH?.name ?? "Hangar Destino"}</p>
-                      <span className="text-[10px] text-muted-foreground">
-                        Coord: {dropoffH ? `${dropoffH.lat}°N, ${dropoffH.lng}°W` : "Setor 2"}
-                      </span>
+                      <h3 className="font-display text-base font-bold text-foreground">
+                        {veh?.name ?? "Nave Marciana"}
+                      </h3>
+                      <p className="text-[10px] text-muted-foreground">
+                        Callsign:{" "}
+                        <span className="text-primary font-bold">{veh?.callsign ?? "ARS-00"}</span>{" "}
+                        · ID: {r.id}
+                      </p>
                     </div>
                   </div>
-
-                  <div className="border-t border-border/30 pt-2 flex items-center justify-between text-[11px]">
-                    <span className="text-muted-foreground">Distância Esférica Calculada:</span>
-                    <span className="text-telemetry font-bold">{distanceKm.toLocaleString("pt-BR")} km em linha reta</span>
-                  </div>
-                </div>
-
-                {/* 2. CHAVE QUÂNTICA & PERÍODO */}
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="rounded border border-telemetry/40 bg-telemetry/10 p-3 space-y-1">
-                    <span className="text-[10px] uppercase text-muted-foreground block font-bold">CHAVE QUÂNTICA:</span>
-                    <div className="flex items-center justify-between">
-                      <code className="text-xs font-bold text-telemetry">{r.quantum_key ?? "Q-KEY#8F4A92"}</code>
-                      <button
-                        type="button"
-                        onClick={() => copyQuantumKey(r.quantum_key ?? "Q-KEY#8F4A92")}
-                        className="text-telemetry hover:text-telemetry/80 p-0.5"
-                        title="Copiar chave"
-                      >
-                        <Copy className="h-3 w-3" />
-                      </button>
-                    </div>
-                    <span className="text-[9px] text-emerald-400 block">Homologada no Hangar</span>
-                  </div>
-
-                  <div className="rounded border border-border/50 bg-background/50 p-3 space-y-1">
-                    <span className="text-[10px] uppercase text-muted-foreground block font-bold">PERÍODO EM SOLS:</span>
-                    <p className="font-semibold text-primary">Sol {r.start_sol} até {r.end_sol}</p>
-                    <span className="text-[10px] text-muted-foreground block">{durationSols} sols marcianos</span>
-                  </div>
-                </div>
-
-                {/* 3. EQUIPAMENTOS & ADICIONAIS CONTRATADOS */}
-                <div className="rounded border border-border/50 bg-background/50 p-3 space-y-2">
-                  <span className="text-[10px] uppercase tracking-wider text-muted-foreground block font-bold">
-                    ESCUDOS & ADICIONAIS CONTRATADOS:
-                  </span>
-                  <div className="flex flex-wrap gap-1.5 text-[10px]">
-                    <span className="flex items-center gap-1 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 px-2 py-0.5">
-                      <ShieldCheck className="h-3 w-3" /> Barreira Anti-Tempestade Ativa
-                    </span>
-                    {r.silica_insurance && (
-                      <span className="rounded bg-surface px-2 py-0.5 text-foreground border border-border/50">
-                        ✓ Seguro de Sílica & Rególito
-                      </span>
-                    )}
-                    {r.neural_autopilot_l5 && (
-                      <span className="rounded bg-surface px-2 py-0.5 text-foreground border border-border/50">
-                        ✓ Piloto Neural Autônomo Nível 5
-                      </span>
-                    )}
-                    {r.extra_o2_tank && (
-                      <span className="rounded bg-surface px-2 py-0.5 text-foreground border border-border/50">
-                        ✓ Tanque Adicional de O₂ Criogênico
-                      </span>
-                    )}
-                    {r.extra_eva_suits > 0 && (
-                      <span className="rounded bg-surface px-2 py-0.5 text-foreground border border-border/50">
-                        ✓ {r.extra_eva_suits}x Trajes de Superfície EVA
-                      </span>
-                    )}
-                  </div>
-                </div>
-
-                {/* 4. TOTAL PAGO */}
-                <div className="flex items-center justify-between rounded border border-border/60 bg-surface/40 p-3">
-                  <div>
-                    <span className="text-[10px] text-muted-foreground uppercase block">TARIFA TOTAL LIQUIDADA:</span>
-                    <p className="font-display text-base font-bold text-foreground">
-                      MC$ {Number(r.total_credits).toLocaleString("pt-BR")}
-                    </p>
-                  </div>
-                  <span className="rounded bg-emerald-500/20 px-2 py-1 text-[10px] font-bold text-emerald-400">
-                    PAGAMENTO COMPLETO
-                  </span>
-                </div>
-              </div>
-
-              {/* Ações dentro do Modal */}
-              <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border/40 pt-4">
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setSelectedRentalDetail(null);
-                      setActiveBoardingPass(r);
-                    }}
-                    className="cut-corner border border-telemetry/70 bg-telemetry/15 hover:bg-telemetry/25 px-3 py-1.5 text-xs font-bold text-telemetry transition flex items-center gap-1.5"
-                  >
-                    <KeyRound className="h-3.5 w-3.5" />
-                    <span>Chave Quântica & Controles</span>
-                  </button>
-
-                  {r.status !== "completed" && r.status !== "cancelled" && (
-                    <button
-                      type="button"
-                      onClick={() => handleExtendRental(r)}
-                      className="border border-border/70 hover:border-telemetry/60 px-3 py-1.5 text-xs text-muted-foreground hover:text-telemetry transition rounded flex items-center gap-1"
-                    >
-                      <CalendarPlus className="h-3 w-3" />
-                      <span>Estender (+1 Sol)</span>
-                    </button>
-                  )}
-                </div>
-
-                <div className="flex items-center gap-2">
-                  {r.status === "confirmed" && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        handleCancelRental(r);
-                        setSelectedRentalDetail(null);
-                      }}
-                      className="border border-destructive/40 hover:border-destructive px-3 py-1.5 text-xs text-destructive hover:bg-destructive/10 transition rounded flex items-center gap-1"
-                    >
-                      <X className="h-3 w-3" />
-                      <span>Cancelar</span>
-                    </button>
-                  )}
 
                   <button
                     type="button"
                     onClick={() => setSelectedRentalDetail(null)}
-                    className="border border-border/70 px-3.5 py-1.5 text-xs text-muted-foreground hover:bg-surface transition rounded uppercase"
+                    className="text-muted-foreground hover:text-foreground transition p-1"
                   >
-                    Fechar
+                    <X className="h-5 w-5" />
                   </button>
+                </div>
+
+                {/* Corpo de Detalhes Estruturado */}
+                <div className="space-y-4">
+                  {/* 1. ROTA & DISTÂNCIA */}
+                  <div className="rounded border border-border/50 bg-background/50 p-3.5 space-y-2">
+                    <span className="text-[10px] uppercase tracking-wider text-muted-foreground block font-bold">
+                      ITINERÁRIO AREOGRÁFICO:
+                    </span>
+                    <div className="grid grid-cols-2 gap-3 text-xs">
+                      <div>
+                        <span className="text-muted-foreground text-[10px] block">
+                          Ponto de Partida:
+                        </span>
+                        <p className="font-semibold text-foreground">
+                          {pickupH?.name ?? "Hangar Central"}
+                        </p>
+                        <span className="text-[10px] text-muted-foreground">
+                          Coord: {pickupH ? `${pickupH.lat}°N, ${pickupH.lng}°W` : "Setor 1"}
+                        </span>
+                      </div>
+
+                      <div>
+                        <span className="text-muted-foreground text-[10px] block">
+                          Ponto de Destino:
+                        </span>
+                        <p className="font-semibold text-foreground">
+                          {dropoffH?.name ?? "Hangar Destino"}
+                        </p>
+                        <span className="text-[10px] text-muted-foreground">
+                          Coord: {dropoffH ? `${dropoffH.lat}°N, ${dropoffH.lng}°W` : "Setor 2"}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="border-t border-border/30 pt-2 flex items-center justify-between text-[11px]">
+                      <span className="text-muted-foreground">Distância Esférica Calculada:</span>
+                      <span className="text-telemetry font-bold">
+                        {distanceKm.toLocaleString("pt-BR")} km em linha reta
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* 2. CHAVE QUÂNTICA & PERÍODO */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="rounded border border-telemetry/40 bg-telemetry/10 p-3 space-y-1">
+                      <span className="text-[10px] uppercase text-muted-foreground block font-bold">
+                        CHAVE QUÂNTICA:
+                      </span>
+                      <div className="flex items-center justify-between">
+                        <code className="text-xs font-bold text-telemetry">
+                          {r.quantum_key ?? "Q-KEY#8F4A92"}
+                        </code>
+                        <button
+                          type="button"
+                          onClick={() => copyQuantumKey(r.quantum_key ?? "Q-KEY#8F4A92")}
+                          className="text-telemetry hover:text-telemetry/80 p-0.5"
+                          title="Copiar chave"
+                        >
+                          <Copy className="h-3 w-3" />
+                        </button>
+                      </div>
+                      <span className="text-[9px] text-emerald-400 block">
+                        Homologada no Hangar
+                      </span>
+                    </div>
+
+                    <div className="rounded border border-border/50 bg-background/50 p-3 space-y-1">
+                      <span className="text-[10px] uppercase text-muted-foreground block font-bold">
+                        PERÍODO EM SOLS:
+                      </span>
+                      <p className="font-semibold text-primary">
+                        Sol {r.start_sol} até {r.end_sol}
+                      </p>
+                      <span className="text-[10px] text-muted-foreground block">
+                        {durationSols} sols marcianos
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* 3. EQUIPAMENTOS & ADICIONAIS CONTRATADOS */}
+                  <div className="rounded border border-border/50 bg-background/50 p-3 space-y-2">
+                    <span className="text-[10px] uppercase tracking-wider text-muted-foreground block font-bold">
+                      ESCUDOS & ADICIONAIS CONTRATADOS:
+                    </span>
+                    <div className="flex flex-wrap gap-1.5 text-[10px]">
+                      <span className="flex items-center gap-1 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 px-2 py-0.5">
+                        <ShieldCheck className="h-3 w-3" /> Barreira Anti-Tempestade Ativa
+                      </span>
+                      {r.silica_insurance && (
+                        <span className="rounded bg-surface px-2 py-0.5 text-foreground border border-border/50">
+                          ✓ Seguro de Sílica & Rególito
+                        </span>
+                      )}
+                      {r.neural_autopilot_l5 && (
+                        <span className="rounded bg-surface px-2 py-0.5 text-foreground border border-border/50">
+                          ✓ Piloto Neural Autônomo Nível 5
+                        </span>
+                      )}
+                      {r.extra_o2_tank && (
+                        <span className="rounded bg-surface px-2 py-0.5 text-foreground border border-border/50">
+                          ✓ Tanque Adicional de O₂ Criogênico
+                        </span>
+                      )}
+                      {r.extra_eva_suits > 0 && (
+                        <span className="rounded bg-surface px-2 py-0.5 text-foreground border border-border/50">
+                          ✓ {r.extra_eva_suits}x Trajes de Superfície EVA
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* 4. TOTAL PAGO */}
+                  <div className="flex items-center justify-between rounded border border-border/60 bg-surface/40 p-3">
+                    <div>
+                      <span className="text-[10px] text-muted-foreground uppercase block">
+                        TARIFA TOTAL LIQUIDADA:
+                      </span>
+                      <p className="font-display text-base font-bold text-foreground">
+                        MC$ {Number(r.total_credits).toLocaleString("pt-BR")}
+                      </p>
+                    </div>
+                    <span className="rounded bg-emerald-500/20 px-2 py-1 text-[10px] font-bold text-emerald-400">
+                      PAGAMENTO COMPLETO
+                    </span>
+                  </div>
+                </div>
+
+                {/* Ações dentro do Modal */}
+                <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border/40 pt-4">
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedRentalDetail(null);
+                        setActiveBoardingPass(r);
+                      }}
+                      className="cut-corner border border-telemetry/70 bg-telemetry/15 hover:bg-telemetry/25 px-3 py-1.5 text-xs font-bold text-telemetry transition flex items-center gap-1.5"
+                    >
+                      <KeyRound className="h-3.5 w-3.5" />
+                      <span>Chave Quântica & Controles</span>
+                    </button>
+
+                    {r.status !== "completed" && r.status !== "cancelled" && (
+                      <button
+                        type="button"
+                        onClick={() => handleExtendRental(r)}
+                        className="border border-border/70 hover:border-telemetry/60 px-3 py-1.5 text-xs text-muted-foreground hover:text-telemetry transition rounded flex items-center gap-1"
+                      >
+                        <CalendarPlus className="h-3 w-3" />
+                        <span>Estender (+1 Sol)</span>
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    {r.status === "confirmed" && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          handleCancelRental(r);
+                          setSelectedRentalDetail(null);
+                        }}
+                        className="border border-destructive/40 hover:border-destructive px-3 py-1.5 text-xs text-destructive hover:bg-destructive/10 transition rounded flex items-center gap-1"
+                      >
+                        <X className="h-3 w-3" />
+                        <span>Cancelar</span>
+                      </button>
+                    )}
+
+                    <button
+                      type="button"
+                      onClick={() => setSelectedRentalDetail(null)}
+                      className="border border-border/70 px-3.5 py-1.5 text-xs text-muted-foreground hover:bg-surface transition rounded uppercase"
+                    >
+                      Fechar
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-        );
-      })()}
+          );
+        })()}
 
       {/* ======================================================== */}
       {/* 6. MODAL POPUP: CENTRAL DE PROMOÇÕES & CUPONS           */}
@@ -753,10 +813,14 @@ function MyRentals() {
               <div className="border border-border/70 bg-background/70 p-3.5 rounded flex flex-col justify-between space-y-2">
                 <div>
                   <div className="flex items-center justify-between">
-                    <span className="font-semibold text-foreground text-xs">Upgrade Apex Phantom</span>
+                    <span className="font-semibold text-foreground text-xs">
+                      Upgrade Apex Phantom
+                    </span>
                     <span className="text-telemetry font-bold text-xs">35% OFF</span>
                   </div>
-                  <p className="text-muted-foreground text-[11px] mt-1">Cabine VIP executiva com pressurização reforçada.</p>
+                  <p className="text-muted-foreground text-[11px] mt-1">
+                    Cabine VIP executiva com pressurização reforçada.
+                  </p>
                 </div>
                 <button
                   type="button"
@@ -774,10 +838,14 @@ function MyRentals() {
               <div className="border border-border/70 bg-background/70 p-3.5 rounded flex flex-col justify-between space-y-2">
                 <div>
                   <div className="flex items-center justify-between">
-                    <span className="font-semibold text-foreground text-xs">Barreira Anti-Tempestade</span>
+                    <span className="font-semibold text-foreground text-xs">
+                      Barreira Anti-Tempestade
+                    </span>
                     <span className="text-emerald-400 font-bold text-xs">GRÁTIS</span>
                   </div>
-                  <p className="text-muted-foreground text-[11px] mt-1">Escudo iônico e seguro contra rególito inclusos.</p>
+                  <p className="text-muted-foreground text-[11px] mt-1">
+                    Escudo iônico e seguro contra rególito inclusos.
+                  </p>
                 </div>
                 <button
                   type="button"
@@ -795,10 +863,14 @@ function MyRentals() {
               <div className="border border-border/70 bg-background/70 p-3.5 rounded flex flex-col justify-between space-y-2">
                 <div>
                   <div className="flex items-center justify-between">
-                    <span className="font-semibold text-foreground text-xs">Expedição Starship Hopper</span>
+                    <span className="font-semibold text-foreground text-xs">
+                      Expedição Starship Hopper
+                    </span>
                     <span className="text-primary font-bold text-xs">+MC$ 8.000</span>
                   </div>
-                  <p className="text-muted-foreground text-[11px] mt-1">Bônus em créditos para voos orbitais e hoppers.</p>
+                  <p className="text-muted-foreground text-[11px] mt-1">
+                    Bônus em créditos para voos orbitais e hoppers.
+                  </p>
                 </div>
                 <button
                   type="button"
@@ -816,7 +888,9 @@ function MyRentals() {
 
             {/* Preferências de Notificação */}
             <div className="rounded border border-border/40 bg-surface/30 p-3 space-y-2">
-              <span className="text-[10px] uppercase text-muted-foreground block font-bold">PREFERÊNCIAS DE TRANSMISSÃO ORBITAL:</span>
+              <span className="text-[10px] uppercase text-muted-foreground block font-bold">
+                PREFERÊNCIAS DE TRANSMISSÃO ORBITAL:
+              </span>
               <div className="flex flex-wrap items-center gap-4 text-muted-foreground text-xs">
                 <label className="flex items-center gap-1.5 cursor-pointer hover:text-foreground">
                   <input
@@ -889,7 +963,9 @@ function MyRentals() {
             <div className="space-y-4">
               <div className="rounded border border-telemetry/40 bg-telemetry/10 p-3.5">
                 <div className="flex items-center justify-between">
-                  <span className="text-[10px] text-muted-foreground uppercase">CHAVE CRIPTOGRÁFICA DE IGNIÇÃO:</span>
+                  <span className="text-[10px] text-muted-foreground uppercase">
+                    CHAVE CRIPTOGRÁFICA DE IGNIÇÃO:
+                  </span>
                   <span className="rounded bg-telemetry/20 px-1.5 py-0.5 text-[10px] text-telemetry font-bold">
                     ACESSO VALIDADO
                   </span>
@@ -943,7 +1019,9 @@ function MyRentals() {
                   <button
                     type="button"
                     onClick={() => {
-                      setRemoteActionNotice("Células criogênicas pré-aquecidas a temperatura ideal.");
+                      setRemoteActionNotice(
+                        "Células criogênicas pré-aquecidas a temperatura ideal.",
+                      );
                       toast.success("Baterias Pré-Aquecidas", {
                         description: "Supercondutores prontos para ignição.",
                       });
@@ -951,7 +1029,9 @@ function MyRentals() {
                     className="cut-corner border border-telemetry/40 bg-telemetry/10 p-2 text-left hover:bg-telemetry/20 transition"
                   >
                     <span className="text-telemetry font-bold block">Aquecer Bateria</span>
-                    <span className="text-[10px] text-muted-foreground">Pré-aquecimento térmico</span>
+                    <span className="text-[10px] text-muted-foreground">
+                      Pré-aquecimento térmico
+                    </span>
                   </button>
 
                   <button
@@ -971,7 +1051,9 @@ function MyRentals() {
                   <button
                     type="button"
                     onClick={() => {
-                      setRemoteActionNotice("Campo de força defletor ativado em 100% de intensidade.");
+                      setRemoteActionNotice(
+                        "Campo de força defletor ativado em 100% de intensidade.",
+                      );
                       toast.success("Escudo Defletor Ativo", {
                         description: "Proteção contra radiação cósmica armada.",
                       });

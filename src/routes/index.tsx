@@ -41,7 +41,8 @@ export const Route = createFileRoute("/")({
       { property: "og:title", content: "ARES Mobility — Mobilidade em Marte" },
       {
         property: "og:description",
-        content: "Reserve VTOLs, caminhões espaciais e foguetes com clima e telemetria em tempo real.",
+        content:
+          "Reserve VTOLs, caminhões espaciais e foguetes com clima e telemetria em tempo real.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -279,8 +280,12 @@ function Landing() {
       {/* Seção 02: A Dor */}
       <section className="border-t px-6 py-24 md:px-12">
         <div className="mx-auto max-w-5xl">
-          <p className="font-mono text-xs uppercase tracking-[0.4em] text-destructive">02 · A dor</p>
-          <h2 className="mt-4 font-display text-4xl font-bold">Se locomover em Marte ainda é um risco.</h2>
+          <p className="font-mono text-xs uppercase tracking-[0.4em] text-destructive">
+            02 · A dor
+          </p>
+          <h2 className="mt-4 font-display text-4xl font-bold">
+            Se locomover em Marte ainda é um risco.
+          </h2>
           <div className="mt-12 grid gap-4 md:grid-cols-3">
             {pains.map((p) => (
               <div key={p.title} className="cut-corner glass p-6">
@@ -296,8 +301,12 @@ function Landing() {
       {/* Seção 03: A Solução */}
       <section className="border-t px-6 py-24 md:px-12">
         <div className="mx-auto max-w-5xl">
-          <p className="font-mono text-xs uppercase tracking-[0.4em] text-telemetry">03 · A solução</p>
-          <h2 className="mt-4 font-display text-4xl font-bold">Uma frota inteligente, sempre à vista.</h2>
+          <p className="font-mono text-xs uppercase tracking-[0.4em] text-telemetry">
+            03 · A solução
+          </p>
+          <h2 className="mt-4 font-display text-4xl font-bold">
+            Uma frota inteligente, sempre à vista.
+          </h2>
           <div className="mt-12 grid gap-4 md:grid-cols-3">
             {solutions.map((s) => (
               <div key={s.title} className="cut-corner border border-primary/30 bg-surface p-6">

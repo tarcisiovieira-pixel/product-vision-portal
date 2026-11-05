@@ -55,7 +55,9 @@ export function MarketplaceShowcase({ hangars, currentProfile }: MarketplaceShow
 
   // Filtros
   const [categoryFilter, setCategoryFilter] = useState<Vehicle["category"] | "all">("all");
-  const [conditionFilter, setConditionFilter] = useState<VehicleSaleItem["condition"] | "all">("all");
+  const [conditionFilter, setConditionFilter] = useState<VehicleSaleItem["condition"] | "all">(
+    "all",
+  );
 
   // Modais
   const [selectedVehicleToBuy, setSelectedVehicleToBuy] = useState<VehicleSaleItem | null>(null);
@@ -69,7 +71,9 @@ export function MarketplaceShowcase({ hangars, currentProfile }: MarketplaceShow
   const [sellPrice, setSellPrice] = useState(195000);
   const [sellHours, setSellHours] = useState(620);
   const [sellHangar, setSellHangar] = useState(hangars[0]?.id || "");
-  const [sellFeatures, setSellFeatures] = useState("Escudo térmico cerâmico, Filtro de sílica recente");
+  const [sellFeatures, setSellFeatures] = useState(
+    "Escudo térmico cerâmico, Filtro de sílica recente",
+  );
 
   const filteredSales = useMemo(() => {
     return salesList.filter((item) => {
@@ -91,7 +95,8 @@ export function MarketplaceShowcase({ hangars, currentProfile }: MarketplaceShow
 
     if (!activeUser) {
       toast.error("Autenticação necessária", {
-        description: "Você precisa estar autenticado para adquirir uma espaçonave. Utilize o botão Acesso Rápido Demo ou acesse sua credencial.",
+        description:
+          "Você precisa estar autenticado para adquirir uma espaçonave. Utilize o botão Acesso Rápido Demo ou acesse sua credencial.",
       });
       return;
     }
@@ -116,9 +121,11 @@ export function MarketplaceShowcase({ hangars, currentProfile }: MarketplaceShow
 
     // Tenta executar a transação atômica RPC no Supabase caso o banco esteja migrado
     if (selectedVehicleToBuy.id.length === 36 && !selectedVehicleToBuy.id.startsWith("sale-")) {
-      supabase.rpc("buy_marketplace_vehicle", { _sale_id: selectedVehicleToBuy.id }).catch((err) => {
-        console.warn("Supabase RPC buy error (using local state fallback):", err?.message);
-      });
+      supabase
+        .rpc("buy_marketplace_vehicle", { _sale_id: selectedVehicleToBuy.id })
+        .catch((err) => {
+          console.warn("Supabase RPC buy error (using local state fallback):", err?.message);
+        });
     }
 
     if (typeof window !== "undefined") {
@@ -158,16 +165,23 @@ export function MarketplaceShowcase({ hangars, currentProfile }: MarketplaceShow
       battery_condition_pct: 92,
       condition: "certified_preowned",
       hangar_id: sellHangar || hangars[0]?.id || "",
-      seller_name: activeUser?.space_credential_id ? `Colono ${activeUser.space_credential_id}` : "Colono Particular",
+      seller_name: activeUser?.space_credential_id
+        ? `Colono ${activeUser.space_credential_id}`
+        : "Colono Particular",
       seller_user_id: activeUser?.user_id || "demo-user",
       warranty_sols: 150,
-      features: sellFeatures.split(",").map((f) => f.trim()).filter(Boolean),
+      features: sellFeatures
+        .split(",")
+        .map((f) => f.trim())
+        .filter(Boolean),
       status: "available_for_sale",
       created_at: new Date().toISOString(),
     };
 
     if (typeof window !== "undefined") {
-      const stored: VehicleSaleItem[] = JSON.parse(localStorage.getItem("ares_marketplace_sales") || "[]");
+      const stored: VehicleSaleItem[] = JSON.parse(
+        localStorage.getItem("ares_marketplace_sales") || "[]",
+      );
       localStorage.setItem("ares_marketplace_sales", JSON.stringify([newItem, ...stored]));
     }
 
@@ -185,8 +199,13 @@ export function MarketplaceShowcase({ hangars, currentProfile }: MarketplaceShow
         battery_condition_pct: 92,
         condition: "certified_preowned",
         hangar_id: sellHangar || null,
-        seller_name: activeUser?.space_credential_id ? `Colono ${activeUser.space_credential_id}` : "Colono Particular",
-        features: sellFeatures.split(",").map((f) => f.trim()).filter(Boolean),
+        seller_name: activeUser?.space_credential_id
+          ? `Colono ${activeUser.space_credential_id}`
+          : "Colono Particular",
+        features: sellFeatures
+          .split(",")
+          .map((f) => f.trim())
+          .filter(Boolean),
         status: "available_for_sale",
       })
       .then(({ error }) => {
@@ -223,7 +242,8 @@ export function MarketplaceShowcase({ hangars, currentProfile }: MarketplaceShow
               Compre sua Espaçonave Própria em Marte
             </h2>
             <p className="mt-2 text-muted-foreground">
-              Veículos com Certificado de Integridade Estrutural ARES, laudo pericial contra radiação e financiamento em Sols.
+              Veículos com Certificado de Integridade Estrutural ARES, laudo pericial contra
+              radiação e financiamento em Sols.
             </p>
           </div>
 
@@ -293,7 +313,11 @@ export function MarketplaceShowcase({ hangars, currentProfile }: MarketplaceShow
           {filteredSales.map((item) => {
             const h = hangarMap.get(item.hangar_id);
             const CategoryIcon =
-              item.category === "car_vtol" ? Plane : item.category === "space_truck" ? Truck : Rocket;
+              item.category === "car_vtol"
+                ? Plane
+                : item.category === "space_truck"
+                  ? Truck
+                  : Rocket;
 
             return (
               <div
@@ -312,8 +336,8 @@ export function MarketplaceShowcase({ hangars, currentProfile }: MarketplaceShow
                         item.condition === "factory_new"
                           ? "border-emerald-500/50 bg-emerald-500/10 text-emerald-400"
                           : item.condition === "certified_preowned"
-                          ? "border-telemetry/50 bg-telemetry/10 text-telemetry"
-                          : "border-warning/50 bg-warning/10 text-warning"
+                            ? "border-telemetry/50 bg-telemetry/10 text-telemetry"
+                            : "border-warning/50 bg-warning/10 text-warning"
                       }`}
                     >
                       {conditionLabel[item.condition]}
@@ -325,12 +349,17 @@ export function MarketplaceShowcase({ hangars, currentProfile }: MarketplaceShow
                     <h3 className="font-display text-2xl font-bold text-foreground group-hover:text-telemetry transition">
                       {item.name}
                     </h3>
-                    <p className="font-mono text-xs text-muted-foreground tracking-widest">{item.callsign}</p>
+                    <p className="font-mono text-xs text-muted-foreground tracking-widest">
+                      {item.callsign}
+                    </p>
                   </div>
 
                   {/* Vendedor e Localização */}
                   <div className="mt-3 flex items-center justify-between font-mono text-xs text-muted-foreground border-b border-border/40 pb-3">
-                    <span>Hangar: <strong className="text-foreground">{h?.name ?? "Olympus Mons"}</strong></span>
+                    <span>
+                      Hangar:{" "}
+                      <strong className="text-foreground">{h?.name ?? "Olympus Mons"}</strong>
+                    </span>
                     <span className="text-[11px] text-telemetry">Por: {item.seller_name}</span>
                   </div>
 
@@ -345,13 +374,17 @@ export function MarketplaceShowcase({ hangars, currentProfile }: MarketplaceShow
                     <div className="border border-border/50 bg-surface/50 p-2 text-center">
                       <ShieldCheck className="mx-auto h-3.5 w-3.5 text-emerald-400 mb-1" />
                       <span className="block text-[10px] text-muted-foreground">CASCO</span>
-                      <strong className="text-foreground font-bold">{item.hull_integrity_pct}%</strong>
+                      <strong className="text-foreground font-bold">
+                        {item.hull_integrity_pct}%
+                      </strong>
                     </div>
 
                     <div className="border border-border/50 bg-surface/50 p-2 text-center">
                       <Battery className="mx-auto h-3.5 w-3.5 text-primary mb-1" />
                       <span className="block text-[10px] text-muted-foreground">BATERIA</span>
-                      <strong className="text-foreground font-bold">{item.battery_condition_pct}%</strong>
+                      <strong className="text-foreground font-bold">
+                        {item.battery_condition_pct}%
+                      </strong>
                     </div>
                   </div>
 
@@ -368,7 +401,10 @@ export function MarketplaceShowcase({ hangars, currentProfile }: MarketplaceShow
                   {/* Selo de Garantia */}
                   <div className="mt-4 flex items-center gap-2 font-mono text-[11px] text-muted-foreground border-t border-border/40 pt-3">
                     <Award className="h-4 w-4 text-warning shrink-0" />
-                    <span>Garantia ARES de <strong className="text-warning">{item.warranty_sols} Sols</strong></span>
+                    <span>
+                      Garantia ARES de{" "}
+                      <strong className="text-warning">{item.warranty_sols} Sols</strong>
+                    </span>
                   </div>
                 </div>
 
@@ -379,13 +415,16 @@ export function MarketplaceShowcase({ hangars, currentProfile }: MarketplaceShow
                       <span className="font-display text-2xl font-bold text-telemetry">
                         MC$ {item.price_credits.toLocaleString("pt-BR")}
                       </span>
-                      <span className="font-mono text-[10px] text-muted-foreground block">À vista em créditos</span>
+                      <span className="font-mono text-[10px] text-muted-foreground block">
+                        À vista em créditos
+                      </span>
                     </div>
 
                     <div className="text-right font-mono text-[10px] text-muted-foreground">
                       <span>Entrada de 20%</span>
                       <span className="block text-foreground font-bold">
-                        + 12x MC$ {Math.round((item.price_credits * 0.8) / 12).toLocaleString("pt-BR")}
+                        + 12x MC${" "}
+                        {Math.round((item.price_credits * 0.8) / 12).toLocaleString("pt-BR")}
                       </span>
                     </div>
                   </div>
@@ -425,9 +464,13 @@ export function MarketplaceShowcase({ hangars, currentProfile }: MarketplaceShow
 
             <div className="mt-4 space-y-4 font-mono text-xs">
               <div className="border border-border/60 bg-surface/50 p-4 space-y-2">
-                <span className="text-primary uppercase tracking-widest text-[10px]">VEÍCULO SELECIONADO</span>
+                <span className="text-primary uppercase tracking-widest text-[10px]">
+                  VEÍCULO SELECIONADO
+                </span>
                 <p className="font-display text-2xl font-bold">{selectedVehicleToBuy.name}</p>
-                <p className="text-muted-foreground">{selectedVehicleToBuy.callsign} · {categoryLabel[selectedVehicleToBuy.category]}</p>
+                <p className="text-muted-foreground">
+                  {selectedVehicleToBuy.callsign} · {categoryLabel[selectedVehicleToBuy.category]}
+                </p>
                 <div className="flex items-center justify-between pt-2 border-t border-border/40">
                   <span>Preço Total de Aquisição:</span>
                   <span className="font-display text-xl text-telemetry font-bold">
@@ -440,7 +483,8 @@ export function MarketplaceShowcase({ hangars, currentProfile }: MarketplaceShow
               {activeUser ? (
                 <div className="border border-emerald-500/40 bg-emerald-500/10 p-3 space-y-1">
                   <p className="text-emerald-400 font-bold flex items-center gap-1.5">
-                    <CheckCircle2 className="h-4 w-4" /> Comprador Identificado: {activeUser.space_credential_id}
+                    <CheckCircle2 className="h-4 w-4" /> Comprador Identificado:{" "}
+                    {activeUser.space_credential_id}
                   </p>
                   <p className="text-muted-foreground text-[11px]">
                     Saldo Atual: MC$ {Number(activeUser.martian_credits).toLocaleString("pt-BR")}
@@ -452,7 +496,8 @@ export function MarketplaceShowcase({ hangars, currentProfile }: MarketplaceShow
                     <AlertTriangle className="h-4 w-4" /> Autenticação Necessária
                   </p>
                   <p className="text-[11px]">
-                    Para transferir o título de propriedade para sua credencial espacial, faça login ou utilize a conta Demo.
+                    Para transferir o título de propriedade para sua credencial espacial, faça login
+                    ou utilize a conta Demo.
                   </p>
                 </div>
               )}
@@ -462,7 +507,10 @@ export function MarketplaceShowcase({ hangars, currentProfile }: MarketplaceShow
                 <p className="font-semibold text-foreground">Incluso na Compra:</p>
                 <p>✔ Certificado Criptográfico de Propriedade Definitiva (Title Deed) em Marte</p>
                 <p>✔ Chave Quântica Mestre inviolável para abertura de cabine e telemetria</p>
-                <p>✔ Vistoria Estrutural com {selectedVehicleToBuy.warranty_sols} Sols de garantia total</p>
+                <p>
+                  ✔ Vistoria Estrutural com {selectedVehicleToBuy.warranty_sols} Sols de garantia
+                  total
+                </p>
               </div>
 
               {/* Botões de Ação */}
@@ -506,16 +554,24 @@ export function MarketplaceShowcase({ hangars, currentProfile }: MarketplaceShow
 
             <div className="mt-4 space-y-4 font-mono text-xs">
               <div className="border border-emerald-500/40 bg-emerald-500/10 p-5 space-y-2">
-                <p className="text-[10px] text-muted-foreground uppercase">REGISTRO DE PROPRIETÁRIO ESPACIAL</p>
-                <h3 className="font-display text-2xl font-bold text-foreground">{purchasedVehicle.name}</h3>
-                <p className="text-telemetry font-bold">CHAVE MESTRE: Q-MASTER#{Math.random().toString(36).slice(2, 8).toUpperCase()}</p>
+                <p className="text-[10px] text-muted-foreground uppercase">
+                  REGISTRO DE PROPRIETÁRIO ESPACIAL
+                </p>
+                <h3 className="font-display text-2xl font-bold text-foreground">
+                  {purchasedVehicle.name}
+                </h3>
+                <p className="text-telemetry font-bold">
+                  CHAVE MESTRE: Q-MASTER#{Math.random().toString(36).slice(2, 8).toUpperCase()}
+                </p>
                 <p className="text-muted-foreground text-[11px]">
-                  Proprietário: {activeUser?.space_credential_id ?? "ARS-DEMO-01"} · Hangar de Entrega: Olympus Mons Hub
+                  Proprietário: {activeUser?.space_credential_id ?? "ARS-DEMO-01"} · Hangar de
+                  Entrega: Olympus Mons Hub
                 </p>
               </div>
 
               <p className="text-muted-foreground text-[11px] leading-relaxed">
-                Parabéns, Comandante! A nave agora pertence oficialmente à sua frota pessoal em Marte. Você pode inspecioná-la em 3D e agendar revisões no Hangar de Manutenção.
+                Parabéns, Comandante! A nave agora pertence oficialmente à sua frota pessoal em
+                Marte. Você pode inspecioná-la em 3D e agendar revisões no Hangar de Manutenção.
               </p>
 
               <button
@@ -537,7 +593,9 @@ export function MarketplaceShowcase({ hangars, currentProfile }: MarketplaceShow
             <div className="flex items-center justify-between border-b border-border/60 pb-3">
               <div className="flex items-center gap-2">
                 <Tag className="h-5 w-5 text-primary" />
-                <h3 className="font-display text-xl font-bold">Anunciar Nave no Marketplace ARES</h3>
+                <h3 className="font-display text-xl font-bold">
+                  Anunciar Nave no Marketplace ARES
+                </h3>
               </div>
               <button
                 type="button"
@@ -562,10 +620,18 @@ export function MarketplaceShowcase({ hangars, currentProfile }: MarketplaceShow
                   className="mt-1 w-full border bg-background/80 p-2.5 text-foreground focus:outline-none focus:border-primary"
                 >
                   <option value="CyberCab VTOL X2">CyberCab VTOL X2 (Carro Voador)</option>
-                  <option value="CyberCab VTOL Sport">CyberCab VTOL Sport (Edição Aerodinâmica)</option>
-                  <option value="Ares Heavy Truck T-9">Ares Heavy Truck T-9 (Caminhão Espacial)</option>
-                  <option value="Ares Heavy Truck T-12">Ares Heavy Truck T-12 (Carga Pesada)</option>
-                  <option value="Starship Hopper S1">Starship Hopper S1 (Foguete Classe Starship)</option>
+                  <option value="CyberCab VTOL Sport">
+                    CyberCab VTOL Sport (Edição Aerodinâmica)
+                  </option>
+                  <option value="Ares Heavy Truck T-9">
+                    Ares Heavy Truck T-9 (Caminhão Espacial)
+                  </option>
+                  <option value="Ares Heavy Truck T-12">
+                    Ares Heavy Truck T-12 (Carga Pesada)
+                  </option>
+                  <option value="Starship Hopper S1">
+                    Starship Hopper S1 (Foguete Classe Starship)
+                  </option>
                 </select>
               </div>
 

@@ -19,8 +19,16 @@ vi.mock("@tanstack/react-router", async () => {
   const actual = await vi.importActual<any>("@tanstack/react-router");
   return {
     ...actual,
-    createFileRoute: () => (config: any) => ({ options: config, component: config.component, ...config }),
-    Link: ({ children, to, className }: any) => <a href={to} className={className}>{children}</a>,
+    createFileRoute: () => (config: any) => ({
+      options: config,
+      component: config.component,
+      ...config,
+    }),
+    Link: ({ children, to, className }: any) => (
+      <a href={to} className={className}>
+        {children}
+      </a>
+    ),
     useNavigate: () => vi.fn(),
   };
 });
@@ -136,7 +144,11 @@ describe("MyRentals component", () => {
     qc.setQueryData(["vehicles"], mockVehicles);
     qc.setQueryData(["hangars"], mockHangars);
     qc.setQueryData(["rentals"], mockRentals);
-    qc.setQueryData(["profile"], { id: "usr-01", full_name: "Comandante Shepard", credits_balance: 50000 });
+    qc.setQueryData(["profile"], {
+      id: "usr-01",
+      full_name: "Comandante Shepard",
+      credits_balance: 50000,
+    });
   });
 
   it("renders page header and pilot metrics summary cards", () => {
@@ -212,7 +224,9 @@ describe("MyRentals component", () => {
     const unlockBtn = screen.getByRole("button", { name: /Destravar Esclusa/i });
     fireEvent.click(unlockBtn);
 
-    expect(screen.getByText(/Esclusa despressurizada e destravada para embarque/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(/Esclusa despressurizada e destravada para embarque/i),
+    ).toBeInTheDocument();
 
     // Close modal
     const closeBtn = screen.getByRole("button", { name: /Fechar/i });

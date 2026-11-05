@@ -3,7 +3,13 @@ import { useSuspenseQuery } from "@tanstack/react-query";
 import { lazy, Suspense, useEffect, useState } from "react";
 import { CalendarRange, Compass, Radio, ShieldCheck } from "lucide-react";
 import { PageHeader, Bar, toneFor } from "@/components/PageHeader";
-import { categoryLabel, getRequiredLicense, hangarsQuery, statusLabel, vehiclesQuery } from "@/lib/ares-data";
+import {
+  categoryLabel,
+  getRequiredLicense,
+  hangarsQuery,
+  statusLabel,
+  vehiclesQuery,
+} from "@/lib/ares-data";
 
 const HangarScene = lazy(() => import("@/components/HangarScene"));
 
@@ -22,7 +28,9 @@ export const Route = createFileRoute("/app/hangar-3d")({
       context.queryClient.ensureQueryData(vehiclesQuery),
       context.queryClient.ensureQueryData(hangarsQuery),
     ]),
-  errorComponent: ({ error }) => <div className="p-10 text-destructive">{String((error as Error)?.message ?? error)}</div>,
+  errorComponent: ({ error }) => (
+    <div className="p-10 text-destructive">{String((error as Error)?.message ?? error)}</div>
+  ),
   component: Hangar,
 });
 
@@ -30,7 +38,11 @@ function Hangar() {
   const search = Route.useSearch();
   const { data: vehicles } = useSuspenseQuery(vehiclesQuery);
   const { data: hangars } = useSuspenseQuery(hangarsQuery);
-  const [id, setId] = useState(() => (search.vehicleId && vehicles.some((x) => x.id === search.vehicleId) ? search.vehicleId : vehicles[0]?.id));
+  const [id, setId] = useState(() =>
+    search.vehicleId && vehicles.some((x) => x.id === search.vehicleId)
+      ? search.vehicleId
+      : vehicles[0]?.id,
+  );
 
   useEffect(() => {
     if (search.vehicleId && vehicles.some((x) => x.id === search.vehicleId)) {
@@ -62,20 +74,28 @@ function Hangar() {
               key={x.id}
               onClick={() => setId(x.id)}
               className={`block w-full border px-3 py-2 text-left transition ${
-                x.id === v.id ? "border-primary bg-primary/10 shadow-glow" : "hover:border-primary/40"
+                x.id === v.id
+                  ? "border-primary bg-primary/10 shadow-glow"
+                  : "hover:border-primary/40"
               }`}
             >
               <div className="flex items-center justify-between">
                 <span className="font-mono text-xs text-primary font-bold">{x.callsign}</span>
-                <span className={`text-[9px] font-mono uppercase px-1 rounded ${
-                  x.status === "in_flight" ? "bg-telemetry/20 text-telemetry" : "bg-muted text-muted-foreground"
-                }`}>
+                <span
+                  className={`text-[9px] font-mono uppercase px-1 rounded ${
+                    x.status === "in_flight"
+                      ? "bg-telemetry/20 text-telemetry"
+                      : "bg-muted text-muted-foreground"
+                  }`}
+                >
                   {statusLabel[x.status]}
                 </span>
               </div>
               <span className="block text-sm font-semibold">{x.name}</span>
               <div className="flex items-center gap-1.5 mt-0.5">
-                <span className="font-mono text-[10px] text-muted-foreground">{categoryLabel[x.category]}</span>
+                <span className="font-mono text-[10px] text-muted-foreground">
+                  {categoryLabel[x.category]}
+                </span>
                 {x.name.includes("Apex") && (
                   <span className="text-[9px] px-1 rounded bg-amber-500/20 text-amber-300 font-bold border border-amber-500/30">
                     VIP
@@ -112,7 +132,9 @@ function Hangar() {
         <div className="glass space-y-4 p-5 font-mono text-xs">
           <div>
             <div className="flex items-center gap-2">
-              <p className="text-[10px] uppercase tracking-widest text-primary font-bold">{categoryLabel[v.category]}</p>
+              <p className="text-[10px] uppercase tracking-widest text-primary font-bold">
+                {categoryLabel[v.category]}
+              </p>
               {v.name.includes("Apex") && (
                 <span className="text-[9px] px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 font-bold border border-amber-500/40">
                   LINHA EXECUTIVA VIP
@@ -129,8 +151,15 @@ function Hangar() {
           </div>
 
           <div className="space-y-1 border-t pt-2">
-            <p>Status: <span className="text-telemetry font-semibold">{statusLabel[v.status]}</span></p>
-            <p>Hangar Atual: <span className="text-foreground">{hangar?.name ?? "—"} ({hangar?.code ?? "—"})</span></p>
+            <p>
+              Status: <span className="text-telemetry font-semibold">{statusLabel[v.status]}</span>
+            </p>
+            <p>
+              Hangar Atual:{" "}
+              <span className="text-foreground">
+                {hangar?.name ?? "—"} ({hangar?.code ?? "—"})
+              </span>
+            </p>
             <p className="flex items-center gap-1.5 text-telemetry">
               <ShieldCheck className="h-3.5 w-3.5" />
               Licença Exigida: {getRequiredLicense(v.category)}

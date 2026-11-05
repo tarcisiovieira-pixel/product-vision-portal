@@ -32,7 +32,10 @@ export const Route = createFileRoute("/app/maintenance")({
   head: () => ({
     meta: [
       { title: "Manutenção & Diagnóstico 3D — ARES Mobility" },
-      { name: "description", content: "Telemetria, hotspots 3D e ordens de manutenção da frota marciana." },
+      {
+        name: "description",
+        content: "Telemetria, hotspots 3D e ordens de manutenção da frota marciana.",
+      },
     ],
   }),
   loader: ({ context }) =>
@@ -40,7 +43,9 @@ export const Route = createFileRoute("/app/maintenance")({
       context.queryClient.ensureQueryData(vehiclesQuery),
       context.queryClient.ensureQueryData(maintenanceLogsQuery),
     ]),
-  errorComponent: ({ error }) => <div className="p-10 text-destructive">{String((error as Error)?.message ?? error)}</div>,
+  errorComponent: ({ error }) => (
+    <div className="p-10 text-destructive">{String((error as Error)?.message ?? error)}</div>
+  ),
   component: Maintenance,
 });
 
@@ -54,10 +59,16 @@ function Maintenance() {
 
   const currentVehicle = vehiclesData.find((v) => v.id === selectedVehicleId) ?? vehiclesData[0];
   const sortedVehicles = [...vehiclesData].sort((a, b) => wearScore(b) - wearScore(a));
-  const openOrders = sortedVehicles.filter((v) => v.dust_filter_pct < 50 || v.battery_pct < 40 || v.status === "maintenance");
+  const openOrders = sortedVehicles.filter(
+    (v) => v.dust_filter_pct < 50 || v.battery_pct < 40 || v.status === "maintenance",
+  );
 
-  const avgBattery = Math.round(vehiclesData.reduce((s, v) => s + v.battery_pct, 0) / (vehiclesData.length || 1));
-  const avgDustFilter = Math.round(vehiclesData.reduce((s, v) => s + v.dust_filter_pct, 0) / (vehiclesData.length || 1));
+  const avgBattery = Math.round(
+    vehiclesData.reduce((s, v) => s + v.battery_pct, 0) / (vehiclesData.length || 1),
+  );
+  const avgDustFilter = Math.round(
+    vehiclesData.reduce((s, v) => s + v.dust_filter_pct, 0) / (vehiclesData.length || 1),
+  );
 
   // Executar Serviço de Manutenção via RPC Supabase
   const executeService = useMutation({
@@ -77,7 +88,10 @@ function Maintenance() {
           completed_at: new Date().toISOString(),
         };
         const currentLogs = JSON.parse(localStorage.getItem("ares_local_maintenance_logs") || "[]");
-        localStorage.setItem("ares_local_maintenance_logs", JSON.stringify([newLog, ...currentLogs]));
+        localStorage.setItem(
+          "ares_local_maintenance_logs",
+          JSON.stringify([newLog, ...currentLogs]),
+        );
 
         const demoRaw = localStorage.getItem("ares_demo_session");
         if (demoRaw) {
@@ -98,17 +112,28 @@ function Maintenance() {
       if (error) {
         // Fallback defensivo com update direto na tabela caso a migration ainda não esteja propagada
         let updatePayload: Partial<Vehicle> = { status: "available" };
-        if (serviceKey === "silica_clean") updatePayload = { dust_filter_pct: 100, status: "available" };
-        if (serviceKey === "cryo_recharge") updatePayload = { battery_pct: 100, status: "available" };
+        if (serviceKey === "silica_clean")
+          updatePayload = { dust_filter_pct: 100, status: "available" };
+        if (serviceKey === "cryo_recharge")
+          updatePayload = { battery_pct: 100, status: "available" };
         if (serviceKey === "o2_refill") {
           updatePayload = {
-            o2_hours: vehicle.category === "interplanetary_rocket" ? 900 : vehicle.category === "space_truck" ? 120 : 40,
+            o2_hours:
+              vehicle.category === "interplanetary_rocket"
+                ? 900
+                : vehicle.category === "space_truck"
+                  ? 120
+                  : 40,
             status: "available",
           };
         }
-        if (serviceKey === "thruster_calibration") updatePayload = { thruster_integrity: 100, status: "available" };
+        if (serviceKey === "thruster_calibration")
+          updatePayload = { thruster_integrity: 100, status: "available" };
 
-        const { error: updErr } = await supabase.from("vehicles").update(updatePayload).eq("id", vehicle.id);
+        const { error: updErr } = await supabase
+          .from("vehicles")
+          .update(updatePayload)
+          .eq("id", vehicle.id);
         if (updErr) throw new Error(updErr.message);
       }
       return serviceKey;
@@ -141,14 +166,22 @@ function Maintenance() {
       <div className="grid gap-4 md:grid-cols-3">
         <Stat icon={Battery} label="Bateria Média da Frota" value={`${avgBattery}%`} />
         <Stat icon={Filter} label="Filtro de Sílica Médio" value={`${avgDustFilter}%`} />
-        <Stat icon={AlertTriangle} label="Ordens Pendentes" value={String(openOrders.length)} warn={openOrders.length > 0} />
+        <Stat
+          icon={AlertTriangle}
+          label="Ordens Pendentes"
+          value={String(openOrders.length)}
+          warn={openOrders.length > 0}
+        />
       </div>
 
       {/* Seletor de Veículo para Inspeção 3D */}
       <div className="space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-2 border-b pb-3">
           <h2 className="font-mono text-xs uppercase tracking-widest text-primary">
-            Aeronave em Inspeção: <span className="text-foreground">{currentVehicle.callsign} — {currentVehicle.name}</span>
+            Aeronave em Inspeção:{" "}
+            <span className="text-foreground">
+              {currentVehicle.callsign} — {currentVehicle.name}
+            </span>
           </h2>
           <div className="flex flex-wrap gap-1">
             {vehiclesData.map((v) => (
@@ -193,7 +226,8 @@ function Maintenance() {
             {/* Guia de Hotspots Sobreposta */}
             <div className="pointer-events-none absolute bottom-3 left-4 space-y-1 font-mono text-[10px] text-muted-foreground">
               <p className="flex items-center gap-1.5 text-telemetry">
-                <Sparkles className="h-3 w-3" /> PONTOS LUMINOSOS SÃO HOTSPOTS CLICÁVEIS DE DIAGNÓSTICO
+                <Sparkles className="h-3 w-3" /> PONTOS LUMINOSOS SÃO HOTSPOTS CLICÁVEIS DE
+                DIAGNÓSTICO
               </p>
               <p>ARRASTE PARA ROTACIONAR · ROLE PARA ZOOM</p>
             </div>
@@ -203,12 +237,20 @@ function Maintenance() {
           <div className="glass space-y-4 p-5 font-mono text-xs">
             <div className="flex items-center justify-between border-b pb-3">
               <div>
-                <span className="text-[10px] uppercase tracking-widest text-muted-foreground">STATUS OPERACIONAL</span>
-                <p className="font-display text-lg text-foreground">{statusLabel[currentVehicle.status]}</p>
+                <span className="text-[10px] uppercase tracking-widest text-muted-foreground">
+                  STATUS OPERACIONAL
+                </span>
+                <p className="font-display text-lg text-foreground">
+                  {statusLabel[currentVehicle.status]}
+                </p>
               </div>
               <div className="text-right">
-                <span className="text-[10px] uppercase tracking-widest text-muted-foreground">DESGASTE GERAL</span>
-                <p className={`font-display text-xl font-bold ${w > 50 ? "text-destructive" : w > 30 ? "text-warning" : "text-telemetry"}`}>
+                <span className="text-[10px] uppercase tracking-widest text-muted-foreground">
+                  DESGASTE GERAL
+                </span>
+                <p
+                  className={`font-display text-xl font-bold ${w > 50 ? "text-destructive" : w > 30 ? "text-warning" : "text-telemetry"}`}
+                >
                   {w}/100
                 </p>
               </div>
@@ -216,7 +258,9 @@ function Maintenance() {
 
             {/* Diagnóstico por Hotspot */}
             <div className="space-y-3">
-              <p className="font-semibold uppercase tracking-widest text-primary">Diagnóstico de Subsistemas</p>
+              <p className="font-semibold uppercase tracking-widest text-primary">
+                Diagnóstico de Subsistemas
+              </p>
 
               {/* Botões para selecionar componente */}
               <div className="grid grid-cols-2 gap-2">
@@ -224,7 +268,9 @@ function Maintenance() {
                   type="button"
                   onClick={() => setSelectedHotspot("dust")}
                   className={`flex items-center gap-2 border p-2 text-left transition ${
-                    selectedHotspot === "dust" ? "border-telemetry bg-telemetry/15 text-telemetry" : "hover:bg-muted"
+                    selectedHotspot === "dust"
+                      ? "border-telemetry bg-telemetry/15 text-telemetry"
+                      : "hover:bg-muted"
                   }`}
                 >
                   <Filter className="h-4 w-4 shrink-0" />
@@ -238,7 +284,9 @@ function Maintenance() {
                   type="button"
                   onClick={() => setSelectedHotspot("battery")}
                   className={`flex items-center gap-2 border p-2 text-left transition ${
-                    selectedHotspot === "battery" ? "border-telemetry bg-telemetry/15 text-telemetry" : "hover:bg-muted"
+                    selectedHotspot === "battery"
+                      ? "border-telemetry bg-telemetry/15 text-telemetry"
+                      : "hover:bg-muted"
                   }`}
                 >
                   <Battery className="h-4 w-4 shrink-0" />
@@ -252,7 +300,9 @@ function Maintenance() {
                   type="button"
                   onClick={() => setSelectedHotspot("o2")}
                   className={`flex items-center gap-2 border p-2 text-left transition ${
-                    selectedHotspot === "o2" ? "border-telemetry bg-telemetry/15 text-telemetry" : "hover:bg-muted"
+                    selectedHotspot === "o2"
+                      ? "border-telemetry bg-telemetry/15 text-telemetry"
+                      : "hover:bg-muted"
                   }`}
                 >
                   <Wind className="h-4 w-4 shrink-0" />
@@ -266,7 +316,9 @@ function Maintenance() {
                   type="button"
                   onClick={() => setSelectedHotspot("thruster")}
                   className={`flex items-center gap-2 border p-2 text-left transition ${
-                    selectedHotspot === "thruster" ? "border-telemetry bg-telemetry/15 text-telemetry" : "hover:bg-muted"
+                    selectedHotspot === "thruster"
+                      ? "border-telemetry bg-telemetry/15 text-telemetry"
+                      : "hover:bg-muted"
                   }`}
                 >
                   <Flame className="h-4 w-4 shrink-0" />
@@ -286,7 +338,10 @@ function Maintenance() {
                       <span>{currentVehicle.dust_filter_pct}%</span>
                     </div>
                     <div className="mt-1">
-                      <Bar value={currentVehicle.dust_filter_pct} tone={toneFor(currentVehicle.dust_filter_pct)} />
+                      <Bar
+                        value={currentVehicle.dust_filter_pct}
+                        tone={toneFor(currentVehicle.dust_filter_pct)}
+                      />
                     </div>
                     <p className="mt-2 text-[10px] text-muted-foreground">
                       {currentVehicle.dust_filter_pct < 50
@@ -295,7 +350,12 @@ function Maintenance() {
                     </p>
                     <button
                       disabled={executeService.isPending}
-                      onClick={() => executeService.mutate({ serviceKey: "silica_clean", vehicle: currentVehicle })}
+                      onClick={() =>
+                        executeService.mutate({
+                          serviceKey: "silica_clean",
+                          vehicle: currentVehicle,
+                        })
+                      }
                       className="cut-corner mt-3 flex w-full items-center justify-center gap-2 bg-mars-gradient py-2 font-mono text-xs uppercase tracking-wider text-primary-foreground disabled:opacity-50"
                     >
                       <Hammer className="h-3.5 w-3.5" />
@@ -311,14 +371,22 @@ function Maintenance() {
                       <span>{currentVehicle.battery_pct}%</span>
                     </div>
                     <div className="mt-1">
-                      <Bar value={currentVehicle.battery_pct} tone={toneFor(currentVehicle.battery_pct)} />
+                      <Bar
+                        value={currentVehicle.battery_pct}
+                        tone={toneFor(currentVehicle.battery_pct)}
+                      />
                     </div>
                     <p className="mt-2 text-[10px] text-muted-foreground">
                       Aquecedores térmicos de célula operantes a −40°C.
                     </p>
                     <button
                       disabled={executeService.isPending}
-                      onClick={() => executeService.mutate({ serviceKey: "cryo_recharge", vehicle: currentVehicle })}
+                      onClick={() =>
+                        executeService.mutate({
+                          serviceKey: "cryo_recharge",
+                          vehicle: currentVehicle,
+                        })
+                      }
                       className="cut-corner mt-3 flex w-full items-center justify-center gap-2 bg-mars-gradient py-2 font-mono text-xs uppercase tracking-wider text-primary-foreground disabled:opacity-50"
                     >
                       <Battery className="h-3.5 w-3.5" />
@@ -334,11 +402,14 @@ function Maintenance() {
                       <span>{currentVehicle.o2_hours} horas</span>
                     </div>
                     <p className="mt-2 text-[10px] text-muted-foreground">
-                      Pressurização nominal de cabine: {currentVehicle.cabin_pressure_kpa ?? 101.3} kPa.
+                      Pressurização nominal de cabine: {currentVehicle.cabin_pressure_kpa ?? 101.3}{" "}
+                      kPa.
                     </p>
                     <button
                       disabled={executeService.isPending}
-                      onClick={() => executeService.mutate({ serviceKey: "o2_refill", vehicle: currentVehicle })}
+                      onClick={() =>
+                        executeService.mutate({ serviceKey: "o2_refill", vehicle: currentVehicle })
+                      }
                       className="cut-corner mt-3 flex w-full items-center justify-center gap-2 bg-mars-gradient py-2 font-mono text-xs uppercase tracking-wider text-primary-foreground disabled:opacity-50"
                     >
                       <Wind className="h-3.5 w-3.5" />
@@ -350,7 +421,9 @@ function Maintenance() {
                 {selectedHotspot === "thruster" && (
                   <div>
                     <div className="flex justify-between">
-                      <span className="text-muted-foreground">Integridade dos Bocais de Plasma</span>
+                      <span className="text-muted-foreground">
+                        Integridade dos Bocais de Plasma
+                      </span>
                       <span>{currentVehicle.thruster_integrity ?? 100}%</span>
                     </div>
                     <p className="mt-2 text-[10px] text-muted-foreground">
@@ -358,7 +431,12 @@ function Maintenance() {
                     </p>
                     <button
                       disabled={executeService.isPending}
-                      onClick={() => executeService.mutate({ serviceKey: "thruster_calibration", vehicle: currentVehicle })}
+                      onClick={() =>
+                        executeService.mutate({
+                          serviceKey: "thruster_calibration",
+                          vehicle: currentVehicle,
+                        })
+                      }
                       className="cut-corner mt-3 flex w-full items-center justify-center gap-2 bg-mars-gradient py-2 font-mono text-xs uppercase tracking-wider text-primary-foreground disabled:opacity-50"
                     >
                       <Flame className="h-3.5 w-3.5" />
@@ -409,7 +487,9 @@ function Maintenance() {
               </button>
             </div>
           ))}
-          {openOrders.length === 0 && <p className="text-sm text-muted-foreground">Nenhuma ordem crítica aberta na frota.</p>}
+          {openOrders.length === 0 && (
+            <p className="text-sm text-muted-foreground">Nenhuma ordem crítica aberta na frota.</p>
+          )}
         </div>
       </section>
 
@@ -448,7 +528,9 @@ function Maintenance() {
                   </td>
                   <td className="p-3">{v.cabin_pressure_kpa ?? 101.3} kPa</td>
                   <td className="p-3">{v.o2_hours} h</td>
-                  <td className={`p-3 font-semibold ${score > 50 ? "text-destructive" : score > 30 ? "text-warning" : "text-telemetry"}`}>
+                  <td
+                    className={`p-3 font-semibold ${score > 50 ? "text-destructive" : score > 30 ? "text-warning" : "text-telemetry"}`}
+                  >
                     {score}
                   </td>
                 </tr>
@@ -461,11 +543,23 @@ function Maintenance() {
   );
 }
 
-function Stat({ icon: Icon, label, value, warn }: { icon: typeof Wind; label: string; value: string; warn?: boolean }) {
+function Stat({
+  icon: Icon,
+  label,
+  value,
+  warn,
+}: {
+  icon: typeof Wind;
+  label: string;
+  value: string;
+  warn?: boolean;
+}) {
   return (
     <div className="cut-corner glass p-5">
       <Icon className={`h-5 w-5 ${warn ? "text-warning" : "text-telemetry"}`} />
-      <p className="mt-3 font-mono text-xs uppercase tracking-widest text-muted-foreground">{label}</p>
+      <p className="mt-3 font-mono text-xs uppercase tracking-widest text-muted-foreground">
+        {label}
+      </p>
       <p className="mt-1 font-display text-3xl font-bold">{value}</p>
     </div>
   );

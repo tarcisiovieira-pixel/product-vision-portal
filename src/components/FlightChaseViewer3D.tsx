@@ -3,12 +3,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { Canvas, useFrame } from "@react-three/fiber";
 import { OrbitControls, Sparkles, Stars } from "@react-three/drei";
 import * as THREE from "three";
-import {
-  categoryLabel,
-  statusLabel,
-  type Hangar,
-  type Vehicle,
-} from "@/lib/ares-data";
+import { categoryLabel, statusLabel, type Hangar, type Vehicle } from "@/lib/ares-data";
 import {
   Building2,
   Flame,
@@ -48,7 +43,7 @@ function makeMarsSurfaceTexture(): THREE.Texture {
     g.fillRect(0, 0, 1024, 512);
 
     let s = 23;
-    const r = () => ((s = (s * 16807) % 2147483647) / 2147483647);
+    const r = () => (s = (s * 16807) % 2147483647) / 2147483647;
     for (let i = 0; i < 1200; i++) {
       const x = r() * 1024;
       const y = 35 + r() * 442;
@@ -100,7 +95,7 @@ function makeEarthSurfaceTexture(): THREE.Texture {
     g.fillRect(0, 0, 1024, 512);
 
     let s = 42;
-    const r = () => ((s = (s * 16807) % 2147483647) / 2147483647);
+    const r = () => (s = (s * 16807) % 2147483647) / 2147483647;
     // Continentes terrestres
     for (let i = 0; i < 900; i++) {
       const x = r() * 1024;
@@ -161,7 +156,7 @@ function makeMartianTerrainTexture(): THREE.Texture {
     g.fillRect(0, 0, 512, 512);
 
     let s = 77;
-    const r = () => ((s = (s * 16807) % 2147483647) / 2147483647);
+    const r = () => (s = (s * 16807) % 2147483647) / 2147483647;
     // Ondulações de dunas e sedimentos minerais
     for (let i = 0; i < 400; i++) {
       const x = r() * 512;
@@ -198,7 +193,7 @@ function makePhobosTexture(): THREE.Texture {
     g.fillRect(0, 0, 512, 256);
 
     let s = 89;
-    const r = () => ((s = (s * 16807) % 2147483647) / 2147483647);
+    const r = () => (s = (s * 16807) % 2147483647) / 2147483647;
     for (let i = 0; i < 300; i++) {
       const x = r() * 512;
       const y = r() * 256;
@@ -230,7 +225,7 @@ function makeEuropaTexture(): THREE.Texture {
     g.fillRect(0, 0, 512, 256);
 
     let s = 101;
-    const r = () => ((s = (s * 16807) % 2147483647) / 2147483647);
+    const r = () => (s = (s * 16807) % 2147483647) / 2147483647;
     // Fissuras lineares na crosta de gelo (Lineae)
     g.strokeStyle = "rgba(148, 77, 43, 0.4)";
     for (let i = 0; i < 30; i++) {
@@ -361,11 +356,7 @@ function StormDefenseBarrierCorridor({
       {Array.from({ length: count }).map((_, i) => {
         const initZ = -i * spacing;
         return (
-          <group
-            key={i}
-            ref={(el) => (gatesRef.current[i] = el!)}
-            position={[0, 0, initZ]}
-          >
+          <group key={i} ref={(el) => (gatesRef.current[i] = el!)} position={[0, 0, initZ]}>
             {/* Pilone Esquerdo da Barreira de Tempestade */}
             <group position={[-3.2, -1.8, 0]}>
               <mesh position={[0, 1.5, 0]}>
@@ -433,7 +424,7 @@ function WarpStarStreaks({ active }: { active: boolean }) {
 
   const starData = useMemo(() => {
     let seed = 31;
-    const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+    const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
     return Array.from({ length: count }, () => ({
       x: (rnd() - 0.5) * 26,
       y: (rnd() - 0.5) * 16,
@@ -492,12 +483,7 @@ function MartianSurfaceAtmosphere({
       {/* Terreno Areográfico Contínuo de Rególito */}
       <mesh position={[0, -1.9, -15]} rotation={[-Math.PI / 2, 0, 0]}>
         <planeGeometry args={[110, 160, 32, 32]} />
-        <meshStandardMaterial
-          map={terrainTex}
-          roughness={0.92}
-          metalness={0.08}
-          color="#be4f23"
-        />
+        <meshStandardMaterial map={terrainTex} roughness={0.92} metalness={0.08} color="#be4f23" />
       </mesh>
 
       {/* Tempestade de Areia Marciana Rodopiando do Lado de Fora da Barreira */}
@@ -614,7 +600,12 @@ function DestinationCelestialSystem3D({
           {/* Europa com crosta congelada e fissuras lineares */}
           <mesh ref={planetMesh}>
             <sphereGeometry args={[2.5, 48, 48]} />
-            <meshStandardMaterial map={europaTex} roughness={0.5} metalness={0.25} color="#e0f2fe" />
+            <meshStandardMaterial
+              map={europaTex}
+              roughness={0.5}
+              metalness={0.25}
+              color="#e0f2fe"
+            />
           </mesh>
           {/* Júpiter gigante ao fundo */}
           <group position={[18, -4, -30]}>
@@ -692,8 +683,7 @@ function FlightCraftModel({
     // Animação da chama do foguete Starship
     if (flameRef.current) {
       const boostScale = isBoosting ? 2.2 : 1.0;
-      const pulse =
-        (1 + Math.sin(Date.now() * 0.04) * 0.25 + Math.random() * 0.15) * boostScale;
+      const pulse = (1 + Math.sin(Date.now() * 0.04) * 0.25 + Math.random() * 0.15) * boostScale;
       flameRef.current.scale.set(
         (1 + Math.sin(Date.now() * 0.02) * 0.1) * (isBoosting ? 1.4 : 1),
         pulse,
@@ -702,8 +692,7 @@ function FlightCraftModel({
     }
 
     if (thrusterGlow.current) {
-      thrusterGlow.current.intensity =
-        (isBoosting ? 8 : 4) + Math.sin(Date.now() * 0.05) * 1.5;
+      thrusterGlow.current.intensity = (isBoosting ? 8 : 4) + Math.sin(Date.now() * 0.05) * 1.5;
     }
   });
 
@@ -780,7 +769,11 @@ function FlightCraftModel({
           </mesh>
           {/* Mach Shock Diamonds no núcleo do plasma */}
           {[0.3, 0.65, 1.0].map((y, idx) => (
-            <mesh key={idx} position={[0, -y, 0]} scale={[(1 - idx * 0.25), (1 - idx * 0.25), (1 - idx * 0.25)]}>
+            <mesh
+              key={idx}
+              position={[0, -y, 0]}
+              scale={[1 - idx * 0.25, 1 - idx * 0.25, 1 - idx * 0.25]}
+            >
               <octahedronGeometry args={[0.12, 0]} />
               <meshBasicMaterial color="#ffffff" toneMapped={false} />
             </mesh>
@@ -843,10 +836,7 @@ function FlightCraftModel({
           {[-0.3, 0.3].map((x, i) => (
             <mesh key={i} position={[x, 0, 0]} rotation={[Math.PI / 2, 0, 0]}>
               <cylinderGeometry args={[0.12, 0.16, 0.25, 12]} />
-              <meshBasicMaterial
-                color={isBoosting ? "#00f0ff" : "#a855f7"}
-                toneMapped={false}
-              />
+              <meshBasicMaterial color={isBoosting ? "#00f0ff" : "#a855f7"} toneMapped={false} />
             </mesh>
           ))}
           <Sparkles
@@ -907,7 +897,12 @@ function FlightCraftModel({
         ))}
         <mesh position={[0, 0.36, 0.2]}>
           <boxGeometry args={[0.65, 0.26, 1.1]} />
-          <meshPhysicalMaterial color="#071728" transmission={0.7} roughness={0.05} metalness={0.2} />
+          <meshPhysicalMaterial
+            color="#071728"
+            transmission={0.7}
+            roughness={0.05}
+            metalness={0.2}
+          />
         </mesh>
         <group position={[0, 0.12, -1.35]}>
           {[-0.25, 0.25].map((x, i) => (
@@ -916,8 +911,19 @@ function FlightCraftModel({
               <meshBasicMaterial color="#00f0ff" toneMapped={false} />
             </mesh>
           ))}
-          <pointLight position={[0, 0, -0.3]} color="#00f0ff" intensity={isBoosting ? 8 : 4} distance={4} />
-          <Sparkles count={isBoosting ? 60 : 30} scale={[0.8, 0.6, 1.2]} size={3} color="#00f0ff" speed={isBoosting ? 9 : 5} />
+          <pointLight
+            position={[0, 0, -0.3]}
+            color="#00f0ff"
+            intensity={isBoosting ? 8 : 4}
+            distance={4}
+          />
+          <Sparkles
+            count={isBoosting ? 60 : 30}
+            scale={[0.8, 0.6, 1.2]}
+            size={3}
+            color="#00f0ff"
+            speed={isBoosting ? 9 : 5}
+          />
         </group>
       </group>
     );
@@ -972,8 +978,19 @@ function FlightCraftModel({
               <meshBasicMaterial color={isBoosting ? "#ffffff" : "#00f0ff"} toneMapped={false} />
             </mesh>
           ))}
-          <pointLight position={[0, 0, -0.4]} color="#00f0ff" intensity={isBoosting ? 9 : 5} distance={5} />
-          <Sparkles count={isBoosting ? 70 : 35} scale={[0.9, 0.6, 1.4]} size={3.5} color="#38bdf8" speed={isBoosting ? 10 : 6} />
+          <pointLight
+            position={[0, 0, -0.4]}
+            color="#00f0ff"
+            intensity={isBoosting ? 9 : 5}
+            distance={5}
+          />
+          <Sparkles
+            count={isBoosting ? 70 : 35}
+            scale={[0.9, 0.6, 1.4]}
+            size={3.5}
+            color="#38bdf8"
+            speed={isBoosting ? 10 : 6}
+          />
         </group>
       </group>
     );
@@ -1061,10 +1078,7 @@ function FlightCraftModel({
       {/* Propulsor de Cauda Vetorial */}
       <mesh position={[0, 0.15, -1.1]} rotation={[Math.PI / 2, 0, 0]}>
         <cylinderGeometry args={[0.15, 0.2, 0.2, 16]} />
-        <meshBasicMaterial
-          color={isBoosting ? "#ffffff" : "#00f0ff"}
-          toneMapped={false}
-        />
+        <meshBasicMaterial color={isBoosting ? "#ffffff" : "#00f0ff"} toneMapped={false} />
       </mesh>
       <pointLight
         ref={thrusterGlow}
@@ -1206,7 +1220,9 @@ export function FlightChaseViewer3D({
   const [cameraMode, setCameraMode] = useState<"chase" | "cockpit" | "orbit">("chase");
   const [isBoosting, setIsBoosting] = useState(false);
   const [audioEnabled, setAudioEnabled] = useState(false);
-  const [destinationPlanet, setDestinationPlanet] = useState<"earth" | "phobos" | "europa">("earth");
+  const [destinationPlanet, setDestinationPlanet] = useState<"earth" | "phobos" | "europa">(
+    "earth",
+  );
 
   const synthRef = useRef<SpaceSynthEngine | null>(null);
 
@@ -1259,8 +1275,7 @@ export function FlightChaseViewer3D({
   };
 
   const currentHangar = hangars.find((h) => h.id === vehicle.hangar_id);
-  const destHangar =
-    hangars.find((h) => h.id !== vehicle.hangar_id) || hangars[0];
+  const destHangar = hangars.find((h) => h.id !== vehicle.hangar_id) || hangars[0];
 
   const CategoryIcon =
     vehicle.category === "car_vtol" ? Plane : vehicle.category === "space_truck" ? Truck : Rocket;
@@ -1270,7 +1285,9 @@ export function FlightChaseViewer3D({
   const defaultCruiseSpeed = isStarship ? 14200 : vehicle.category === "car_vtol" ? 640 : 220;
   const currentSpeed = isActualFlight
     ? (vehicle.speed_kmh || defaultCruiseSpeed) * (isBoosting ? 1.6 : 1.0)
-    : (isBoosting ? defaultCruiseSpeed : 0);
+    : isBoosting
+      ? defaultCruiseSpeed
+      : 0;
   const machNumber = (currentSpeed / 860).toFixed(1);
 
   // Separar naves em voo ativo e naves paradas na garagem
@@ -1334,7 +1351,9 @@ export function FlightChaseViewer3D({
         <div className="flex items-center gap-3">
           <button
             onClick={toggleAudio}
-            title={audioEnabled ? "Silenciar áudio dos propulsores" : "Ativar áudio dos propulsores"}
+            title={
+              audioEnabled ? "Silenciar áudio dos propulsores" : "Ativar áudio dos propulsores"
+            }
             className={`flex items-center gap-1.5 border px-3 py-2 uppercase transition font-mono text-xs ${
               audioEnabled
                 ? "border-telemetry/80 bg-telemetry/20 text-telemetry shadow-glow"
@@ -1376,7 +1395,9 @@ export function FlightChaseViewer3D({
               <span className="text-telemetry font-bold flex items-center gap-1.5">
                 <Navigation className="h-3.5 w-3.5" /> DIRETOR DE VOO
               </span>
-              <span className={`text-[10px] font-bold ${isActualFlight ? "text-emerald-400" : isBoosting ? "text-telemetry" : "text-amber-400"}`}>
+              <span
+                className={`text-[10px] font-bold ${isActualFlight ? "text-emerald-400" : isBoosting ? "text-telemetry" : "text-amber-400"}`}
+              >
                 {isActualFlight ? "VOO ATIVO" : isBoosting ? "TESTE TURBO" : "DOCADA NO HANGAR"}
               </span>
             </div>
@@ -1395,7 +1416,9 @@ export function FlightChaseViewer3D({
                 <span className="text-[10px] text-muted-foreground block">ALTITUDE</span>
                 <p className="font-display text-xl font-bold text-primary">
                   {isStarship
-                    ? (isBoosting ? "58.420" : "12.850")
+                    ? isBoosting
+                      ? "58.420"
+                      : "12.850"
                     : (vehicle.altitude_km || 2.4).toFixed(1)}{" "}
                   <span className="text-xs font-mono font-normal">km</span>
                 </p>
@@ -1416,7 +1439,9 @@ export function FlightChaseViewer3D({
 
               <div>
                 <span className="text-[10px] text-muted-foreground block">CABINE</span>
-                <p className="font-bold text-foreground">{vehicle.cabin_pressure_kpa ?? 101.3} kPa</p>
+                <p className="font-bold text-foreground">
+                  {vehicle.cabin_pressure_kpa ?? 101.3} kPa
+                </p>
               </div>
 
               <div>
@@ -1515,10 +1540,16 @@ export function FlightChaseViewer3D({
               <span className="text-telemetry font-bold">
                 {isStarship
                   ? destinationPlanet === "earth"
-                    ? (isBoosting ? "ETA: 62 dias" : "ETA: 184 dias")
+                    ? isBoosting
+                      ? "ETA: 62 dias"
+                      : "ETA: 184 dias"
                     : destinationPlanet === "phobos"
-                      ? (isBoosting ? "ETA: 18 min" : "ETA: 45 min")
-                      : (isBoosting ? "ETA: 1.2 anos" : "ETA: 2.8 anos")
+                      ? isBoosting
+                        ? "ETA: 18 min"
+                        : "ETA: 45 min"
+                      : isBoosting
+                        ? "ETA: 1.2 anos"
+                        : "ETA: 2.8 anos"
                   : "ETA: 48 min marcianos"}
               </span>
             </div>
@@ -1548,18 +1579,25 @@ export function FlightChaseViewer3D({
             {/* Seção 1: Naves em Voo Ativo */}
             <div className="flex items-center justify-between border-b border-border/50 pb-2 mb-2.5">
               <span className="text-telemetry uppercase tracking-widest text-[10px] font-bold flex items-center gap-1.5">
-                <Radio className="h-3.5 w-3.5 animate-pulse" /> EM VOO ATIVO ({inFlightVehicles.length})
+                <Radio className="h-3.5 w-3.5 animate-pulse" /> EM VOO ATIVO (
+                {inFlightVehicles.length})
               </span>
             </div>
 
             <div className="space-y-1.5 mb-4">
               {inFlightVehicles.length === 0 ? (
-                <p className="text-[10px] text-muted-foreground italic py-1">Nenhuma outra nave em voo.</p>
+                <p className="text-[10px] text-muted-foreground italic py-1">
+                  Nenhuma outra nave em voo.
+                </p>
               ) : (
                 inFlightVehicles.map((v) => {
                   const isCurrent = v.id === vehicle.id;
                   const Icon =
-                    v.category === "car_vtol" ? Plane : v.category === "space_truck" ? Truck : Rocket;
+                    v.category === "car_vtol"
+                      ? Plane
+                      : v.category === "space_truck"
+                        ? Truck
+                        : Rocket;
 
                   return (
                     <button
@@ -1587,7 +1625,8 @@ export function FlightChaseViewer3D({
             {/* Seção 2: Naves na Garagem / Hangar */}
             <div className="flex items-center justify-between border-b border-border/50 pb-2 mb-2.5 pt-1">
               <span className="text-emerald-400 uppercase tracking-widest text-[10px] font-bold flex items-center gap-1.5">
-                <Building2 className="h-3.5 w-3.5 text-emerald-400" /> NA GARAGEM ({hangarVehicles.length})
+                <Building2 className="h-3.5 w-3.5 text-emerald-400" /> NA GARAGEM (
+                {hangarVehicles.length})
               </span>
               <span className="text-[9px] text-muted-foreground">IR P/ HANGAR ➔</span>
             </div>

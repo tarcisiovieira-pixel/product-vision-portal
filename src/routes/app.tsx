@@ -1,6 +1,14 @@
 import { createFileRoute, Link, Outlet, redirect, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Boxes, CalendarCheck, CalendarRange, LogOut, Radar, ShoppingBag, Wrench } from "lucide-react";
+import {
+  Boxes,
+  CalendarCheck,
+  CalendarRange,
+  LogOut,
+  Radar,
+  ShoppingBag,
+  Wrench,
+} from "lucide-react";
 import { AresLogo } from "@/components/AresLogo";
 import { supabase } from "@/integrations/supabase/client";
 import { licenseLabel, profileQuery } from "@/lib/ares-data";
@@ -57,7 +65,9 @@ function AppLayout() {
   return (
     <div className="hud-grid flex min-h-screen flex-col md:flex-row">
       <aside className="glass flex shrink-0 flex-col border-y-0 border-l-0 md:sticky md:top-0 md:h-screen md:w-64">
-        <div className="border-b p-5"><AresLogo /></div>
+        <div className="border-b p-5">
+          <AresLogo />
+        </div>
         <nav className="flex gap-1 overflow-x-auto p-3 md:flex-col">
           {nav.map((n) => (
             <Link
@@ -78,17 +88,27 @@ function AppLayout() {
             <p className="text-muted-foreground">HABILITAÇÃO</p>
             <p className="text-telemetry">{profile ? licenseLabel[profile.pilot_license] : "—"}</p>
             <p className="text-muted-foreground">CRÉDITOS</p>
-            <p className="font-display text-xl text-primary">MC$ {Number(profile?.martian_credits ?? 0).toLocaleString("pt-BR")}</p>
-            <button onClick={signOut} className="flex items-center gap-2 pt-2 text-muted-foreground transition hover:text-foreground">
+            <p className="font-display text-xl text-primary">
+              MC$ {Number(profile?.martian_credits ?? 0).toLocaleString("pt-BR")}
+            </p>
+            <button
+              onClick={signOut}
+              className="flex items-center gap-2 pt-2 text-muted-foreground transition hover:text-foreground"
+            >
               <LogOut className="h-4 w-4" /> Sair
             </button>
           </div>
           <div className="flex items-center justify-between md:hidden">
             <div>
               <p className="text-muted-foreground">{profile?.space_credential_id ?? "—"}</p>
-              <p className="font-display text-sm text-primary">MC$ {Number(profile?.martian_credits ?? 0).toLocaleString("pt-BR")}</p>
+              <p className="font-display text-sm text-primary">
+                MC$ {Number(profile?.martian_credits ?? 0).toLocaleString("pt-BR")}
+              </p>
             </div>
-            <button onClick={signOut} className="flex items-center gap-1.5 border border-muted px-2.5 py-1.5 text-xs text-muted-foreground hover:text-foreground">
+            <button
+              onClick={signOut}
+              className="flex items-center gap-1.5 border border-muted px-2.5 py-1.5 text-xs text-muted-foreground hover:text-foreground"
+            >
               <LogOut className="h-3.5 w-3.5" /> Sair
             </button>
           </div>

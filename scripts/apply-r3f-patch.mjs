@@ -19,25 +19,25 @@ for (const f of files) {
   // 1. getInstanceProps: filter out data- attributes
   content = content.replace(
     /if\s*\(!REACT_INTERNAL_PROPS\.includes\(key\)\)\s*props\[key\]\s*=\s*pendingProps\[key\];/,
-    "if (!REACT_INTERNAL_PROPS.includes(key) && !key.startsWith('data-')) props[key] = pendingProps[key];"
+    "if (!REACT_INTERNAL_PROPS.includes(key) && !key.startsWith('data-')) props[key] = pendingProps[key];",
   );
 
   // 2. applyProps & diffProps: ignore any prop starting with data-
   content = content.replaceAll(
     /if\s*\(RESERVED_PROPS\.includes\(prop\)\)\s*continue;/g,
-    "if (RESERVED_PROPS.includes(prop) || (typeof prop === 'string' && prop.startsWith('data-'))) continue;"
+    "if (RESERVED_PROPS.includes(prop) || (typeof prop === 'string' && prop.startsWith('data-'))) continue;",
   );
 
   // 3. resolve(): do not attempt deep traversal on data- attributes
   content = content.replace(
     /function resolve\(root, key\)\s*\{/,
-    "function resolve(root, key) {\n  if (typeof key === 'string' && key.startsWith('data-')) return { root, key, target: undefined };"
+    "function resolve(root, key) {\n  if (typeof key === 'string' && key.startsWith('data-')) return { root, key, target: undefined };",
   );
 
   // 4. applyProps throw check: never throw if prop starts with data-
   content = content.replace(
     /if\s*\(target === undefined && \(typeof root !== 'object' \|\| root === null\)\)\s*\{/,
-    "if (target === undefined && (typeof root !== 'object' || root === null) && (!prop || !prop.startsWith('data-'))) {"
+    "if (target === undefined && (typeof root !== 'object' || root === null) && (!prop || !prop.startsWith('data-'))) {",
   );
 
   fs.writeFileSync(filePath, content, "utf8");
