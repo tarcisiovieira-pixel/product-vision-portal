@@ -86,3 +86,10 @@ Libs candidatas (travar versão antes de instalar): `@react-three/postprocessing
 
 ## D8. Ordem revisada
 0 Baseline → 1 Higiene → 2 Tipos/bugs → 3 Segurança + remover Express + demo seguro → 4 Design system + visual → 5 Dashboard + Copilot IA (v1 leitura) → 6 Demais rotas + relatórios IA → 7 CI/Docs.
+
+## D9. Decisão final de backend (2026-11-05)
+- **Backend novo:** Fastify + TypeScript em `backend/` (package.json próprio), hospedado no **Render** (deploy via GitHub). Volume pequeno: sem plano de migração para Cloud Run.
+- **Banco:** Supabase (Postgres/Auth/Storage/Realtime). Projeto Supabase de *desenvolvimento* separado do de produção, para não depender de banco local.
+- Render: usar Web Service com `backend/` como root directory, health check `/health`, envs no painel. Plano gratuito "dorme" após inatividade; para produção usar plano pago mínimo.
+- Estrutura de pastas: ver conversa (front na raiz; `backend/`, `contracts/`, `supabase/`, `docs/`).
+- Fase 0 concluída em `chore/baseline` (local, sem push). `pnpm-lock.yaml` deixado fora do commit até decidir o gerenciador (bun x pnpm).
