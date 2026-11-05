@@ -7,8 +7,6 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instantiate createClient with right options
-  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "14.18"
   }
@@ -25,6 +23,7 @@ export type Database = {
           name: string
           sector: string
           storm_alert: boolean
+          status: string
         }
         Insert: {
           code: string
@@ -36,6 +35,7 @@ export type Database = {
           name: string
           sector: string
           storm_alert?: boolean
+          status?: string
         }
         Update: {
           code?: string
@@ -47,6 +47,7 @@ export type Database = {
           name?: string
           sector?: string
           storm_alert?: boolean
+          status?: string
         }
         Relationships: []
       }
@@ -57,6 +58,8 @@ export type Database = {
           martian_credits: number
           pilot_license: Database["public"]["Enums"]["pilot_license"]
           space_credential_id: string | null
+          safety_reputation_score: number
+          flight_hours: number
           updated_at: string
           user_id: string
         }
@@ -66,6 +69,8 @@ export type Database = {
           martian_credits?: number
           pilot_license?: Database["public"]["Enums"]["pilot_license"]
           space_credential_id?: string | null
+          safety_reputation_score?: number
+          flight_hours?: number
           updated_at?: string
           user_id: string
         }
@@ -75,6 +80,8 @@ export type Database = {
           martian_credits?: number
           pilot_license?: Database["public"]["Enums"]["pilot_license"]
           space_credential_id?: string | null
+          safety_reputation_score?: number
+          flight_hours?: number
           updated_at?: string
           user_id?: string
         }
@@ -92,6 +99,13 @@ export type Database = {
           total_credits: number
           user_id: string
           vehicle_id: string
+          silica_insurance: boolean
+          extra_o2_tank: boolean
+          neural_autopilot_l5: boolean
+          extra_eva_suits: number
+          preflight_checked: boolean
+          postflight_checked: boolean
+          quantum_key: string
         }
         Insert: {
           created_at?: string
@@ -104,6 +118,13 @@ export type Database = {
           total_credits: number
           user_id: string
           vehicle_id: string
+          silica_insurance?: boolean
+          extra_o2_tank?: boolean
+          neural_autopilot_l5?: boolean
+          extra_eva_suits?: number
+          preflight_checked?: boolean
+          postflight_checked?: boolean
+          quantum_key?: string
         }
         Update: {
           created_at?: string
@@ -116,6 +137,13 @@ export type Database = {
           total_credits?: number
           user_id?: string
           vehicle_id?: string
+          silica_insurance?: boolean
+          extra_o2_tank?: boolean
+          neural_autopilot_l5?: boolean
+          extra_eva_suits?: number
+          preflight_checked?: boolean
+          postflight_checked?: boolean
+          quantum_key?: string
         }
         Relationships: [
           {
@@ -156,6 +184,10 @@ export type Database = {
           lng: number
           name: string
           o2_hours: number
+          cabin_pressure_kpa: number
+          thruster_integrity: number
+          speed_kmh: number
+          heat_shield_pct: number
           status: Database["public"]["Enums"]["vehicle_status"]
           updated_at: string
         }
@@ -173,6 +205,10 @@ export type Database = {
           lng?: number
           name: string
           o2_hours?: number
+          cabin_pressure_kpa?: number
+          thruster_integrity?: number
+          speed_kmh?: number
+          heat_shield_pct?: number
           status?: Database["public"]["Enums"]["vehicle_status"]
           updated_at?: string
         }
@@ -190,6 +226,10 @@ export type Database = {
           lng?: number
           name?: string
           o2_hours?: number
+          cabin_pressure_kpa?: number
+          thruster_integrity?: number
+          speed_kmh?: number
+          heat_shield_pct?: number
           status?: Database["public"]["Enums"]["vehicle_status"]
           updated_at?: string
         }
@@ -215,6 +255,7 @@ export type Database = {
           sector: string
           severity: number
           wind_speed_kmh: number
+          radiation_msv: number
         }
         Insert: {
           active?: boolean
@@ -227,6 +268,7 @@ export type Database = {
           sector: string
           severity?: number
           wind_speed_kmh?: number
+          radiation_msv?: number
         }
         Update: {
           active?: boolean
@@ -239,8 +281,291 @@ export type Database = {
           sector?: string
           severity?: number
           wind_speed_kmh?: number
+          radiation_msv?: number
         }
         Relationships: []
+      }
+      maintenance_logs: {
+        Row: {
+          created_at: string
+          credits_cost: number
+          id: string
+          notes: string | null
+          service_type: string
+          status: string
+          user_id: string | null
+          vehicle_id: string
+        }
+        Insert: {
+          created_at?: string
+          credits_cost?: number
+          id?: string
+          notes?: string | null
+          service_type: string
+          status?: string
+          user_id?: string | null
+          vehicle_id: string
+        }
+        Update: {
+          created_at?: string
+          credits_cost?: number
+          id?: string
+          notes?: string | null
+          service_type?: string
+          status?: string
+          user_id?: string | null
+          vehicle_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "maintenance_logs_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "vehicles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vehicle_sales: {
+        Row: {
+          battery_condition_pct: number
+          callsign: string
+          category: Database["public"]["Enums"]["vehicle_category"]
+          condition: Database["public"]["Enums"]["sale_condition"]
+          created_at: string
+          features: string[]
+          flight_hours: number
+          hangar_id: string | null
+          hull_integrity_pct: number
+          id: string
+          name: string
+          price_credits: number
+          seller_name: string
+          seller_user_id: string | null
+          sol_manufactured: number
+          status: Database["public"]["Enums"]["sale_status"]
+          updated_at: string
+          warranty_sols: number
+        }
+        Insert: {
+          battery_condition_pct?: number
+          callsign: string
+          category: Database["public"]["Enums"]["vehicle_category"]
+          condition?: Database["public"]["Enums"]["sale_condition"]
+          created_at?: string
+          features?: string[]
+          flight_hours?: number
+          hangar_id?: string | null
+          hull_integrity_pct?: number
+          id?: string
+          name: string
+          price_credits: number
+          seller_name?: string
+          seller_user_id?: string | null
+          sol_manufactured?: number
+          status?: Database["public"]["Enums"]["sale_status"]
+          updated_at?: string
+          warranty_sols?: number
+        }
+        Update: {
+          battery_condition_pct?: number
+          callsign?: string
+          category?: Database["public"]["Enums"]["vehicle_category"]
+          condition?: Database["public"]["Enums"]["sale_condition"]
+          created_at?: string
+          features?: string[]
+          flight_hours?: number
+          hangar_id?: string | null
+          hull_integrity_pct?: number
+          id?: string
+          name?: string
+          price_credits?: number
+          seller_name?: string
+          seller_user_id?: string | null
+          sol_manufactured?: number
+          status?: Database["public"]["Enums"]["sale_status"]
+          updated_at?: string
+          warranty_sols?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vehicle_sales_hangar_id_fkey"
+            columns: ["hangar_id"]
+            isOneToOne: false
+            referencedRelation: "hangars"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vehicle_purchases: {
+        Row: {
+          buyer_user_id: string
+          created_at: string
+          id: string
+          price_paid_credits: number
+          quantum_master_key: string
+          sale_id: string
+        }
+        Insert: {
+          buyer_user_id: string
+          created_at?: string
+          id?: string
+          price_paid_credits: number
+          quantum_master_key: string
+          sale_id: string
+        }
+        Update: {
+          buyer_user_id?: string
+          created_at?: string
+          id?: string
+          price_paid_credits?: number
+          quantum_master_key?: string
+          sale_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vehicle_purchases_sale_id_fkey"
+            columns: ["sale_id"]
+            isOneToOne: false
+            referencedRelation: "vehicle_sales"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      flight_routes: {
+        Row: {
+          altitude_cruise_km: number
+          created_at: string
+          current_progress_pct: number
+          destination_hangar_id: string
+          estimated_duration_sols: number
+          id: string
+          max_mach: number
+          origin_hangar_id: string
+          rental_id: string | null
+          status: string
+          updated_at: string
+          vehicle_id: string
+          waypoints: Json
+        }
+        Insert: {
+          altitude_cruise_km?: number
+          created_at?: string
+          current_progress_pct?: number
+          destination_hangar_id: string
+          estimated_duration_sols?: number
+          id?: string
+          max_mach?: number
+          origin_hangar_id: string
+          rental_id?: string | null
+          status?: string
+          updated_at?: string
+          vehicle_id: string
+          waypoints?: Json
+        }
+        Update: {
+          altitude_cruise_km?: number
+          created_at?: string
+          current_progress_pct?: number
+          destination_hangar_id?: string
+          estimated_duration_sols?: number
+          id?: string
+          max_mach?: number
+          origin_hangar_id?: string
+          rental_id?: string | null
+          status?: string
+          updated_at?: string
+          vehicle_id?: string
+          waypoints?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "flight_routes_destination_hangar_id_fkey"
+            columns: ["destination_hangar_id"]
+            isOneToOne: false
+            referencedRelation: "hangars"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "flight_routes_origin_hangar_id_fkey"
+            columns: ["origin_hangar_id"]
+            isOneToOne: false
+            referencedRelation: "hangars"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "flight_routes_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "vehicles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      flight_telemetry_logs: {
+        Row: {
+          altitude_km: number
+          battery_pct: number
+          cabin_pressure_kpa: number
+          dust_filter_pct: number
+          heading_deg: number
+          id: string
+          lat: number
+          lng: number
+          mach_number: number
+          o2_hours: number
+          pitch_deg: number
+          recorded_at: string
+          roll_deg: number
+          route_id: string | null
+          speed_kmh: number
+          vehicle_id: string
+        }
+        Insert: {
+          altitude_km: number
+          battery_pct?: number
+          cabin_pressure_kpa?: number
+          dust_filter_pct?: number
+          heading_deg?: number
+          id?: string
+          lat: number
+          lng: number
+          mach_number?: number
+          o2_hours?: number
+          pitch_deg?: number
+          recorded_at?: string
+          roll_deg?: number
+          route_id?: string | null
+          speed_kmh: number
+          vehicle_id: string
+        }
+        Update: {
+          altitude_km?: number
+          battery_pct?: number
+          cabin_pressure_kpa?: number
+          dust_filter_pct?: number
+          heading_deg?: number
+          id?: string
+          lat?: number
+          lng?: number
+          mach_number?: number
+          o2_hours?: number
+          pitch_deg?: number
+          recorded_at?: string
+          roll_deg?: number
+          route_id?: string | null
+          speed_kmh?: number
+          vehicle_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "flight_telemetry_logs_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "vehicles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
@@ -249,11 +574,44 @@ export type Database = {
     Functions: {
       book_vehicle: {
         Args: {
-          _dropoff: string
-          _end_sol: number
-          _pickup: string
-          _start_sol: number
           _vehicle_id: string
+          _pickup: string
+          _dropoff: string
+          _start_sol: number
+          _end_sol: number
+          _silica_insurance?: boolean
+          _extra_o2_tank?: boolean
+          _neural_autopilot_l5?: boolean
+          _extra_eva_suits?: number
+        }
+        Returns: string
+      }
+      execute_maintenance: {
+        Args: {
+          _vehicle_id: string
+          _service_type: string
+          _notes?: string | null
+        }
+        Returns: Json
+      }
+      record_flight_telemetry: {
+        Args: {
+          _vehicle_id: string
+          _lat: number
+          _lng: number
+          _altitude_km: number
+          _speed_kmh: number
+          _route_id?: string | null
+          _mach?: number
+          _battery_pct?: number
+          _o2_hours?: number
+          _dust_filter_pct?: number
+        }
+        Returns: string
+      }
+      buy_marketplace_vehicle: {
+        Args: {
+          _sale_id: string
         }
         Returns: string
       }
@@ -262,6 +620,8 @@ export type Database = {
       pilot_license: "atmospheric" | "heavy_cargo" | "orbital"
       vehicle_category: "car_vtol" | "space_truck" | "interplanetary_rocket"
       vehicle_status: "available" | "in_flight" | "maintenance" | "storm_hold"
+      sale_condition: "certified_preowned" | "refurbished" | "factory_new"
+      sale_status: "available_for_sale" | "reserved" | "sold"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -351,47 +711,3 @@ export type TablesUpdate<
       ? U
       : never
     : never
-
-export type Enums<
-  DefaultSchemaEnumNameOrOptions extends
-    | keyof DefaultSchema["Enums"]
-    | { schema: keyof DatabaseWithoutInternals },
-  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals
-  }
-    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-    : never) = never,
-> = DefaultSchemaEnumNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
-}
-  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
-  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
-    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
-    : never
-
-export type CompositeTypes<
-  PublicCompositeTypeNameOrOptions extends
-    | keyof DefaultSchema["CompositeTypes"]
-    | { schema: keyof DatabaseWithoutInternals },
-  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals
-  }
-    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never) = never,
-> = PublicCompositeTypeNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
-}
-  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
-  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
-    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
-    : never
-
-export const Constants = {
-  public: {
-    Enums: {
-      pilot_license: ["atmospheric", "heavy_cargo", "orbital"],
-      vehicle_category: ["car_vtol", "space_truck", "interplanetary_rocket"],
-      vehicle_status: ["available", "in_flight", "maintenance", "storm_hold"],
-    },
-  },
-} as const
