@@ -30,3 +30,11 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Segredos e ambiente local
+.env
+.env.*
+!.env.example
+
+# Supabase CLI
+supabase/.temp/
