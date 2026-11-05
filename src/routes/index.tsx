@@ -1,4 +1,5 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { useSafeNavigate } from "@/hooks/use-safe-navigate";
 import { lazy, Suspense, useState } from "react";
 import { ClientOnly } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
@@ -88,12 +89,7 @@ const solutions = [
 ];
 
 function Landing() {
-  let navigate: ReturnType<typeof useNavigate> | null = null;
-  try {
-    navigate = useNavigate();
-  } catch {
-    navigate = null;
-  }
+  const navigate = useSafeNavigate();
   const { data: vehicles = [] } = useQuery(vehiclesQuery);
   const { data: hangars = [] } = useQuery(hangarsQuery);
   const { data: weather = [] } = useQuery(weatherQuery);

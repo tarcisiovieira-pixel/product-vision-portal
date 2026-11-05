@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import {
@@ -70,6 +70,7 @@ const CURRENT_SOL = 4218;
 
 function Booking() {
   const qc = useQueryClient();
+  const navigate = useNavigate();
   const { data: vehicles } = useSuspenseQuery(vehiclesQuery);
   const { data: hangars } = useSuspenseQuery(hangarsQuery);
   const { data: weather } = useSuspenseQuery(weatherQuery);
@@ -160,6 +161,13 @@ function Booking() {
           start_sol: startSol,
           end_sol: startSol + sols,
           total_credits: total,
+          silica_insurance: silicaInsurance,
+          extra_o2_tank: extraO2Tank,
+          neural_autopilot_l5: neuralAutopilot,
+          extra_eva_suits: evaSuits,
+          preflight_checked: false,
+          postflight_checked: false,
+          quantum_key: `Q-KEY#${Date.now().toString(36).toUpperCase().slice(-8)}`,
           status: "confirmed",
           created_at: new Date().toISOString(),
         };
@@ -213,6 +221,8 @@ function Booking() {
         neural_autopilot_l5: neuralAutopilot,
         extra_eva_suits: evaSuits,
         quantum_key: "Q-KEY#8F4A92",
+        preflight_checked: false,
+        postflight_checked: false,
         status: "confirmed",
         created_at: new Date().toISOString(),
       };
@@ -668,7 +678,7 @@ function Booking() {
                     onClick={() => {
                       const targetVeh =
                         vehicles.find((veh) => veh.id === r.vehicle_id) || vehicles[0];
-                      setChasingVehicle(targetVeh);
+                      if (targetVeh) setChasingVehicle(targetVeh);
                     }}
                     className="cut-corner flex items-center gap-1.5 border border-primary/60 bg-primary/10 px-3 py-2 text-xs font-semibold uppercase tracking-wider text-primary transition hover:bg-primary/20"
                   >
@@ -838,7 +848,7 @@ function Booking() {
                   const targetVeh =
                     vehicles.find((v) => v.id === activeBoardingPass.vehicle_id) || vehicles[0];
                   setActiveBoardingPass(null);
-                  setChasingVehicle(targetVeh);
+                  if (targetVeh) setChasingVehicle(targetVeh);
                 }}
                 className="cut-corner mt-3 flex w-full items-center justify-center gap-2 border border-telemetry bg-telemetry/20 py-2.5 font-sans font-bold uppercase tracking-wider text-telemetry transition hover:bg-telemetry/30 shadow-glow"
               >

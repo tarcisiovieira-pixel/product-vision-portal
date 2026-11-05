@@ -185,7 +185,7 @@ describe("Booking route component", () => {
     // Veículo VTOL deve estar compatível com licença atmosférica
     const bookButtons = screen.getAllByRole("button", { name: /Reservar Agora/i });
     expect(bookButtons.length).toBeGreaterThan(0);
-    fireEvent.click(bookButtons[0]);
+    fireEvent.click(bookButtons[0]!);
 
     await waitFor(() => {
       expect(mockRpc).toHaveBeenCalledWith(

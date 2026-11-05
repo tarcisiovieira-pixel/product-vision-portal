@@ -13,11 +13,11 @@ export default function HangarScene({
   showHotspots = false,
 }: {
   category: Vehicle["category"];
-  callsign?: string;
-  name?: string;
-  selectedHotspot?: string | null;
-  onSelectHotspot?: (hotspotId: string) => void;
-  showHotspots?: boolean;
+  callsign?: string | undefined;
+  name?: string | undefined;
+  selectedHotspot?: string | null | undefined;
+  onSelectHotspot?: ((hotspotId: string) => void) | undefined;
+  showHotspots?: boolean | undefined;
 }) {
   return (
     <Canvas

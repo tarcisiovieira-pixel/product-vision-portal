@@ -1,4 +1,5 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { useSafeNavigate } from "@/hooks/use-safe-navigate";
 import { useQuery, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import {
@@ -75,16 +76,11 @@ const icons = { car_vtol: Plane, space_truck: Truck, interplanetary_rocket: Rock
 
 function MyRentals() {
   const qc = useQueryClient();
-  let navigate: ReturnType<typeof useNavigate> | null = null;
-  try {
-    navigate = useNavigate();
-  } catch {
-    navigate = null;
-  }
+  const navigate = useSafeNavigate();
 
   const safeNavigate = (opts: { to: string; search?: Record<string, string> }) => {
     if (navigate) {
-      navigate(opts as any);
+      navigate(opts as unknown as Parameters<typeof navigate>[0]);
     } else if (typeof window !== "undefined") {
       const search = opts.search ? `?${new URLSearchParams(opts.search).toString()}` : "";
       window.location.href = `${opts.to}${search}`;
@@ -184,7 +180,9 @@ function MyRentals() {
         .from("rentals")
         .update({ end_sol: newEndSol, total_credits: newTotal })
         .eq("id", r.id);
-    } catch {}
+    } catch {
+      // sem sessão Supabase (modo demo): o estado local já foi atualizado.
+    }
 
     await qc.invalidateQueries({ queryKey: ["rentals"] });
     toast.success("Reserva estendida com sucesso!", {
@@ -212,7 +210,9 @@ function MyRentals() {
 
     try {
       await supabase.from("rentals").update({ status: "cancelled" }).eq("id", r.id);
-    } catch {}
+    } catch {
+      // sem sessão Supabase (modo demo): o estado local já foi atualizado.
+    }
 
     await qc.invalidateQueries({ queryKey: ["rentals"] });
     toast.success("Reserva cancelada com sucesso.", {
@@ -373,7 +373,7 @@ function MyRentals() {
               <button
                 key={tab.id}
                 type="button"
-                onClick={() => setFilterStatus(tab.id as any)}
+                onClick={() => setFilterStatus(tab.id as Parameters<typeof setFilterStatus>[0])}
                 className={`cut-corner px-3 py-1.5 text-xs font-semibold uppercase tracking-wider transition ${
                   filterStatus === tab.id
                     ? "border border-primary bg-primary/20 text-primary font-bold shadow-glow"
@@ -1080,6 +1080,7 @@ function MyRentals() {
                 onClick={() => {
                   const targetVeh = vMap.get(activeBoardingPass.vehicle_id) || vehicles[0];
                   setActiveBoardingPass(null);
+                  if (!targetVeh) return;
                   if (targetVeh.status === "in_flight") {
                     setChasingVehicle(targetVeh);
                   } else {

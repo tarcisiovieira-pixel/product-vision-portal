@@ -29,7 +29,7 @@ export type FlightTelemetryLog = Tables<"flight_telemetry_logs">;
 export type { VehicleSaleItem, FlightRouteItem, FlightTelemetryLogItem };
 
 async function runWithFallback<T>(
-  p: PromiseLike<{ data: T | null; error: { message: string } | null }>,
+  p: PromiseLike<{ data: unknown; error: { message: string } | null }>,
   fallback: T,
 ): Promise<T> {
   try {
@@ -153,7 +153,9 @@ export const vehicleSalesQuery = queryOptions({
       if (stored) {
         try {
           localSales = JSON.parse(stored);
-        } catch {}
+        } catch {
+          // JSON local corrompido: segue com lista vazia.
+        }
       }
     }
 

@@ -1,4 +1,5 @@
 import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
+import { errorMessage } from "@/lib/utils";
 import { lazy, Suspense, useState, useEffect } from "react";
 import { ClientOnly } from "@tanstack/react-router";
 import { motion } from "framer-motion";
@@ -78,13 +79,13 @@ function Login() {
         email: DEMO_EMAIL,
         password: DEMO_PASSWORD,
       });
-      const timeoutPromise = new Promise<{ data: any; error: any }>((_, reject) =>
+      const timeoutPromise = new Promise<never>((_, reject) =>
         setTimeout(() => reject(new Error("Supabase timeout")), 2500),
       );
-      const { data: signInData, error: signInError } = (await Promise.race([
+      const { data: signInData, error: signInError } = await Promise.race([
         signInPromise,
         timeoutPromise,
-      ])) as any;
+      ]);
 
       if (!signInError && signInData?.session) {
         if (typeof window !== "undefined") {
@@ -173,9 +174,9 @@ function Login() {
           setMode("in");
         }
       }
-    } catch (err: any) {
+    } catch (err) {
       console.error("Auth error:", err);
-      let message = err.message || "Erro na autenticação. Verifique os dados inseridos.";
+      let message = errorMessage(err) || "Erro na autenticação. Verifique os dados inseridos.";
       if (message.toLowerCase().includes("email not confirmed")) {
         message =
           "Confirmação de e-mail pendente no Supabase. Dica: use o botão 'Acesso Rápido Demo' acima para testar imediatamente, ou confirme o link no seu e-mail / desative 'Confirm email' no painel Supabase (Authentication > Providers > Email).";

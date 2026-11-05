@@ -61,7 +61,9 @@ if (typeof Object.defineProperty === "function") {
               configurable: true,
               enumerable: false,
             });
-          } catch {}
+          } catch {
+            // propriedade não configurável: ignora.
+          }
         }
       }
       if (!("data" in proto)) {
@@ -77,7 +79,9 @@ if (typeof Object.defineProperty === "function") {
             configurable: true,
             enumerable: false,
           });
-        } catch {}
+        } catch {
+          // propriedade não configurável: ignora.
+        }
       }
     }
   }

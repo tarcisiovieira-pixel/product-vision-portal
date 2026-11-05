@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { errorMessage } from "@/lib/utils";
 import { motion } from "framer-motion";
 import {
   AlertTriangle,
@@ -44,16 +45,21 @@ interface BookingWizardModalProps {
   vehicle: Vehicle | null;
   hangars: Hangar[];
   weather: WeatherEvent[];
-  initialPickup?: string;
-  initialDropoff?: string;
-  initialStartSol?: number;
-  initialSols?: number;
-  currentProfile?: Profile | null;
+  initialPickup?: string | undefined;
+  initialDropoff?: string | undefined;
+  initialStartSol?: number | undefined;
+  initialSols?: number | undefined;
+  currentProfile?: Profile | null | undefined;
   onClose: () => void;
   onBookingSuccess?: (rental: Rental) => void;
 }
 
-export function BookingWizardModal({
+export function BookingWizardModal(props: BookingWizardModalProps) {
+  if (!props.vehicle) return null;
+  return <BookingWizardInner {...props} vehicle={props.vehicle} />;
+}
+
+function BookingWizardInner({
   vehicle,
   hangars,
   weather,
@@ -64,7 +70,7 @@ export function BookingWizardModal({
   currentProfile,
   onClose,
   onBookingSuccess,
-}: BookingWizardModalProps) {
+}: BookingWizardModalProps & { vehicle: Vehicle }) {
   const navigate = useNavigate();
   const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
 
@@ -96,8 +102,6 @@ export function BookingWizardModal({
   // Etapa 4: Cartão de Embarque emitido
   const [confirmedRental, setConfirmedRental] = useState<Rental | null>(null);
   const [remoteActionNotice, setRemoteActionNotice] = useState<string | null>(null);
-
-  if (!vehicle) return null;
 
   const pickupHangar = hangars.find((h) => h.id === pickup) || hangars[0];
   const dropoffHangar = hangars.find((h) => h.id === dropoff) || hangars[0];
@@ -138,6 +142,8 @@ export function BookingWizardModal({
       space_credential_id: "ARS-DEMO-01",
       pilot_license: "orbital",
       martian_credits: 25000,
+      safety_reputation_score: 100,
+      flight_hours: 0,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     };
@@ -172,10 +178,14 @@ export function BookingWizardModal({
           id: data.user.id,
           user_id: data.user.id,
           space_credential_id:
-            data.user.user_metadata?.space_credential_id ||
+            data.user.user_metadata?.["space_credential_id"] ||
             `ARS-${data.user.id.slice(0, 4).toUpperCase()}`,
-          pilot_license: (data.user.user_metadata?.pilot_license as any) || "atmospheric",
+          pilot_license:
+            (data.user.user_metadata?.["pilot_license"] as Profile["pilot_license"]) ||
+            "atmospheric",
           martian_credits: 25000,
+          safety_reputation_score: 100,
+          flight_hours: 0,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         };
@@ -185,8 +195,8 @@ export function BookingWizardModal({
       }
 
       throw error || new Error("Falha na autenticação");
-    } catch (err: any) {
-      console.warn("Supabase Auth error in wizard:", err?.message);
+    } catch (err) {
+      console.warn("Supabase Auth error in wizard:", errorMessage(err));
       // Fallback resiliente caso Supabase SMTP bloqueie e-mail
       const fallbackProf: Profile = {
         id: `user-${Date.now()}`,
@@ -194,6 +204,8 @@ export function BookingWizardModal({
         space_credential_id: `ARS-${Math.floor(1000 + Math.random() * 9000)}-EXP`,
         pilot_license: pilotLicense,
         martian_credits: 25000,
+        safety_reputation_score: 100,
+        flight_hours: 0,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       };
@@ -243,6 +255,8 @@ export function BookingWizardModal({
           space_credential_id: autoCred,
           pilot_license: pilotLicense,
           martian_credits: 25000,
+          safety_reputation_score: 100,
+          flight_hours: 0,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         };
@@ -255,14 +269,16 @@ export function BookingWizardModal({
       }
 
       throw error || new Error("Registro pendente de verificação");
-    } catch (err: any) {
-      console.warn("Sign-up fallback in wizard:", err?.message);
+    } catch (err) {
+      console.warn("Sign-up fallback in wizard:", errorMessage(err));
       const fallbackProf: Profile = {
         id: `user-${Date.now()}`,
         user_id: `user-${Date.now()}`,
         space_credential_id: autoCred,
         pilot_license: pilotLicense,
         martian_credits: 25000,
+        safety_reputation_score: 100,
+        flight_hours: 0,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       };
@@ -323,6 +339,8 @@ export function BookingWizardModal({
         neural_autopilot_l5: neuralAutopilot,
         extra_eva_suits: evaSuits,
         quantum_key: "Q-KEY#8F4A92",
+        preflight_checked: false,
+        postflight_checked: false,
         status: "confirmed",
         created_at: new Date().toISOString(),
       };
@@ -336,8 +354,8 @@ export function BookingWizardModal({
       onBookingSuccess?.(newRental);
       setStep(4);
       toast.success("Locação confirmada e vinculada à sua credencial!");
-    } catch (err: any) {
-      toast.error("Falha ao concluir aluguel", { description: err.message });
+    } catch (err) {
+      toast.error("Falha ao concluir aluguel", { description: errorMessage(err) });
     } finally {
       setIsAuthLoading(false);
     }
@@ -1024,7 +1042,7 @@ export function BookingWizardModal({
                     <div>
                       <span className="text-muted-foreground">ITINERÁRIO</span>
                       <p className="font-semibold text-foreground">
-                        {pickupHangar.name} → {dropoffHangar.name}
+                        {pickupHangar?.name} → {dropoffHangar?.name}
                       </p>
                       <p className="text-[10px] text-telemetry">
                         {distanceKm.toLocaleString("pt-BR")} km de rota
@@ -1142,7 +1160,7 @@ export function BookingWizardModal({
             {step > 1 ? (
               <button
                 type="button"
-                onClick={() => setStep((s) => (s - 1) as any)}
+                onClick={() => setStep((s) => Math.max(1, s - 1) as 1 | 2 | 3 | 4)}
                 className="border border-border px-4 py-2.5 text-muted-foreground hover:text-foreground transition"
               >
                 ← Voltar
@@ -1162,7 +1180,7 @@ export function BookingWizardModal({
               {step < 3 ? (
                 <button
                   type="button"
-                  onClick={() => setStep((s) => (s + 1) as any)}
+                  onClick={() => setStep((s) => Math.min(4, s + 1) as 1 | 2 | 3 | 4)}
                   className="cut-corner bg-mars-gradient px-6 py-2.5 font-sans font-semibold uppercase tracking-widest text-primary-foreground shadow-glow"
                 >
                   Continuar →

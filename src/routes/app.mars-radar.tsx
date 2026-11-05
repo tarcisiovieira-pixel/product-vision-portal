@@ -114,11 +114,12 @@ function MarsRadar() {
           </span>
           <button
             type="button"
-            onClick={() => setChasingVehicle(activeInFlightCraft)}
+            disabled={!activeInFlightCraft}
+            onClick={() => activeInFlightCraft && setChasingVehicle(activeInFlightCraft)}
             className="cut-corner flex items-center gap-2 border border-telemetry/80 bg-telemetry/15 px-3.5 py-1.5 font-mono text-xs font-bold uppercase tracking-wider text-telemetry hover:bg-telemetry/25 transition shadow-glow"
           >
             <Sparkles className="h-3.5 w-3.5" />
-            <span>Acompanhar Percurso 3D ({activeInFlightCraft.callsign})</span>
+            <span>Acompanhar Percurso 3D ({activeInFlightCraft?.callsign ?? "—"})</span>
           </button>
         </div>
       </PageHeader>
@@ -174,9 +175,10 @@ function MarsRadar() {
           <div className="absolute top-4 right-4 flex items-center gap-2 font-mono text-xs">
             <button
               type="button"
-              onClick={() =>
-                setChasingVehicle(sel.status === "in_flight" ? sel : activeInFlightCraft)
-              }
+              onClick={() => {
+                const next = sel?.status === "in_flight" ? sel : activeInFlightCraft;
+                if (next) setChasingVehicle(next);
+              }}
               className="glass cut-corner flex items-center gap-1.5 border border-telemetry/60 px-3 py-1.5 text-telemetry hover:bg-telemetry/15 transition"
             >
               <Camera className="h-3.5 w-3.5" />

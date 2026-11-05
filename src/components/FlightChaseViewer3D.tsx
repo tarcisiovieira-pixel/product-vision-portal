@@ -1,5 +1,5 @@
 import { useRef, useMemo, useState, useEffect } from "react";
-import { useNavigate } from "@tanstack/react-router";
+import { useSafeNavigate } from "@/hooks/use-safe-navigate";
 import { Canvas, useFrame } from "@react-three/fiber";
 import { OrbitControls, Sparkles, Stars } from "@react-three/drei";
 import * as THREE from "three";
@@ -258,7 +258,9 @@ class SpaceSynthEngine {
   start() {
     if (this.isPlaying) return;
     try {
-      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+      const AudioCtx =
+        window.AudioContext ||
+        (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
       if (!AudioCtx) return;
       this.ctx = new AudioCtx();
 
@@ -438,6 +440,7 @@ function WarpStarStreaks({ active }: { active: boolean }) {
     if (!meshRef.current || !active) return;
     for (let i = 0; i < count; i++) {
       const s = starData[i];
+      if (!s) continue;
       s.z += s.speed * delta;
       if (s.z > 6) s.z = -30;
       dummy.position.set(s.x, s.y, s.z);
@@ -1211,12 +1214,7 @@ export function FlightChaseViewer3D({
   onSelectVehicle?: (v: Vehicle) => void;
   onNavigateHangar?: (v: Vehicle) => void;
 }) {
-  let navigate: ReturnType<typeof useNavigate> | null = null;
-  try {
-    navigate = useNavigate();
-  } catch {
-    navigate = null;
-  }
+  const navigate = useSafeNavigate();
   const [cameraMode, setCameraMode] = useState<"chase" | "cockpit" | "orbit">("chase");
   const [isBoosting, setIsBoosting] = useState(false);
   const [audioEnabled, setAudioEnabled] = useState(false);
@@ -1335,7 +1333,7 @@ export function FlightChaseViewer3D({
           ].map((c) => (
             <button
               key={c.id}
-              onClick={() => setCameraMode(c.id as any)}
+              onClick={() => setCameraMode(c.id as Parameters<typeof setCameraMode>[0])}
               className={`px-3 py-1.5 uppercase transition ${
                 cameraMode === c.id
                   ? "border border-telemetry/80 bg-telemetry/20 text-telemetry font-bold shadow-glow"
@@ -1517,7 +1515,9 @@ export function FlightChaseViewer3D({
                     <button
                       key={d.id}
                       type="button"
-                      onClick={() => setDestinationPlanet(d.id as any)}
+                      onClick={() =>
+                        setDestinationPlanet(d.id as Parameters<typeof setDestinationPlanet>[0])
+                      }
                       className={`p-1.5 text-center border transition ${
                         destinationPlanet === d.id
                           ? "border-telemetry bg-telemetry/20 text-telemetry font-bold shadow-glow"

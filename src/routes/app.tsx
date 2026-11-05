@@ -25,12 +25,14 @@ export const Route = createFileRoute("/app")({
     }
     try {
       const userPromise = supabase.auth.getUser();
-      const timeoutPromise = new Promise<{ data: any }>((resolve) =>
+      const timeoutPromise = new Promise<{ data: { user: null } }>((resolve) =>
         setTimeout(() => resolve({ data: { user: null } }), 2000),
       );
-      const { data } = (await Promise.race([userPromise, timeoutPromise])) as any;
+      const { data } = await Promise.race([userPromise, timeoutPromise]);
       if (data?.user) return;
-    } catch {}
+    } catch {
+      // getUser falhou ou expirou: segue para o redirect de login.
+    }
     throw redirect({ to: "/login" });
   },
   component: AppLayout,

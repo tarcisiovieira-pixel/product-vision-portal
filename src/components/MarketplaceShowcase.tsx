@@ -43,7 +43,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 interface MarketplaceShowcaseProps {
   hangars: Hangar[];
-  currentProfile?: Profile | null;
+  currentProfile?: Profile | null | undefined;
 }
 
 export function MarketplaceShowcase({ hangars, currentProfile }: MarketplaceShowcaseProps) {
@@ -123,8 +123,8 @@ export function MarketplaceShowcase({ hangars, currentProfile }: MarketplaceShow
     if (selectedVehicleToBuy.id.length === 36 && !selectedVehicleToBuy.id.startsWith("sale-")) {
       supabase
         .rpc("buy_marketplace_vehicle", { _sale_id: selectedVehicleToBuy.id })
-        .catch((err) => {
-          console.warn("Supabase RPC buy error (using local state fallback):", err?.message);
+        .then(undefined, (err: unknown) => {
+          console.warn("Supabase RPC buy error (using local state fallback):", err);
         });
     }
 
@@ -208,14 +208,19 @@ export function MarketplaceShowcase({ hangars, currentProfile }: MarketplaceShow
           .filter(Boolean),
         status: "available_for_sale",
       })
-      .then(({ error }) => {
-        if (error) {
-          console.warn("Supabase insert vehicle_sales error (using local storage):", error.message);
-        }
-      })
-      .catch((err) => {
-        console.warn("Supabase insert vehicle_sales network fallback:", err);
-      });
+      .then(
+        ({ error }) => {
+          if (error) {
+            console.warn(
+              "Supabase insert vehicle_sales error (using local storage):",
+              error.message,
+            );
+          }
+        },
+        (err: unknown) => {
+          console.warn("Supabase insert vehicle_sales network fallback:", err);
+        },
+      );
 
     qc.invalidateQueries({ queryKey: ["vehicle_sales"] });
     setIsSellModalOpen(false);
@@ -272,7 +277,7 @@ export function MarketplaceShowcase({ hangars, currentProfile }: MarketplaceShow
               <button
                 key={cat.id}
                 type="button"
-                onClick={() => setCategoryFilter(cat.id as any)}
+                onClick={() => setCategoryFilter(cat.id as Parameters<typeof setCategoryFilter>[0])}
                 className={`border px-3.5 py-1.5 uppercase transition ${
                   categoryFilter === cat.id
                     ? "border-primary bg-primary/20 text-primary font-bold shadow-glow"
@@ -295,7 +300,9 @@ export function MarketplaceShowcase({ hangars, currentProfile }: MarketplaceShow
               <button
                 key={cond.id}
                 type="button"
-                onClick={() => setConditionFilter(cond.id as any)}
+                onClick={() =>
+                  setConditionFilter(cond.id as Parameters<typeof setConditionFilter>[0])
+                }
                 className={`border px-3.5 py-1.5 uppercase transition ${
                   conditionFilter === cond.id
                     ? "border-telemetry bg-telemetry/20 text-telemetry font-bold"

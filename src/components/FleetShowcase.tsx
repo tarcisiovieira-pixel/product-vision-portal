@@ -101,7 +101,9 @@ export function FleetShowcase({
             <button
               key={cat.id}
               type="button"
-              onClick={() => setSelectedCategory(cat.id as any)}
+              onClick={() =>
+                setSelectedCategory(cat.id as Parameters<typeof setSelectedCategory>[0])
+              }
               className={`border px-4 py-2 uppercase tracking-wider transition ${
                 selectedCategory === cat.id
                   ? "border-primary bg-primary/20 text-primary font-bold shadow-glow"

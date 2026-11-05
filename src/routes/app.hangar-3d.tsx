@@ -15,7 +15,7 @@ const HangarScene = lazy(() => import("@/components/HangarScene"));
 
 export const Route = createFileRoute("/app/hangar-3d")({
   validateSearch: (search: Record<string, unknown>) => ({
-    vehicleId: typeof search.vehicleId === "string" ? search.vehicleId : undefined,
+    vehicleId: typeof search["vehicleId"] === "string" ? search["vehicleId"] : undefined,
   }),
   head: () => ({
     meta: [
@@ -36,19 +36,20 @@ export const Route = createFileRoute("/app/hangar-3d")({
 
 function Hangar() {
   const search = Route.useSearch();
+  const vehicleIdParam = search["vehicleId"];
   const { data: vehicles } = useSuspenseQuery(vehiclesQuery);
   const { data: hangars } = useSuspenseQuery(hangarsQuery);
   const [id, setId] = useState(() =>
-    search.vehicleId && vehicles.some((x) => x.id === search.vehicleId)
-      ? search.vehicleId
+    vehicleIdParam && vehicles.some((x) => x.id === vehicleIdParam)
+      ? vehicleIdParam
       : vehicles[0]?.id,
   );
 
   useEffect(() => {
-    if (search.vehicleId && vehicles.some((x) => x.id === search.vehicleId)) {
-      setId(search.vehicleId);
+    if (vehicleIdParam && vehicles.some((x) => x.id === vehicleIdParam)) {
+      setId(vehicleIdParam);
     }
-  }, [search.vehicleId, vehicles]);
+  }, [vehicleIdParam, vehicles]);
 
   const v = vehicles.find((x) => x.id === id) ?? vehicles[0];
 

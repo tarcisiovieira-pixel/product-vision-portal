@@ -14,11 +14,11 @@ const OBSIDIAN_BLACK = "#101217";
 
 interface VehicleModelProps {
   category: Vehicle["category"];
-  callsign?: string;
-  name?: string;
-  selectedHotspot?: string | null;
-  onSelectHotspot?: (hotspotId: string) => void;
-  showHotspots?: boolean;
+  callsign?: string | undefined;
+  name?: string | undefined;
+  selectedHotspot?: string | null | undefined;
+  onSelectHotspot?: ((hotspotId: string) => void) | undefined;
+  showHotspots?: boolean | undefined;
 }
 
 // ---------------------------------------------------------------------
@@ -35,7 +35,7 @@ function Hotspot({
   id: string;
   name: string;
   selected: boolean;
-  onSelect?: (id: string) => void;
+  onSelect?: ((id: string) => void) | undefined;
 }) {
   const ringRef = useRef<THREE.Mesh>(null);
 

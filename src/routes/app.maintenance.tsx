@@ -80,12 +80,10 @@ function Maintenance() {
           id: `m-log-${Date.now()}`,
           vehicle_id: vehicle.id,
           service_type: serviceKey,
-          cost_credits: cost,
+          credits_cost: cost,
           status: "completed",
           notes: `Ordem de serviço autorizada pela Central de Manutenção ARES para ${vehicle.callsign}`,
-          technician_callsign: "ENG-DEMO-01",
           created_at: new Date().toISOString(),
-          completed_at: new Date().toISOString(),
         };
         const currentLogs = JSON.parse(localStorage.getItem("ares_local_maintenance_logs") || "[]");
         localStorage.setItem(

@@ -214,7 +214,7 @@ describe("MyRentals component", () => {
 
     // Click "Chave Quântica & Controles" on the first rental
     const boardingPassBtns = screen.getAllByRole("button", { name: /Chave Quântica & Controles/i });
-    fireEvent.click(boardingPassBtns[0]);
+    fireEvent.click(boardingPassBtns[0]!);
 
     // Modal should appear
     expect(screen.getByText(/Boarding Pass Quântico/i)).toBeInTheDocument();
@@ -262,7 +262,7 @@ describe("MyRentals component", () => {
     );
 
     const extendButtons = screen.getAllByRole("button", { name: /Estender/i });
-    fireEvent.click(extendButtons[0]);
+    fireEvent.click(extendButtons[0]!);
 
     const storedRentals = JSON.parse(localStorage.getItem("ares_demo_rentals") || "[]");
     expect(storedRentals.length).toBeGreaterThan(0);

@@ -78,7 +78,7 @@ describe("Landing Page — Localiza Experience & Booking Wizard", () => {
   }, 15000);
 
   it("enforces pilot authentication before allowing booking confirmation in the 4-step wizard", async () => {
-    const testVehicle = SEED_VEHICLES[0]; // CyberCab VTOL X2 (daily rate 420)
+    const testVehicle = SEED_VEHICLES[0]!; // CyberCab VTOL X2 (daily rate 420)
     const onBookingSuccess = vi.fn();
     const onClose = vi.fn();
 

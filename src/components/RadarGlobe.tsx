@@ -330,6 +330,7 @@ function FlightRouteArcs({ hangars }: { hangars: Hangar[] }) {
     for (let i = 0; i < hangars.length - 1; i++) {
       const h1 = hangars[i];
       const h2 = hangars[i + 1];
+      if (!h1 || !h2) continue;
       const p1 = new THREE.Vector3(...latLngToVec(h1.lat, h1.lng, R + 0.02));
       const p2 = new THREE.Vector3(...latLngToVec(h2.lat, h2.lng, R + 0.02));
       // Corredor de voo atmosférico entre hangares marcianos (baixa altitude geodésica)

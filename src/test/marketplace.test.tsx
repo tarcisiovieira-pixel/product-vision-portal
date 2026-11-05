@@ -77,7 +77,7 @@ describe("Marketplace — Compra & Venda de Veículos Espaciais", () => {
 
     const buyBtns = screen.getAllByRole("button", { name: /Comprar Espaçonave/i });
     await act(async () => {
-      fireEvent.click(buyBtns[0]);
+      fireEvent.click(buyBtns[0]!);
     });
 
     expect(screen.getByText(/Aquisição Definitiva de Veículo/i)).toBeInTheDocument();

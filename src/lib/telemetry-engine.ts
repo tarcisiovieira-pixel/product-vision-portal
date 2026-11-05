@@ -5,7 +5,7 @@ export interface SimulatedVehicle extends Vehicle {
   simSpeedKmh: number;
   simAltitudeKm: number;
   inStorm: boolean;
-  stormSeverityWarning?: number;
+  stormSeverityWarning?: number | undefined;
 }
 
 export interface SimulatedStorm extends WeatherEvent {

@@ -18,7 +18,7 @@ vi.mock("@react-three/drei", () => ({
 }));
 
 describe("FlightChaseViewer3D interactive component", () => {
-  const vtolCar = SEED_VEHICLES[0]; // CyberCab VTOL X2
+  const vtolCar = SEED_VEHICLES[0]!; // CyberCab VTOL X2
   const hangars = SEED_HANGARS;
 
   beforeEach(() => {
