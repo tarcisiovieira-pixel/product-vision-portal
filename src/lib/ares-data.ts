@@ -10,8 +10,6 @@ import {
   SEED_VEHICLES,
   SEED_VEHICLE_SALES,
   SEED_WEATHER,
-  SEED_FLIGHT_ROUTES,
-  SEED_FLIGHT_TELEMETRY,
   type VehicleSaleItem,
   type FlightRouteItem,
   type FlightTelemetryLogItem,
@@ -23,13 +21,6 @@ import {
   readDemoRentals,
   readDemoSales,
 } from "./session";
-
-// RPC nova: ainda não consta em types.ts (arquivo gerado pelo Lovable).
-type OccupancyClient = {
-  rpc(
-    fn: string,
-  ): PromiseLike<{ data: OccupiedPeriod[] | null; error: { message: string } | null }>;
-};
 
 export type Vehicle = Tables<"vehicles">;
 export type Hangar = Tables<"hangars">;
@@ -43,36 +34,85 @@ export type FlightRoute = Tables<"flight_routes">;
 export type FlightTelemetryLog = Tables<"flight_telemetry_logs">;
 export type { VehicleSaleItem, FlightRouteItem, FlightTelemetryLogItem };
 
-async function runWithFallback<T>(
-  p: PromiseLike<{ data: unknown; error: { message: string } | null }>,
-  fallback: T,
+/** Sol que o demo e a vitrine pública usam: congelado, para o seed de exemplo fazer sentido. */
+export const DEMO_SOL = 4218;
+
+/** Conta real = sessão do Supabase e fora do sandbox demo. */
+export async function hasRealSession(): Promise<boolean> {
+  if (isDemoSession()) return false;
+  const { data } = await supabase.auth.getSession();
+  return Boolean(data.session);
+}
+
+/**
+ * Demo e visitante veem a vitrine local. Conta real vê SOMENTE o banco:
+ * se o banco falhar, o erro aparece, em vez de uma frota de exemplo disfarçada.
+ */
+async function loadCatalog<T>(
+  query: () => PromiseLike<{ data: unknown; error: { message: string } | null }>,
+  seed: T,
 ): Promise<T> {
+  if (!(await hasRealSession())) return seed;
+  const { data, error } = await query();
+  if (error) throw new Error(error.message);
+  return (data ?? []) as T;
+}
+
+// RPCs novas ainda não constam em types.ts (arquivo gerado pelo Lovable).
+type RpcClient = {
+  rpc(
+    fn: string,
+    args?: Record<string, unknown>,
+  ): PromiseLike<{ data: unknown; error: { message: string } | null }>;
+};
+const rpcClient = () => supabase as unknown as RpcClient;
+
+/** Relógio de sols do servidor. Sem sessão real, ou sem a migration, vale o sol do demo. */
+export const currentSolQuery = queryOptions({
+  queryKey: ["sol"],
+  staleTime: 5 * 60_000,
+  queryFn: async (): Promise<number> => {
+    if (!(await hasRealSession())) return DEMO_SOL;
+    try {
+      const { data, error } = await rpcClient().rpc("current_sol");
+      return !error && typeof data === "number" ? data : DEMO_SOL;
+    } catch {
+      return DEMO_SOL;
+    }
+  },
+});
+
+/** Avança confirmada → em voo → concluída pelo relógio. Banco sem a migration segue como está. */
+async function refreshRentalStatus(): Promise<void> {
   try {
-    const { data, error } = await p;
-    if (error) {
-      console.warn("Supabase query error, using local Martian dataset:", error.message);
-      return fallback;
-    }
-    if (
-      Array.isArray(data) &&
-      data.length === 0 &&
-      Array.isArray(fallback) &&
-      fallback.length > 0
-    ) {
-      return fallback;
-    }
-    return (data ?? fallback) as T;
-  } catch (err) {
-    console.warn("Supabase fetch failed, using local Martian dataset:", err);
-    return fallback;
+    await rpcClient().rpc("refresh_rental_status");
+  } catch {
+    // sem a função no banco: lista o que existe.
   }
+}
+
+/** Preço dos adicionais por sol. Espelha rental_addons_per_sol() do banco. */
+export function addonsPerSol(r: {
+  silica_insurance?: boolean | null;
+  extra_o2_tank?: boolean | null;
+  neural_autopilot_l5?: boolean | null;
+  extra_eva_suits?: number | null;
+  storm_barrier?: boolean | null;
+}): number {
+  return (
+    (r.storm_barrier ? SPACE_ADDONS.storm_barrier_shield.rate : 0) +
+    (r.silica_insurance ? SPACE_ADDONS.silica_insurance.rate : 0) +
+    (r.extra_o2_tank ? SPACE_ADDONS.extra_o2_tank.rate : 0) +
+    (r.neural_autopilot_l5 ? SPACE_ADDONS.neural_autopilot_l5.rate : 0) +
+    SPACE_ADDONS.extra_eva_suits.rate * Math.max(r.extra_eva_suits ?? 0, 0)
+  );
 }
 
 export const vehiclesQuery = queryOptions({
   queryKey: ["vehicles"],
   queryFn: () =>
-    runWithFallback<Vehicle[]>(
-      supabase.from("vehicles").select("*").order("category").order("callsign"),
+    loadCatalog<Vehicle[]>(
+      () => supabase.from("vehicles").select("*").order("category").order("callsign"),
       SEED_VEHICLES,
     ),
 });
@@ -80,14 +120,14 @@ export const vehiclesQuery = queryOptions({
 export const hangarsQuery = queryOptions({
   queryKey: ["hangars"],
   queryFn: () =>
-    runWithFallback<Hangar[]>(supabase.from("hangars").select("*").order("name"), SEED_HANGARS),
+    loadCatalog<Hangar[]>(() => supabase.from("hangars").select("*").order("name"), SEED_HANGARS),
 });
 
 export const weatherQuery = queryOptions({
   queryKey: ["weather"],
   queryFn: () =>
-    runWithFallback<WeatherEvent[]>(
-      supabase.from("weather_events").select("*").order("severity", { ascending: false }),
+    loadCatalog<WeatherEvent[]>(
+      () => supabase.from("weather_events").select("*").order("severity", { ascending: false }),
       SEED_WEATHER,
     ),
 });
@@ -118,6 +158,7 @@ export const rentalsQuery = queryOptions({
   queryFn: async (): Promise<Rental[]> => {
     if (isDemoSession()) return mergeById(readDemoRentals(), SEED_RENTALS);
     if (apiEnabled()) return (await apiGet<{ items: Rental[] }>("/v1/rentals")).items;
+    await refreshRentalStatus();
     const { data, error } = await supabase
       .from("rentals")
       .select("*")
@@ -141,12 +182,12 @@ export const vehicleOccupancyQuery = queryOptions({
           end_sol: r.end_sol ?? r.start_sol + 1,
         }));
     }
-    const { data, error } = await (supabase as unknown as OccupancyClient).rpc("vehicle_occupancy");
+    const { data, error } = await rpcClient().rpc("vehicle_occupancy");
     if (error) {
       console.warn("Ocupação indisponível:", error.message);
       return [];
     }
-    return data ?? [];
+    return (data ?? []) as OccupiedPeriod[];
   },
 });
 
@@ -188,24 +229,6 @@ export const vehicleSalesQuery = queryOptions({
     return SEED_VEHICLE_SALES;
   },
 });
-
-export const flightRoutesQuery = queryOptions({
-  queryKey: ["flight_routes"],
-  queryFn: () =>
-    runWithFallback<FlightRouteItem[]>(
-      supabase.from("flight_routes").select("*").order("created_at", { ascending: false }),
-      SEED_FLIGHT_ROUTES,
-    ),
-});
-
-export const flightTelemetryQuery = (vehicleId?: string) =>
-  queryOptions({
-    queryKey: ["flight_telemetry", vehicleId ?? "all"],
-    queryFn: async (): Promise<FlightTelemetryLogItem[]> => {
-      if (!vehicleId) return SEED_FLIGHT_TELEMETRY;
-      return SEED_FLIGHT_TELEMETRY.filter((log) => log.vehicle_id === vehicleId);
-    },
-  });
 
 export const conditionLabel: Record<VehicleSaleItem["condition"], string> = {
   factory_new: "Zero KM (Fábrica Orbital)",

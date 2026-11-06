@@ -23,7 +23,8 @@ export interface BuildOptions {
 export async function buildApp({ env, verifier, userDb }: BuildOptions): Promise<FastifyInstance> {
   const app = Fastify({
     bodyLimit: 512 * 1024,
-    trustProxy: true, // atrás do proxy do Render
+    // Confia só nos N proxies mais próximos: o resto do X-Forwarded-For é do cliente.
+    trustProxy: (_address: string, hop: number) => hop < env.TRUST_PROXY_HOPS,
     logger:
       env.NODE_ENV === "test"
         ? false

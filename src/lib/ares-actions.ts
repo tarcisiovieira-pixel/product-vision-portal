@@ -3,10 +3,17 @@
 //  - Conta real: API Fastify quando VITE_API_URL está definida; senão, RPC direta.
 // Em conta real, um erro é sempre mostrado ao usuário: nunca há "sucesso" local.
 import { supabase } from "@/integrations/supabase/client";
-import { MAINTENANCE_SERVICES, type Rental, type Vehicle, type VehicleSaleItem } from "./ares-data";
+import {
+  DEMO_SOL,
+  MAINTENANCE_SERVICES,
+  addonsPerSol,
+  type Rental,
+  type Vehicle,
+  type VehicleSaleItem,
+} from "./ares-data";
 import { apiEnabled, apiPost } from "./api-client";
 import { isActiveRental, isOccupied } from "./occupancy";
-import { SEED_RENTALS } from "./ares-seed-data";
+import { SEED_HANGARS, SEED_RENTALS } from "./ares-seed-data";
 import {
   DEMO_USER_ID,
   adjustDemoCredits,
@@ -75,13 +82,36 @@ function demoActivePeriods(exceptId?: string) {
     }));
 }
 
+const MAX_SOLS = 90;
+
+/** Mesmas regras do book_vehicle, para o sandbox demo não ensinar um comportamento que o banco recusa. */
+function assertBookable(input: BookingInput): void {
+  if (input.endSol <= input.startSol) {
+    throw new Error("Período inválido: o sol final deve ser maior que o inicial.");
+  }
+  if (input.startSol < DEMO_SOL) {
+    throw new Error(`O sol inicial não pode estar no passado (sol atual: ${DEMO_SOL}).`);
+  }
+  if (input.endSol - input.startSol > MAX_SOLS) {
+    throw new Error(`A reserva pode ter no máximo ${MAX_SOLS} sols.`);
+  }
+  if (input.evaSuits < 0 || input.evaSuits > 6) throw new Error("Trajes EVA: informe de 0 a 6.");
+  const storm = SEED_HANGARS.some(
+    (h) => h.storm_alert && (h.id === input.pickup || h.id === input.dropoff),
+  );
+  if (storm && !input.stormBarrier) {
+    throw new Error("Tempestade ativa em um dos hangares: ative a barreira anti-tempestade.");
+  }
+}
+
 function createDemoRental(input: BookingInput): Rental {
+  assertBookable(input);
   if (isOccupied(demoActivePeriods(), input.vehicle.id, input.startSol, input.endSol)) {
     throw new Error(OCCUPIED_MESSAGE);
   }
   assertDemoBalance(input.totalCredits);
   adjustDemoCredits(-input.totalCredits);
-  const rental: Rental = {
+  const rental = {
     id: `rent-${Date.now()}`,
     user_id: DEMO_USER_ID,
     vehicle_id: input.vehicle.id,
@@ -94,39 +124,59 @@ function createDemoRental(input: BookingInput): Rental {
     extra_o2_tank: input.extraO2Tank,
     neural_autopilot_l5: input.neuralAutopilot,
     extra_eva_suits: input.evaSuits,
+    storm_barrier: input.stormBarrier,
     preflight_checked: false,
     postflight_checked: false,
     quantum_key: `Q-KEY#${Date.now().toString(36).toUpperCase().slice(-8)}`,
     status: "confirmed",
     created_at: new Date().toISOString(),
-  };
+  } as Rental;
   writeDemoRentals([rental, ...readDemoRentals()]);
   return rental;
 }
 
+/** Código (OLY-01) do hangar de vitrine, ou null se o ID já for do banco / desconhecido. */
+async function loadHangarIdsByCode(): Promise<Map<string, string>> {
+  const { data, error } = await supabase.from("hangars").select("id, code");
+  if (error) throw new Error(error.message);
+  return new Map((data ?? []).map((h) => [h.code, h.id]));
+}
+
+function toRealHangarId(id: string, byCode: Map<string, string>): string | null {
+  if (isPersistedId(id)) return id;
+  const code = SEED_HANGARS.find((h) => h.id === id)?.code;
+  return (code && byCode.get(code)) || null;
+}
+
 async function resolveIds(input: BookingInput): Promise<BookingInput> {
   // A vitrine pública usa IDs locais; ao logar, traduz para os IDs reais do banco.
-  if (isPersistedId(input.vehicle.id) && isPersistedId(input.pickup)) return input;
+  if (
+    isPersistedId(input.vehicle.id) &&
+    isPersistedId(input.pickup) &&
+    isPersistedId(input.dropoff)
+  ) {
+    return input;
+  }
   const { data: vehicle } = await supabase
     .from("vehicles")
     .select("id, callsign")
     .eq("callsign", input.vehicle.callsign)
     .maybeSingle();
-  const { data: hangars } = await supabase.from("hangars").select("id").order("name");
-  const first = hangars?.[0]?.id;
-  if (!vehicle || !first) {
+  if (!vehicle) {
     throw new Error("Este veículo é só de vitrine e não pode ser reservado com conta real.");
   }
-  return {
-    ...input,
-    vehicle,
-    pickup: isPersistedId(input.pickup) ? input.pickup : first,
-    dropoff: isPersistedId(input.dropoff) ? input.dropoff : first,
-  };
+  const byCode = await loadHangarIdsByCode();
+  const pickup = toRealHangarId(input.pickup, byCode);
+  const dropoff = toRealHangarId(input.dropoff, byCode);
+  // Nunca "chutar" outro hangar: a reserva precisa ser exatamente a que a tela mostrou.
+  if (!pickup || !dropoff) {
+    throw new Error("Hangar escolhido não existe no banco. Atualize a página e tente de novo.");
+  }
+  return { ...input, vehicle, pickup, dropoff };
 }
 
 async function bookViaRpc(b: BookingInput): Promise<string> {
-  const args = {
+  const args: Record<string, unknown> = {
     _vehicle_id: b.vehicle.id,
     _pickup: b.pickup,
     _dropoff: b.dropoff,
@@ -137,13 +187,20 @@ async function bookViaRpc(b: BookingInput): Promise<string> {
     _neural_autopilot_l5: b.neuralAutopilot,
     _extra_eva_suits: b.evaSuits,
   };
-  if (!b.stormBarrier) return callRpc<string>("book_vehicle", args);
+  // Só envia quando ligada: o padrão do banco é falso, e assim o 9º argumento continua válido.
+  if (b.stormBarrier) args["_storm_barrier"] = true;
   try {
-    return await callRpc<string>("book_vehicle", { ...args, _storm_barrier: true });
+    return await callRpc<string>("book_vehicle", args);
   } catch (err) {
-    // Banco ainda sem a migration de preços: a reserva segue sem a cobrança da barreira.
-    if (err instanceof Error && err.message.includes("Could not find the function")) {
-      return callRpc<string>("book_vehicle", args);
+    // Nunca reservar sem cobrar a barreira: se o banco não tem a função nova, avisa.
+    if (
+      b.stormBarrier &&
+      err instanceof Error &&
+      err.message.includes("Could not find the function")
+    ) {
+      throw new Error(
+        "O banco ainda não recebeu a atualização de preços. Fale com o administrador.",
+      );
     }
     throw err;
   }
@@ -178,15 +235,20 @@ export async function createRental(input: BookingInput): Promise<Rental> {
 export async function extendRental(rental: Rental, dailyRate: number): Promise<number> {
   if (isDemoSession()) {
     const newEnd = (rental.end_sol ?? rental.start_sol) + 1;
+    if (newEnd - rental.start_sol > MAX_SOLS) {
+      throw new Error(`A reserva pode ter no máximo ${MAX_SOLS} sols no total.`);
+    }
     if (isOccupied(demoActivePeriods(rental.id), rental.vehicle_id, rental.start_sol, newEnd)) {
       throw new Error(OCCUPIED_MESSAGE);
     }
-    assertDemoBalance(dailyRate);
-    adjustDemoCredits(-dailyRate);
+    // Diária mais os adicionais da reserva, como no banco.
+    const cost = dailyRate + addonsPerSol(rental as Parameters<typeof addonsPerSol>[0]);
+    assertDemoBalance(cost);
+    adjustDemoCredits(-cost);
     const updated = {
       ...rental,
       end_sol: newEnd,
-      total_credits: Number(rental.total_credits) + dailyRate,
+      total_credits: Number(rental.total_credits) + cost,
     };
     writeDemoRentals([updated, ...readDemoRentals().filter((r) => r.id !== rental.id)]);
     return newEnd;
@@ -200,6 +262,9 @@ export async function extendRental(rental: Rental, dailyRate: number): Promise<n
 
 export async function cancelRental(rental: Rental): Promise<number> {
   if (isDemoSession()) {
+    if (rental.status !== "confirmed" || rental.start_sol <= DEMO_SOL) {
+      throw new Error("Reserva já iniciada: não pode ser cancelada.");
+    }
     const refund = Number(rental.total_credits);
     adjustDemoCredits(refund);
     const updated = { ...rental, status: "cancelled" };
@@ -279,23 +344,40 @@ export async function publishListing(item: VehicleSaleItem): Promise<void> {
     writeDemoSales([item, ...readDemoSales()]);
     return;
   }
+  if (!(Number(item.price_credits) > 0)) throw new Error("Informe um preço maior que zero.");
   const { data } = await supabase.auth.getUser();
   if (!data.user) throw new Error("Entre com sua conta para anunciar.");
-  const { error } = await supabase.from("vehicle_sales").insert({
-    name: item.name,
-    callsign: item.callsign,
-    category: item.category,
-    price_credits: item.price_credits,
-    sol_manufactured: item.sol_manufactured,
-    flight_hours: item.flight_hours,
-    hull_integrity_pct: item.hull_integrity_pct,
-    battery_condition_pct: item.battery_condition_pct,
-    condition: item.condition,
-    hangar_id: isPersistedId(item.hangar_id ?? "") ? item.hangar_id : null,
-    seller_name: item.seller_name,
-    seller_user_id: data.user.id,
-    features: item.features,
-    status: "available_for_sale",
+
+  const byCode = await loadHangarIdsByCode();
+  const hangarId = item.hangar_id ? toRealHangarId(item.hangar_id, byCode) : null;
+
+  if (apiEnabled()) {
+    await apiPost("/v1/marketplace/listings", {
+      name: item.name,
+      callsign: item.callsign,
+      category: item.category,
+      price: Number(item.price_credits),
+      hangarId,
+      flightHours: Number(item.flight_hours),
+      hullPct: item.hull_integrity_pct,
+      batteryPct: item.battery_condition_pct,
+      condition: item.condition,
+      features: item.features,
+      sellerName: item.seller_name,
+    });
+    return;
+  }
+  await callRpc("create_listing", {
+    _name: item.name,
+    _callsign: item.callsign,
+    _category: item.category,
+    _price: Number(item.price_credits),
+    _hangar_id: hangarId,
+    _flight_hours: Number(item.flight_hours),
+    _hull_pct: item.hull_integrity_pct,
+    _battery_pct: item.battery_condition_pct,
+    _condition: item.condition,
+    _features: item.features,
+    _seller_name: item.seller_name,
   });
-  if (error) throw new Error(error.message);
 }

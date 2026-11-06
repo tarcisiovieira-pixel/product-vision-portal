@@ -152,7 +152,10 @@ describe("modo demo", () => {
 
   it("cancelar devolve créditos sem duplicar a reserva do seed", async () => {
     startDemoSession();
-    const seed = { ...SEED_RENTALS[0]!, total_credits: 100 };
+    const seed = {
+      ...SEED_RENTALS.find((r) => r.status === "confirmed")!,
+      total_credits: 100,
+    };
     await cancelRental(seed);
     expect(readDemoProfile()?.martian_credits).toBe(25100);
     const list = await run<Rental[]>(rentalsQuery);

@@ -39,6 +39,8 @@ import {
   type Vehicle,
   type WeatherEvent,
   vehicleOccupancyQuery,
+  currentSolQuery,
+  DEMO_SOL,
 } from "@/lib/ares-data";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -96,6 +98,7 @@ function BookingWizardInner({
   const navigate = useNavigate();
   const qc = useQueryClient();
   const { data: occupancy = [] } = useQuery(vehicleOccupancyQuery);
+  const { data: sol = DEMO_SOL } = useQuery(currentSolQuery);
   const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
 
   // Etapa 1: Voo & Itinerário
@@ -117,9 +120,6 @@ function BookingWizardInner({
   const [pilotEmail, setPilotEmail] = useState("");
   const [pilotPassword, setPilotPassword] = useState("");
   const [credentialId, setCredentialId] = useState("");
-  const [pilotLicense, setPilotLicense] = useState<Profile["pilot_license"]>(
-    currentProfile?.pilot_license || "atmospheric",
-  );
   const [isAuthLoading, setIsAuthLoading] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
 
@@ -138,6 +138,8 @@ function BookingWizardInner({
   // Checagem de tempestade
   const severeStorm = weather.find((w) => w.active && w.severity >= 3);
   const isStormRisk = pickupHangar?.storm_alert || (severeStorm && severeStorm.severity >= 4);
+  // Mesma regra do banco: tempestade em um dos hangares da rota exige a barreira.
+  const stormHangar = Boolean(pickupHangar?.storm_alert || dropoffHangar?.storm_alert);
 
   // Cálculo financeiro
   const dailyExtrasRate = useMemo(() => {
@@ -155,15 +157,23 @@ function BookingWizardInner({
   const totalCredits = totalDailyRate * sols;
 
   const occupied = isOccupied(occupancy, vehicle.id, startSol, startSol + sols);
+  const pastStart = startSol < sol;
+  const needsBarrier = stormHangar && !stormBarrierShield;
+  const blockReason = occupied
+    ? "Reservado neste período"
+    : pastStart
+      ? "Sol inicial no passado"
+      : step === 2 && needsBarrier
+        ? "Ative a barreira anti-tempestade"
+        : null;
 
   // Validação de licença para este veículo
-  const effectiveLicense = activeProfile?.pilot_license || pilotLicense;
+  const effectiveLicense = activeProfile?.pilot_license ?? "atmospheric";
   const hasValidLicense = isLicenseValidForCategory(effectiveLicense, vehicle.category);
 
   const handleQuickDemoLogin = () => {
     const demoProfile = startDemoSession(qc);
     setActiveProfile(demoProfile);
-    setPilotLicense("orbital");
     setAuthError(null);
     toast.success("Modo demo ativo");
   };
@@ -222,7 +232,7 @@ function BookingWizardInner({
         password: pilotPassword,
         options: {
           emailRedirectTo: `${window.location.origin}/login`,
-          data: { space_credential_id: autoCred, pilot_license: pilotLicense },
+          data: { space_credential_id: autoCred },
         },
       });
       if (error) throw error;
@@ -428,7 +438,7 @@ function BookingWizardInner({
                     </label>
                     <input
                       type="number"
-                      min={4218}
+                      min={sol}
                       value={startSol}
                       onChange={(e) => setStartSol(Number(e.target.value))}
                       className="mt-1.5 w-full border bg-background/80 p-2.5 text-foreground focus:outline-none focus:border-primary"
@@ -475,8 +485,9 @@ function BookingWizardInner({
                       <div>
                         <p className="font-semibold">Alerta de Tempestade Ativo no Setor</p>
                         <p className="text-[11px] text-warning/90">
-                          Recomendamos a inclusão do Seguro de Sílica no próximo passo para proteção
-                          contra rególito abrasivo.
+                          {stormHangar
+                            ? "A barreira anti-tempestade é obrigatória para esta rota. Ative no próximo passo."
+                            : "Recomendamos o Seguro de Sílica no próximo passo, contra rególito abrasivo."}
                         </p>
                       </div>
                     </div>
@@ -896,28 +907,9 @@ function BookingWizardInner({
                             />
                           </div>
                         </div>
-
-                        <div>
-                          <label className="text-muted-foreground">
-                            HABILITAÇÃO DE PILOTO DESEJADA
-                          </label>
-                          <div className="mt-1.5 grid grid-cols-3 gap-2">
-                            {(["atmospheric", "heavy_cargo", "orbital"] as const).map((lic) => (
-                              <button
-                                key={lic}
-                                type="button"
-                                onClick={() => setPilotLicense(lic)}
-                                className={`border p-2 text-center text-[11px] uppercase transition ${
-                                  pilotLicense === lic
-                                    ? "border-primary bg-primary/20 text-primary font-bold"
-                                    : "text-muted-foreground hover:border-muted-foreground"
-                                }`}
-                              >
-                                {licenseLabel[lic]}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
+                        <p className="text-[11px] text-muted-foreground">
+                          Habilitação inicial: Atmosférico. Upgrades são liberados pela equipe ARES.
+                        </p>
 
                         <button
                           type="submit"
@@ -1110,25 +1102,27 @@ function BookingWizardInner({
               {step < 3 ? (
                 <button
                   type="button"
-                  disabled={occupied}
-                  title={occupied ? "Veículo já reservado nesse período" : undefined}
+                  disabled={Boolean(blockReason)}
+                  title={blockReason ?? undefined}
                   onClick={() => setStep((s) => Math.min(4, s + 1) as 1 | 2 | 3 | 4)}
                   className="cut-corner bg-mars-gradient px-6 py-2.5 font-sans font-semibold uppercase tracking-widest text-primary-foreground shadow-glow"
                 >
-                  {occupied ? "Reservado neste período" : "Continuar →"}
+                  {blockReason ?? "Continuar →"}
                 </button>
               ) : (
                 <button
                   type="button"
-                  disabled={!activeProfile || isAuthLoading || !hasValidLicense}
+                  disabled={!activeProfile || isAuthLoading || !hasValidLicense || needsBarrier}
                   onClick={handleConfirmBooking}
                   className="cut-corner bg-mars-gradient px-6 py-2.5 font-sans font-semibold uppercase tracking-widest text-primary-foreground shadow-glow disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   {!activeProfile
                     ? "Autenticação Obrigatória para Reservar"
-                    : isAuthLoading
-                      ? "Emitindo Chave..."
-                      : "Confirmar & Emitir Chave Quântica"}
+                    : needsBarrier
+                      ? "Ative a barreira anti-tempestade"
+                      : isAuthLoading
+                        ? "Emitindo Chave..."
+                        : "Confirmar & Emitir Chave Quântica"}
                 </button>
               )}
             </div>

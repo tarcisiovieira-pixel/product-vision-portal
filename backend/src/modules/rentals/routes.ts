@@ -6,9 +6,12 @@ export function rentalRoutes(db: UserDbFactory) {
   return async (app: FastifyInstance): Promise<void> => {
     const guard = { preHandler: app.authenticate };
 
-    app.get("/v1/rentals", guard, async (req) => ({
-      items: await db(req.user!.token).list("rentals", "created_at"),
-    }));
+    app.get("/v1/rentals", guard, async (req) => {
+      const user = db(req.user!.token);
+      // Avança confirmada → em voo → concluída pelo relógio de sols.
+      await user.rpc("refresh_rental_status", {});
+      return { items: await user.list("rentals", "created_at") };
+    });
 
     app.post("/v1/rentals", guard, async (req, reply) => {
       const b = createRentalBody.parse(req.body);

@@ -16,6 +16,8 @@ import {
 } from "lucide-react";
 import { AresLogo } from "@/components/AresLogo";
 import {
+  currentSolQuery,
+  DEMO_SOL,
   hangarsQuery,
   profileQuery,
   vehiclesQuery,
@@ -26,7 +28,10 @@ import { LandingSearchWidget } from "@/components/LandingSearchWidget";
 import { FleetShowcase } from "@/components/FleetShowcase";
 import { MarketplaceShowcase } from "@/components/MarketplaceShowcase";
 import { BookingWizardModal } from "@/components/BookingWizardModal";
-import { FlightChaseViewer3D } from "@/components/FlightChaseViewer3D";
+// O viewer carrega o three.js: só baixa quando alguém abre o voo.
+const FlightChaseViewer3D = lazy(() =>
+  import("@/components/FlightChaseViewer3D").then((m) => ({ default: m.FlightChaseViewer3D })),
+);
 
 const MarsGlobe = lazy(() => import("@/components/MarsGlobe"));
 
@@ -98,7 +103,9 @@ function Landing() {
   // Estados do buscador estilo Localiza
   const [pickup, setPickup] = useState(hangars[0]?.id ?? "");
   const [dropoff, setDropoff] = useState(hangars[0]?.id ?? "");
-  const [startSol, setStartSol] = useState(4219);
+  const { data: sol = DEMO_SOL } = useQuery(currentSolQuery);
+  const [startInput, setStartSol] = useState<number | null>(null);
+  const startSol = startInput ?? sol + 1;
   const [sols, setSols] = useState(3);
   const [selectedCategory, setSelectedCategory] = useState<Vehicle["category"] | "all">("all");
 
@@ -188,6 +195,7 @@ function Landing() {
             category={selectedCategory}
             setCategory={setSelectedCategory}
             onSearch={handleSearchScroll}
+            minSol={sol}
           />
         </div>
       </section>
@@ -206,32 +214,34 @@ function Landing() {
 
       {/* Acompanhamento 3D de Voo e Percurso */}
       {chasingVehicle && (
-        <FlightChaseViewer3D
-          vehicle={chasingVehicle}
-          allVehicles={vehicles}
-          hangars={hangars}
-          onClose={() => setChasingVehicle(null)}
-          onSelectVehicle={(v) => {
-            if (v.status !== "in_flight") {
+        <Suspense fallback={null}>
+          <FlightChaseViewer3D
+            vehicle={chasingVehicle}
+            allVehicles={vehicles}
+            hangars={hangars}
+            onClose={() => setChasingVehicle(null)}
+            onSelectVehicle={(v) => {
+              if (v.status !== "in_flight") {
+                setChasingVehicle(null);
+                if (navigate) {
+                  navigate({ to: "/app/hangar-3d", search: { vehicleId: v.id } });
+                } else if (typeof window !== "undefined") {
+                  window.location.href = `/app/hangar-3d?vehicleId=${v.id}`;
+                }
+              } else {
+                setChasingVehicle(v);
+              }
+            }}
+            onNavigateHangar={(v) => {
               setChasingVehicle(null);
               if (navigate) {
                 navigate({ to: "/app/hangar-3d", search: { vehicleId: v.id } });
               } else if (typeof window !== "undefined") {
                 window.location.href = `/app/hangar-3d?vehicleId=${v.id}`;
               }
-            } else {
-              setChasingVehicle(v);
-            }
-          }}
-          onNavigateHangar={(v) => {
-            setChasingVehicle(null);
-            if (navigate) {
-              navigate({ to: "/app/hangar-3d", search: { vehicleId: v.id } });
-            } else if (typeof window !== "undefined") {
-              window.location.href = `/app/hangar-3d?vehicleId=${v.id}`;
-            }
-          }}
-        />
+            }}
+          />
+        </Suspense>
       )}
 
       {/* Vitrine de Compra & Venda / Seminovos Espaciais */}

@@ -172,6 +172,37 @@ describe("rotas administrativas", () => {
   });
 });
 
+describe("anúncios", () => {
+  const listing = { name: "Nave de teste", callsign: "TST-01", category: "car_vtol", price: 1000 };
+
+  it.each([
+    ["preço negativo", { ...listing, price: -1000000 }],
+    ["preço zero", { ...listing, price: 0 }],
+    ["preço absurdo", { ...listing, price: 1e12 }],
+    ["categoria inexistente", { ...listing, category: "navio" }],
+    ["campo extra", { ...listing, seller_user_id: ID }],
+  ])("recusa %s sem tocar no banco", async (_nome, payload) => {
+    expect((await post("/v1/marketplace/listings", payload)).statusCode).toBe(400);
+    expect(rpc).not.toHaveBeenCalled();
+  });
+
+  it("publica pelo create_listing, nunca por escrita direta", async () => {
+    rpc.mockResolvedValue(ID);
+    const res = await post("/v1/marketplace/listings", listing);
+    expect(res.statusCode).toBe(201);
+    expect(rpc).toHaveBeenCalledWith("create_listing", expect.objectContaining({ _price: 1000 }));
+  });
+});
+
+describe("reservas: relógio de sols", () => {
+  it("atualiza o status antes de listar", async () => {
+    rpc.mockResolvedValue(null);
+    list.mockResolvedValue([]);
+    await app.inject({ method: "GET", url: "/v1/rentals", headers });
+    expect(rpc).toHaveBeenCalledWith("refresh_rental_status", {});
+  });
+});
+
 describe("mapDbError", () => {
   const cases: [string, string, number][] = [
     ["Veículo não encontrado", "P0001", 404],
@@ -181,6 +212,9 @@ describe("mapDbError", () => {
     ["Veículo já reservado nesse período", "P0001", 409],
     ["Acesso negado", "P0001", 403],
     ["Conta suspensa. Fale com o suporte.", "P0001", 403],
+    ["Reserva já iniciada: não pode ser cancelada", "P0001", 409],
+    ["Manutenção exige uma reserva ativa deste veículo", "P0001", 403],
+    ["O sol inicial não pode estar no passado", "P0001", 422],
     ["Saldo insuficiente", "P0001", 422],
     ["Habilitação insuficiente!", "P0001", 422],
     ["Não autenticado", "P0001", 401],

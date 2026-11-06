@@ -18,6 +18,11 @@ const schema = z.object({
         .filter(Boolean),
     ),
   RATE_LIMIT_MAX: z.coerce.number().int().positive().default(120),
+  /**
+   * Quantos proxies confiáveis existem na frente da API (o Render conta 1).
+   * Só o IP que o último proxy anexou vale: o resto do X-Forwarded-For é do cliente.
+   */
+  TRUST_PROXY_HOPS: z.coerce.number().int().min(0).max(5).default(1),
 });
 
 export type Env = z.infer<typeof schema>;

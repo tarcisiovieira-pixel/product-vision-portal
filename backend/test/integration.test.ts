@@ -24,6 +24,15 @@ function promote(userId: string) {
   ]);
 }
 
+/** Fixtures que o app nunca consegue criar (ex.: reserva no passado): direto no banco. */
+function sql(query: string): string {
+  return execFileSync("docker", ["exec", dbContainer, "psql", "-U", "postgres", "-tAc", query], {
+    encoding: "utf8",
+  })
+    .trim()
+    .split("\n")[0]!;
+}
+
 describe.skipIf(!baseUrl || !key)("integração com Supabase real", () => {
   let app: FastifyInstance;
   const client = () =>
@@ -65,7 +74,10 @@ describe.skipIf(!baseUrl || !key)("integração com Supabase real", () => {
   let other: User;
   let vehicle: { id: string; daily_rate_sol: number };
   let rocket: { id: string };
+  let truck: { id: string };
   let hangars: string[];
+  let stormHangar: string;
+  let today: number;
 
   beforeAll(async () => {
     app = await buildApp({
@@ -84,7 +96,12 @@ describe.skipIf(!baseUrl || !key)("integração com Supabase real", () => {
       .select("id, daily_rate_sol, category, status");
     vehicle = vehicles!.find((v) => v.category === "car_vtol" && v.status === "available")!;
     rocket = vehicles!.find((v) => v.category === "interplanetary_rocket")!;
-    hangars = (await pilot.c.from("hangars").select("id")).data!.map((h) => h.id);
+    truck = vehicles!.find((v) => v.category === "space_truck")!;
+    // Ordem fixa e hangares sem tempestade: a regra do clima não pode sortear o resultado.
+    const all = (await pilot.c.from("hangars").select("id, code, storm_alert").order("code")).data!;
+    hangars = all.filter((h) => !h.storm_alert).map((h) => h.id);
+    stormHangar = all.find((h) => h.storm_alert)!.id;
+    today = (await pilot.c.rpc("current_sol")).data as number;
   });
   afterAll(() => app.close());
 
@@ -92,8 +109,8 @@ describe.skipIf(!baseUrl || !key)("integração com Supabase real", () => {
     vehicleId: vehicle.id,
     pickupHangarId: hangars[0],
     dropoffHangarId: hangars[1],
-    startSol: 4300,
-    endSol: 4302,
+    startSol: today + 100,
+    endSol: today + 102,
   });
 
   it("recusa token forjado", async () => {
@@ -144,13 +161,23 @@ describe.skipIf(!baseUrl || !key)("integração com Supabase real", () => {
     expect((await post(pilot, `/v1/rentals/${rental.id}/cancel`)).statusCode).toBe(409);
   });
 
-  it("manutenção debita créditos", async () => {
+  it("manutenção debita créditos de quem tem reserva ativa do veículo", async () => {
+    expect(
+      (
+        await post(pilot, "/v1/rentals", {
+          ...booking(),
+          startSol: today + 300,
+          endSol: today + 301,
+        })
+      ).statusCode,
+    ).toBe(201);
+    const before = await credits(pilot);
     const res = await post(pilot, "/v1/maintenance", {
       vehicleId: vehicle.id,
       serviceType: "silica_clean",
     });
     expect(res.statusCode).toBe(201);
-    expect(await credits(pilot)).toBe(25000 - 450);
+    expect(await credits(pilot)).toBe(before - 450);
   });
 
   it("compra real e bloqueio de recompra", async () => {
@@ -172,34 +199,40 @@ describe.skipIf(!baseUrl || !key)("integração com Supabase real", () => {
     const slot = (startSol: number, endSol: number) => ({ ...booking(), startSol, endSol });
 
     it("segundo usuário não reserva período ocupado e não é cobrado", async () => {
-      expect((await post(pilot, "/v1/rentals", slot(5000, 5003))).statusCode).toBe(201);
+      expect((await post(pilot, "/v1/rentals", slot(today + 200, today + 203))).statusCode).toBe(
+        201,
+      );
       const before = await credits(other);
-      const res = await post(other, "/v1/rentals", slot(5002, 5004));
+      const res = await post(other, "/v1/rentals", slot(today + 202, today + 204));
       expect(res.statusCode).toBe(409);
       expect(res.json().message).toMatch(/já reservado/);
       expect(await credits(other)).toBe(before);
     });
 
     it("período colado é permitido, e estender não invade o próximo", async () => {
-      expect((await post(other, "/v1/rentals", slot(5003, 5005))).statusCode).toBe(201);
+      expect((await post(other, "/v1/rentals", slot(today + 203, today + 205))).statusCode).toBe(
+        201,
+      );
       const items = (await get(pilot, "/v1/rentals")).json().items;
-      const rental = items.find((r: { start_sol: number }) => r.start_sol === 5000);
+      const rental = items.find((r: { start_sol: number }) => r.start_sol === today + 200);
       expect((await post(pilot, `/v1/rentals/${rental.id}/extend`)).statusCode).toBe(409);
     });
 
     it("reservas simultâneas: só uma vence", async () => {
       const results = await Promise.all([
-        post(pilot, "/v1/rentals", slot(5100, 5101)),
-        post(other, "/v1/rentals", slot(5100, 5101)),
+        post(pilot, "/v1/rentals", slot(today + 210, today + 211)),
+        post(other, "/v1/rentals", slot(today + 210, today + 211)),
       ]);
       expect(results.map((r) => r.statusCode).sort()).toEqual([201, 409]);
     });
 
     it("cancelar libera o período", async () => {
       const items = (await get(pilot, "/v1/rentals")).json().items;
-      const rental = items.find((r: { start_sol: number }) => r.start_sol === 5000);
+      const rental = items.find((r: { start_sol: number }) => r.start_sol === today + 200);
       await post(pilot, `/v1/rentals/${rental.id}/cancel`);
-      expect((await post(other, "/v1/rentals", slot(5000, 5002))).statusCode).toBe(201);
+      expect((await post(other, "/v1/rentals", slot(today + 200, today + 202))).statusCode).toBe(
+        201,
+      );
     });
 
     it("a tela enxerga a ocupação sem expor quem reservou", async () => {
@@ -215,7 +248,11 @@ describe.skipIf(!baseUrl || !key)("integração com Supabase real", () => {
         .eq("status", "in_flight")
         .limit(1);
       const id = flying![0]!.id;
-      await post(pilot, "/v1/maintenance", { vehicleId: id, serviceType: "thruster_calibration" });
+      const res = await post(pilot, "/v1/maintenance", {
+        vehicleId: id,
+        serviceType: "thruster_calibration",
+      });
+      expect(res.statusCode).toBe(403);
       const { data } = await pilot.c.from("vehicles").select("status").eq("id", id).single();
       expect(data?.status).toBe("in_flight");
     });
@@ -235,8 +272,8 @@ describe.skipIf(!baseUrl || !key)("integração com Supabase real", () => {
     const before = await credits(other);
     const res = await post(other, "/v1/rentals", {
       ...booking(),
-      startSol: 5200,
-      endSol: 5201,
+      startSol: today + 220,
+      endSol: today + 221,
       stormBarrier: true,
     });
     expect(res.statusCode).toBe(201);
@@ -245,18 +282,24 @@ describe.skipIf(!baseUrl || !key)("integração com Supabase real", () => {
 
   it("o vendedor recebe o valor da venda", async () => {
     const callsign = `IT-${Date.now()}`;
-    const { error } = await pilot.c.from("vehicle_sales").insert({
-      name: "Nave de teste",
-      callsign,
-      category: "car_vtol",
-      price_credits: 300,
-      seller_user_id: pilot.id,
+    const { error } = await pilot.c.rpc("create_listing", {
+      _name: "Nave de teste",
+      _callsign: callsign,
+      _category: "car_vtol",
+      _price: 300,
+      _hangar_id: null,
+      _flight_hours: 0,
+      _hull_pct: 100,
+      _battery_pct: 100,
+      _condition: "certified_preowned",
+      _features: [],
+      _seller_name: "Colono de teste",
     });
     expect(error).toBeNull();
     const { data: sale } = await other.c
       .from("vehicle_sales")
       .select("id")
-      .eq("callsign", callsign)
+      .eq("callsign", callsign.toUpperCase())
       .single();
     const seller = await credits(pilot);
     const buyer = await credits(other);
@@ -270,6 +313,295 @@ describe.skipIf(!baseUrl || !key)("integração com Supabase real", () => {
     expect(error?.message).toMatch(/permission denied/);
     const { data } = await client().from("vehicle_sales").select("callsign").limit(1);
     expect(data?.length).toBe(1);
+  });
+
+  describe("ataques diretos ao banco (sem passar pela API)", () => {
+    let a: User;
+    let b: User;
+
+    const listing = (over: Record<string, unknown> = {}) => ({
+      _name: "Nave de teste",
+      _callsign: `ATK-${Date.now()}-${Math.floor(Math.random() * 1e6)}`,
+      _category: "car_vtol",
+      _price: 500,
+      _hangar_id: null,
+      _flight_hours: 0,
+      _hull_pct: 100,
+      _battery_pct: 100,
+      _condition: "certified_preowned",
+      _features: [],
+      _seller_name: "Atacante",
+      ...over,
+    });
+
+    const book = (u: User, over: Record<string, unknown> = {}) =>
+      u.c.rpc("book_vehicle", {
+        _vehicle_id: vehicle.id,
+        _pickup: hangars[0],
+        _dropoff: hangars[1],
+        _start_sol: today + 400,
+        _end_sol: today + 402,
+        ...over,
+      });
+
+    const rentalRow = async (u: User, id: string) =>
+      (await u.c.from("rentals").select("*").eq("id", id).single()).data!;
+
+    beforeAll(async () => {
+      a = await newUser("atmospheric");
+      b = await newUser("atmospheric");
+    });
+
+    describe("marketplace", () => {
+      it("não insere anúncio direto na tabela, com qualquer preço", async () => {
+        for (const price of [-1000000, 0, 500]) {
+          const { error } = await a.c.from("vehicle_sales").insert({
+            name: "x",
+            callsign: `NEG-${price}-${Date.now()}`,
+            category: "car_vtol",
+            price_credits: price,
+            seller_user_id: a.id,
+          });
+          expect(error?.message).toMatch(/permission denied|row-level security/);
+        }
+      });
+
+      it.each([-1000000, 0, 1e12])("create_listing recusa preço %s", async (price) => {
+        const { error } = await a.c.rpc("create_listing", listing({ _price: price }));
+        expect(error?.message).toMatch(/Preço inválido/);
+      });
+
+      it("create_listing força vendedor e status; o anúncio não pode ser editado", async () => {
+        const { data: id, error } = await a.c.rpc("create_listing", listing());
+        expect(error).toBeNull();
+        const { data: row } = await b.c.from("vehicle_sales").select("*").eq("id", id).single();
+        expect(row?.seller_user_id).toBe(a.id);
+        expect(row?.status).toBe("available_for_sale");
+
+        for (const change of [{ price_credits: -5 }, { price_credits: 1 }, { status: "sold" }]) {
+          const res = await a.c
+            .from("vehicle_sales")
+            .update(change)
+            .eq("id", id as string);
+          expect(res.error?.message).toMatch(/permission denied/);
+        }
+        const del = await a.c
+          .from("vehicle_sales")
+          .delete()
+          .eq("id", id as string);
+        expect(del.error?.message).toMatch(/permission denied/);
+      });
+
+      it("anúncio vendido não volta a ficar disponível", async () => {
+        const { data: id } = await a.c.rpc("create_listing", listing({ _price: 200 }));
+        const { error } = await b.c.rpc("buy_marketplace_vehicle", { _sale_id: id });
+        expect(error).toBeNull();
+        const res = await a.c
+          .from("vehicle_sales")
+          .update({ status: "available_for_sale" })
+          .eq("id", id as string);
+        expect(res.error?.message).toMatch(/permission denied/);
+        const { data: row } = await a.c
+          .from("vehicle_sales")
+          .select("status")
+          .eq("id", id)
+          .single();
+        expect(row?.status).toBe("sold");
+        const again = await b.c.rpc("buy_marketplace_vehicle", { _sale_id: id });
+        expect(again.error?.message).toMatch(/não está mais disponível/);
+      });
+    });
+
+    it("cadastro com habilitação orbital no formulário continua atmosférico", async () => {
+      const u = await newUser("orbital");
+      const { data } = await u.c
+        .from("profiles")
+        .select("pilot_license")
+        .eq("user_id", u.id)
+        .single();
+      expect(data?.pilot_license).toBe("atmospheric");
+    });
+
+    describe("book_vehicle", () => {
+      const invalid: [string, () => Record<string, unknown>, RegExp][] = [
+        ["trajes EVA negativos", () => ({ _extra_eva_suits: -3 }), /Trajes EVA/],
+        ["trajes EVA acima do limite", () => ({ _extra_eva_suits: 7 }), /Trajes EVA/],
+        ["100000 sols", () => ({ _end_sol: today + 100400 }), /máximo 90/],
+        ["sol no passado", () => ({ _start_sol: today - 1, _end_sol: today + 1 }), /passado/],
+        [
+          "hangar inexistente",
+          () => ({ _pickup: "00000000-0000-4000-8000-000000000000" }),
+          /Hangar não encontrado/,
+        ],
+      ];
+
+      it.each(invalid)("recusa %s e não cobra", async (_nome, over, pattern) => {
+        const before = await credits(a);
+        const { error } = await book(a, over());
+        expect(error?.message).toMatch(pattern);
+        expect(await credits(a)).toBe(before);
+      });
+
+      it("hangar com tempestade exige a barreira (retirada e devolução)", async () => {
+        const before = await credits(a);
+        for (const over of [{ _pickup: stormHangar }, { _dropoff: stormHangar }]) {
+          const { error } = await book(a, over);
+          expect(error?.message).toMatch(/tempestade/);
+        }
+        expect(await credits(a)).toBe(before);
+      });
+
+      it("com a barreira a reserva passa, é cobrada e fica registrada", async () => {
+        const before = await credits(a);
+        const { data: id, error } = await book(a, {
+          _pickup: stormHangar,
+          _start_sol: today + 410,
+          _end_sol: today + 412,
+          _storm_barrier: true,
+        });
+        expect(error).toBeNull();
+        expect(await credits(a)).toBe(before - (vehicle.daily_rate_sol + 220) * 2);
+        expect((await rentalRow(a, id as string)).storm_barrier).toBe(true);
+      });
+    });
+
+    describe("ciclo de vida da reserva", () => {
+      const fixture = (u: User, startSol: number, endSol: number, vehicleId = vehicle.id) =>
+        sql(
+          `insert into public.rentals (user_id, vehicle_id, pickup_hangar_id, dropoff_hangar_id, start_sol, end_sol, total_credits, status) values ('${u.id}', '${vehicleId}', '${hangars[0]}', '${hangars[1]}', ${startSol}, ${endSol}, 1000, 'confirmed') returning id`,
+        );
+
+      it("não cancela depois do início e não devolve nada", async () => {
+        const id = fixture(a, today - 1, today + 5);
+        const before = await credits(a);
+        const { error } = await a.c.rpc("cancel_rental", { _rental_id: id });
+        expect(error?.message).toMatch(/já iniciada/);
+        expect(await credits(a)).toBe(before);
+      });
+
+      it("reserva concluída também não é cancelável", async () => {
+        const id = fixture(a, today - 10, today - 5);
+        const before = await credits(a);
+        const { error } = await a.c.rpc("cancel_rental", { _rental_id: id });
+        expect(error?.message).toMatch(/Só reservas confirmadas/);
+        expect(await credits(a)).toBe(before);
+      });
+
+      it("o relógio avança o status e a API lista já atualizado", async () => {
+        const started = fixture(b, today - 1, today + 5, rocket.id);
+        const finished = fixture(b, today - 10, today - 5, rocket.id);
+        const future = fixture(b, today + 500, today + 502, rocket.id);
+        const items = (await get(b, "/v1/rentals")).json().items as {
+          id: string;
+          status: string;
+        }[];
+        const status = (id: string) => items.find((r) => r.id === id)?.status;
+        expect(status(started)).toBe("in_flight");
+        expect(status(finished)).toBe("completed");
+        expect(status(future)).toBe("confirmed");
+      });
+
+      it("reserva futura ainda é cancelável com reembolso integral", async () => {
+        const { data: id, error } = await book(a, {
+          _start_sol: today + 420,
+          _end_sol: today + 421,
+        });
+        expect(error).toBeNull();
+        const before = await credits(a);
+        const res = await a.c.rpc("cancel_rental", { _rental_id: id });
+        expect(res.error).toBeNull();
+        expect(await credits(a)).toBe(before + vehicle.daily_rate_sol);
+      });
+    });
+
+    describe("extend_rental", () => {
+      it("cobra a diária mais todos os adicionais da reserva", async () => {
+        const { data: id, error } = await book(a, {
+          _start_sol: today + 430,
+          _end_sol: today + 431,
+          _silica_insurance: true,
+          _extra_o2_tank: true,
+          _neural_autopilot_l5: true,
+          _extra_eva_suits: 3,
+          _storm_barrier: true,
+        });
+        expect(error).toBeNull();
+        const addons = 120 + 180 + 350 + 300 + 220;
+        const before = await credits(a);
+        const res = await a.c.rpc("extend_rental", { _rental_id: id, _extra_sols: 2 });
+        expect(res.error).toBeNull();
+        expect(await credits(a)).toBe(before - (vehicle.daily_rate_sol + addons) * 2);
+        expect((await rentalRow(a, id as string)).end_sol).toBe(today + 433);
+      });
+
+      it("não ultrapassa 90 sols no total, mesmo estendendo aos poucos", async () => {
+        const id = fixture90(a);
+        const over = await a.c.rpc("extend_rental", { _rental_id: id, _extra_sols: 11 });
+        expect(over.error?.message).toMatch(/máximo 90/);
+        const ok = await a.c.rpc("extend_rental", { _rental_id: id, _extra_sols: 10 });
+        expect(ok.error).toBeNull();
+        const more = await a.c.rpc("extend_rental", { _rental_id: id, _extra_sols: 1 });
+        expect(more.error?.message).toMatch(/máximo 90/);
+      });
+
+      function fixture90(u: User) {
+        return sql(
+          `insert into public.rentals (user_id, vehicle_id, pickup_hangar_id, dropoff_hangar_id, start_sol, end_sol, total_credits, status) values ('${u.id}', '${vehicle.id}', '${hangars[0]}', '${hangars[1]}', ${today + 600}, ${today + 680}, 0, 'confirmed') returning id`,
+        );
+      }
+    });
+
+    describe("manutenção", () => {
+      it("quem não tem reserva ativa do veículo é recusado e não paga", async () => {
+        const before = await credits(b);
+        for (const target of [vehicle.id, truck.id]) {
+          const { error } = await b.c.rpc("execute_maintenance", {
+            _vehicle_id: target,
+            _service_type: "thruster_calibration",
+          });
+          expect(error?.message).toMatch(/reserva ativa/);
+        }
+        expect(await credits(b)).toBe(before);
+      });
+
+      it("quem tem reserva ativa pode, e o serviço desconhecido é recusado", async () => {
+        const before = await credits(a);
+        const ok = await a.c.rpc("execute_maintenance", {
+          _vehicle_id: vehicle.id,
+          _service_type: "o2_refill",
+        });
+        expect(ok.error).toBeNull();
+        expect(await credits(a)).toBe(before - 350);
+        const bad = await a.c.rpc("execute_maintenance", {
+          _vehicle_id: vehicle.id,
+          _service_type: "tuning_gratis",
+        });
+        expect(bad.error?.message).toMatch(/desconhecido/);
+        expect(await credits(a)).toBe(before - 350);
+      });
+
+      it("o histórico de manutenção é privado", async () => {
+        const mine = (await a.c.from("maintenance_logs").select("user_id")).data!;
+        expect(mine.length).toBeGreaterThan(0);
+        expect(mine.every((l) => l.user_id === a.id)).toBe(true);
+        const theirs = (await b.c.from("maintenance_logs").select("user_id")).data!;
+        expect(theirs.some((l) => l.user_id === a.id)).toBe(false);
+      });
+    });
+
+    it("a API de anúncios recusa preço negativo e publica um válido", async () => {
+      const body = {
+        name: "Nave via API",
+        callsign: `API-${Date.now()}`,
+        category: "car_vtol",
+        price: 800,
+      };
+      expect((await post(a, "/v1/marketplace/listings", { ...body, price: -800 })).statusCode).toBe(
+        400,
+      );
+      expect((await post(a, "/v1/marketplace/listings", body)).statusCode).toBe(201);
+      expect((await post(a, "/v1/marketplace/listings", body)).statusCode).toBe(422);
+    });
   });
 
   describe("administração", () => {
@@ -359,16 +691,39 @@ describe.skipIf(!baseUrl || !key)("integração com Supabase real", () => {
       expect((await post(admin, url, { suspended: true, reason: "fraude" })).statusCode).toBe(200);
       const blocked = await post(other, "/v1/rentals", {
         ...booking(),
-        startSol: 5300,
-        endSol: 5301,
+        startSol: today + 230,
+        endSol: today + 231,
       });
       expect(blocked.statusCode).toBe(403);
       expect(blocked.json().message).toMatch(/suspensa/);
       expect((await post(admin, url, { suspended: false, reason: "resolvido" })).statusCode).toBe(
         200,
       );
-      const ok = await post(other, "/v1/rentals", { ...booking(), startSol: 5300, endSol: 5301 });
+      const ok = await post(other, "/v1/rentals", {
+        ...booking(),
+        startSol: today + 230,
+        endSol: today + 231,
+      });
       expect(ok.statusCode).toBe(201);
+    });
+
+    it("admin vê o histórico de manutenção de todos", async () => {
+      const rows = (await admin.c.from("maintenance_logs").select("user_id")).data!;
+      expect(rows.some((l) => l.user_id !== admin.id)).toBe(true);
+    });
+
+    it("só o admin tira um veículo de manutenção", async () => {
+      sql(`update public.vehicles set status = 'maintenance' where id = '${vehicle.id}'`);
+      const status = async () =>
+        (await admin.c.from("vehicles").select("status").eq("id", vehicle.id).single()).data
+          ?.status;
+      expect(await status()).toBe("maintenance");
+      const { error } = await admin.c.rpc("execute_maintenance", {
+        _vehicle_id: vehicle.id,
+        _service_type: "thruster_calibration",
+      });
+      expect(error).toBeNull();
+      expect(await status()).toBe("available");
     });
 
     it("admin não suspende a si mesmo", async () => {

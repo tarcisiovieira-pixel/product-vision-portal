@@ -15,6 +15,8 @@ interface LandingSearchWidgetProps {
   category: Vehicle["category"] | "all";
   setCategory: (cat: Vehicle["category"] | "all") => void;
   onSearch: () => void;
+  /** Primeiro sol que pode ser reservado (o sol atual). */
+  minSol?: number;
 }
 
 export function LandingSearchWidget({
@@ -30,6 +32,7 @@ export function LandingSearchWidget({
   category,
   setCategory,
   onSearch,
+  minSol = 4218,
 }: LandingSearchWidgetProps) {
   const [sameLocation, setSameLocation] = useState(true);
 
@@ -136,7 +139,7 @@ export function LandingSearchWidget({
           <div className="grid grid-cols-2 gap-2">
             <input
               type="number"
-              min={4218}
+              min={minSol}
               value={startSol}
               onChange={(e) => setStartSol(Number(e.target.value))}
               className="w-full border border-border/80 bg-background/90 p-3 text-foreground focus:border-primary focus:outline-none"

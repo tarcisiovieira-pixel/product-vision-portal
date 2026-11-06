@@ -76,7 +76,7 @@ describe("Login screen", () => {
     expect(screen.getByPlaceholderText("colono@jezero.mars")).toBeInTheDocument();
   });
 
-  it("switches to registration mode with space credential and license options", async () => {
+  it("switches to registration mode with space credential and the fixed initial license", async () => {
     await act(async () => {
       render(<Login />);
     });
@@ -88,10 +88,10 @@ describe("Login screen", () => {
 
     expect(screen.getByText(/Registrar credencial/i)).toBeInTheDocument();
     expect(screen.getByPlaceholderText(/ARS-4218-XXXX/i)).toBeInTheDocument();
-    expect(screen.getByText(/Habilitação de piloto/i)).toBeInTheDocument();
-    expect(screen.getByText(/Atmosférico/i)).toBeInTheDocument();
-    expect(screen.getByText(/Carga Pesada/i)).toBeInTheDocument();
-    expect(screen.getByText(/Orbital/i)).toBeInTheDocument();
+    // A habilitação não é escolhida no cadastro: promoções são feitas pela equipe.
+    expect(screen.getByText(/Habilitação inicial: Atmosférico/i)).toBeInTheDocument();
+    expect(screen.queryByText(/Carga Pesada/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Orbital/i)).not.toBeInTheDocument();
   });
 
   it("triggers demo access when clicking the demo button", async () => {

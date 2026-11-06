@@ -120,6 +120,10 @@ export function MarketplaceShowcase({ hangars, currentProfile }: MarketplaceShow
   // Handler para publicar anúncio de venda
   const handlePublishVehicle = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!(Number(sellPrice) > 0)) {
+      toast.error("Informe um preço maior que zero.");
+      return;
+    }
     const newCallsign = sellCallsign.trim() || `ARS-${Math.floor(1000 + Math.random() * 9000)}-EXP`;
 
     const newItem: VehicleSaleItem = {
@@ -593,7 +597,7 @@ export function MarketplaceShowcase({ hangars, currentProfile }: MarketplaceShow
                   <label className="text-muted-foreground">PREÇO PRETENDIDO (MC$)</label>
                   <input
                     type="number"
-                    min={1000}
+                    min={1}
                     value={sellPrice}
                     onChange={(e) => setSellPrice(Number(e.target.value))}
                     className="mt-1 w-full border bg-background/80 p-2.5 text-foreground focus:outline-none focus:border-primary"

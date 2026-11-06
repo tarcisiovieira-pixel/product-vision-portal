@@ -30,7 +30,10 @@ import {
   type Vehicle,
 } from "@/lib/ares-data";
 import { useLiveTelemetry } from "@/lib/telemetry-engine";
-import { FlightChaseViewer3D } from "@/components/FlightChaseViewer3D";
+// O viewer carrega o three.js: só baixa quando alguém abre o voo.
+const FlightChaseViewer3D = lazy(() =>
+  import("@/components/FlightChaseViewer3D").then((m) => ({ default: m.FlightChaseViewer3D })),
+);
 
 const RadarGlobe = lazy(() => import("@/components/RadarGlobe"));
 
@@ -426,24 +429,26 @@ function MarsRadar() {
 
       {/* Modal / Visualizador de Percurso 3D (Chase Cam & Cockpit) */}
       {chasingVehicle && (
-        <FlightChaseViewer3D
-          vehicle={chasingVehicle}
-          allVehicles={simulatedVehicles}
-          hangars={hangars}
-          onClose={() => setChasingVehicle(null)}
-          onSelectVehicle={(v) => {
-            if (v.status !== "in_flight") {
+        <Suspense fallback={null}>
+          <FlightChaseViewer3D
+            vehicle={chasingVehicle}
+            allVehicles={simulatedVehicles}
+            hangars={hangars}
+            onClose={() => setChasingVehicle(null)}
+            onSelectVehicle={(v) => {
+              if (v.status !== "in_flight") {
+                setChasingVehicle(null);
+                navigate({ to: "/app/hangar-3d", search: { vehicleId: v.id } });
+              } else {
+                setChasingVehicle(v);
+              }
+            }}
+            onNavigateHangar={(v) => {
               setChasingVehicle(null);
               navigate({ to: "/app/hangar-3d", search: { vehicleId: v.id } });
-            } else {
-              setChasingVehicle(v);
-            }
-          }}
-          onNavigateHangar={(v) => {
-            setChasingVehicle(null);
-            navigate({ to: "/app/hangar-3d", search: { vehicleId: v.id } });
-          }}
-        />
+            }}
+          />
+        </Suspense>
       )}
     </div>
   );

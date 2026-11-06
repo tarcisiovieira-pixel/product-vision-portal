@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useSafeNavigate } from "@/hooks/use-safe-navigate";
 import { useQuery, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { lazy, Suspense, useMemo, useState } from "react";
 import {
   AlertCircle,
   Bell,
@@ -36,13 +36,18 @@ import { toast } from "sonner";
 import { cancelRental, extendRental } from "@/lib/ares-actions";
 import { errorMessage } from "@/lib/utils";
 import { PageHeader, Bar, toneFor } from "@/components/PageHeader";
-import { FlightChaseViewer3D } from "@/components/FlightChaseViewer3D";
+// O viewer carrega o three.js: só baixa quando alguém abre o voo.
+const FlightChaseViewer3D = lazy(() =>
+  import("@/components/FlightChaseViewer3D").then((m) => ({ default: m.FlightChaseViewer3D })),
+);
 import {
   categoryLabel,
   hangarsQuery,
   marsDistanceKm,
   profileQuery,
   rentalsQuery,
+  currentSolQuery,
+  DEMO_SOL,
   statusLabel,
   vehiclesQuery,
   type Hangar,
@@ -91,6 +96,7 @@ function MyRentals() {
   const { data: vehicles } = useSuspenseQuery(vehiclesQuery);
   const { data: hangars } = useSuspenseQuery(hangarsQuery);
   const { data: rentals } = useSuspenseQuery(rentalsQuery);
+  const { data: sol = DEMO_SOL } = useQuery(currentSolQuery);
   const { data: profile } = useQuery(profileQuery);
 
   const [filterStatus, setFilterStatus] = useState<"all" | "in_flight" | "confirmed" | "completed">(
@@ -717,7 +723,7 @@ function MyRentals() {
                   </div>
 
                   <div className="flex items-center gap-2">
-                    {r.status === "confirmed" && (
+                    {r.status === "confirmed" && r.start_sol > sol && (
                       <button
                         type="button"
                         onClick={() => {
@@ -1074,24 +1080,26 @@ function MyRentals() {
       {/* 8. VISUALIZADOR DE PERCURSO 3D                          */}
       {/* ======================================================== */}
       {chasingVehicle && (
-        <FlightChaseViewer3D
-          vehicle={chasingVehicle}
-          allVehicles={vehicles}
-          hangars={hangars}
-          onClose={() => setChasingVehicle(null)}
-          onSelectVehicle={(v) => {
-            if (v.status !== "in_flight") {
+        <Suspense fallback={null}>
+          <FlightChaseViewer3D
+            vehicle={chasingVehicle}
+            allVehicles={vehicles}
+            hangars={hangars}
+            onClose={() => setChasingVehicle(null)}
+            onSelectVehicle={(v) => {
+              if (v.status !== "in_flight") {
+                setChasingVehicle(null);
+                safeNavigate({ to: "/app/hangar-3d", search: { vehicleId: v.id } });
+              } else {
+                setChasingVehicle(v);
+              }
+            }}
+            onNavigateHangar={(v) => {
               setChasingVehicle(null);
               safeNavigate({ to: "/app/hangar-3d", search: { vehicleId: v.id } });
-            } else {
-              setChasingVehicle(v);
-            }
-          }}
-          onNavigateHangar={(v) => {
-            setChasingVehicle(null);
-            safeNavigate({ to: "/app/hangar-3d", search: { vehicleId: v.id } });
-          }}
-        />
+            }}
+          />
+        </Suspense>
       )}
     </div>
   );

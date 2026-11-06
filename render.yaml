@@ -4,13 +4,18 @@ services:
     name: ares-api
     runtime: node
     rootDir: backend
-    buildCommand: npm ci && npm run build
+    # NODE_ENV=production faz o npm omitir devDependencies; o build precisa do typescript.
+    buildCommand: npm ci --include=dev && npm run build
     startCommand: npm start
     healthCheckPath: /health
     autoDeploy: true
     envVars:
       - key: NODE_ENV
         value: production
+      - key: NODE_VERSION
+        value: "22"
+      - key: TRUST_PROXY_HOPS
+        value: "1" # o Render coloca 1 proxy na frente da API
       - key: SUPABASE_URL
         sync: false
       - key: SUPABASE_PUBLISHABLE_KEY

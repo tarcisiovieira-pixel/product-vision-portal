@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { InfoTip } from "@/components/InfoTip";
 import { useMutation, useQuery, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { lazy, Suspense, useMemo, useState } from "react";
 import {
   AlertCircle,
   AlertTriangle,
@@ -28,7 +28,10 @@ import {
 import { toast } from "sonner";
 import { createRental } from "@/lib/ares-actions";
 import { PageHeader, Bar, toneFor } from "@/components/PageHeader";
-import { FlightChaseViewer3D } from "@/components/FlightChaseViewer3D";
+// O viewer carrega o three.js: só baixa quando alguém abre o voo.
+const FlightChaseViewer3D = lazy(() =>
+  import("@/components/FlightChaseViewer3D").then((m) => ({ default: m.FlightChaseViewer3D })),
+);
 import {
   categoryLabel,
   getRequiredLicense,
@@ -45,6 +48,8 @@ import {
   type Rental,
   type Vehicle,
   vehicleOccupancyQuery,
+  currentSolQuery,
+  DEMO_SOL,
 } from "@/lib/ares-data";
 import { isOccupied } from "@/lib/occupancy";
 
@@ -69,7 +74,6 @@ export const Route = createFileRoute("/app/booking")({
 });
 
 const icons = { car_vtol: Plane, space_truck: Truck, interplanetary_rocket: Rocket } as const;
-const CURRENT_SOL = 4218;
 
 function Booking() {
   const qc = useQueryClient();
@@ -89,7 +93,9 @@ function Booking() {
   });
   const [pickup, setPickup] = useState(defaultHangar);
   const [dropoff, setDropoff] = useState(defaultHangar);
-  const [startSol, setStartSol] = useState(CURRENT_SOL + 1);
+  const { data: sol = DEMO_SOL } = useQuery(currentSolQuery);
+  const [startInput, setStartSol] = useState<number | null>(null);
+  const startSol = startInput ?? sol + 1;
   const [sols, setSols] = useState(3);
   const [cat, setCat] = useState<Vehicle["category"] | "all">("all");
 
@@ -125,7 +131,9 @@ function Booking() {
   );
 
   const storm = weather.find((w) => w.active && w.severity >= 3);
-  const isSevereStormBlock = pickupHangar?.storm_alert || (storm && storm.severity >= 4);
+  // Mesma regra do banco: tempestade em um dos hangares da rota exige a barreira.
+  const stormHangar = [pickupHangar, dropoffHangar].find((h) => h?.storm_alert);
+  const needsBarrier = Boolean(stormHangar) && !stormBarrierShield;
 
   // Custo diário de adicionais
   const dailyExtrasRate = useMemo(() => {
@@ -204,7 +212,7 @@ function Booking() {
             <span>Minhas Reservas ({rentals.length})</span>
           </Link>
           <span className="font-mono text-xs text-telemetry">
-            SOL {CURRENT_SOL.toLocaleString("pt-BR")} · 09:42 LMST
+            SOL {sol.toLocaleString("pt-BR")} · 09:42 LMST
           </span>
           {profile && (
             <span className="border border-telemetry/40 bg-telemetry/10 px-2.5 py-1 font-mono text-xs text-telemetry">
@@ -287,12 +295,7 @@ function Booking() {
             onChange={setDropoff}
             options={hangars.map((h) => [h.id, h.name])}
           />
-          <NumberField
-            label="Sol de início"
-            value={startSol}
-            min={CURRENT_SOL}
-            onChange={setStartSol}
-          />
+          <NumberField label="Sol de início" value={startSol} min={sol} onChange={setStartSol} />
           <NumberField label="Duração (sols)" value={sols} min={1} onChange={setSols} />
           <Select
             label="Categoria"
@@ -427,7 +430,7 @@ function Booking() {
       </div>
 
       {/* Alerta de Tempestade & Status da Barreira */}
-      {(pickupHangar?.storm_alert || storm) && (
+      {(stormHangar || storm) && (
         <div
           className={`flex items-center gap-3 border px-4 py-3 text-sm font-mono ${
             stormBarrierShield
@@ -448,8 +451,8 @@ function Booking() {
             ) : (
               <p className="text-xs">
                 <span className="font-bold">Alerta Climático:</span>{" "}
-                {pickupHangar?.storm_alert
-                  ? `Ventos severos em ${pickupHangar.name}`
+                {stormHangar
+                  ? `Ventos severos em ${stormHangar.name}`
                   : `${storm!.name} ativa (${storm!.wind_speed_kmh} km/h)`}
                 . Ative a Barreira Anti-Tempestade para liberar a decolagem.
               </p>
@@ -473,7 +476,7 @@ function Booking() {
           const okStatus = v.status === "available";
           const hasLicense = isLicenseValidForCategory(profile?.pilot_license, v.category);
           const occupied = isOccupied(occupancy, v.id, startSol, startSol + sols);
-          const canBook = okStatus && hasLicense && !occupied && !book.isPending;
+          const canBook = okStatus && hasLicense && !occupied && !needsBarrier && !book.isPending;
 
           return (
             <div
@@ -548,9 +551,11 @@ function Booking() {
                       ? "Indisponível"
                       : occupied
                         ? "Reservado neste período"
-                        : book.isPending
-                          ? "Emitindo Chave Quântica..."
-                          : "Reservar Agora"}
+                        : needsBarrier
+                          ? "Ative a barreira anti-tempestade"
+                          : book.isPending
+                            ? "Emitindo Chave Quântica..."
+                            : "Reservar Agora"}
                 </button>
 
                 <button
@@ -649,24 +654,26 @@ function Booking() {
 
       {/* Modal 3D Chase Viewer de Voo e Percurso */}
       {chasingVehicle && (
-        <FlightChaseViewer3D
-          vehicle={chasingVehicle}
-          allVehicles={vehicles}
-          hangars={hangars}
-          onClose={() => setChasingVehicle(null)}
-          onSelectVehicle={(v) => {
-            if (v.status !== "in_flight") {
+        <Suspense fallback={null}>
+          <FlightChaseViewer3D
+            vehicle={chasingVehicle}
+            allVehicles={vehicles}
+            hangars={hangars}
+            onClose={() => setChasingVehicle(null)}
+            onSelectVehicle={(v) => {
+              if (v.status !== "in_flight") {
+                setChasingVehicle(null);
+                navigate({ to: "/app/hangar-3d", search: { vehicleId: v.id } });
+              } else {
+                setChasingVehicle(v);
+              }
+            }}
+            onNavigateHangar={(v) => {
               setChasingVehicle(null);
               navigate({ to: "/app/hangar-3d", search: { vehicleId: v.id } });
-            } else {
-              setChasingVehicle(v);
-            }
-          }}
-          onNavigateHangar={(v) => {
-            setChasingVehicle(null);
-            navigate({ to: "/app/hangar-3d", search: { vehicleId: v.id } });
-          }}
-        />
+            }}
+          />
+        </Suspense>
       )}
 
       {/* Modal / Overlay de Boarding Pass Quântico & Controles Remotos */}

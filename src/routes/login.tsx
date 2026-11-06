@@ -39,14 +39,6 @@ export const Route = createFileRoute("/login")({
   component: Login,
 });
 
-const licenses = [
-  { id: "atmospheric", label: "Atmosférico" },
-  { id: "heavy_cargo", label: "Carga Pesada" },
-  { id: "orbital", label: "Orbital" },
-] as const;
-
-type PilotLicenseType = (typeof licenses)[number]["id"];
-
 function Login() {
   const nav = useNavigate();
   const qc = useQueryClient();
@@ -54,7 +46,6 @@ function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [credentialId, setCredentialId] = useState("");
-  const [license, setLicense] = useState<PilotLicenseType>("atmospheric");
   const [loading, setLoading] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
   const [pendingEmail, setPendingEmail] = useState<string | null>(null);
@@ -115,7 +106,6 @@ function Login() {
             emailRedirectTo: `${window.location.origin}/login`,
             data: {
               space_credential_id: autoCredId,
-              pilot_license: license,
             },
           },
         });
@@ -315,26 +305,9 @@ function Login() {
                   />
                 </div>
               </div>
-
-              <div>
-                <label className="text-muted-foreground">Habilitação de piloto</label>
-                <div className="mt-1.5 grid grid-cols-3 gap-2">
-                  {licenses.map((lic) => (
-                    <button
-                      key={lic.id}
-                      type="button"
-                      onClick={() => setLicense(lic.id)}
-                      className={`border p-2 text-center text-[11px] uppercase transition ${
-                        license === lic.id
-                          ? "border-primary bg-primary/20 text-primary font-bold"
-                          : "text-muted-foreground hover:border-muted-foreground"
-                      }`}
-                    >
-                      {lic.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
+              <p className="text-[11px] text-muted-foreground">
+                Habilitação inicial: Atmosférico. Upgrades são liberados pela equipe ARES.
+              </p>
 
               <div className="flex items-center gap-2 border border-telemetry/40 bg-telemetry/5 p-3 text-[11px] text-telemetry">
                 <ShieldCheck className="h-4 w-4 shrink-0" />
