@@ -1,4 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { isDemoSession } from "@/lib/session";
 import { InfoTip } from "@/components/InfoTip";
 import { useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { lazy, Suspense, useEffect, useState } from "react";
@@ -74,6 +75,7 @@ function MarsRadar() {
   );
 
   useEffect(() => {
+    if (isDemoSession()) return; // o sandbox não tem dados ao vivo
     const ch = supabase
       .channel(`radar-${Math.random().toString(36).slice(2)}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "vehicles" }, () =>
