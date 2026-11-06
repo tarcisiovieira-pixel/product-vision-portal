@@ -9,9 +9,25 @@ em uma única plataforma, com a frota em 3D e o clima em tempo real.
 
 `React 19` · `TanStack Start` · `Three.js` · `Fastify` · `Supabase`
 
-[A promessa](#-a-promessa) · [Módulos](#-módulos) · [Arquitetura](#-arquitetura) · [Rodar localmente](#-rodar-localmente) · [Testes](#-testes) · [Status](#-status-do-projeto)
+[Teste em 2 minutos](#-teste-em-2-minutos) · [Módulos](#-módulos) · [Arquitetura](#-arquitetura) · [Ambiente completo](#-ambiente-completo) · [Testes](#-testes) · [Status](#-status-do-projeto)
+
+![Página inicial da ARES Mobility](docs/screenshots/landing.png)
 
 </div>
+
+## ◆ Teste em 2 minutos
+
+Precisa apenas do Node.js 20+. Não é preciso criar conta nem configurar banco.
+
+```sh
+git clone https://github.com/tarcisiovieira-pixel/product-vision-portal.git
+cd product-vision-portal
+npm install
+cp .env.example .env
+npm run dev
+```
+
+Abra `http://localhost:8080`, clique em **Acessar Terminal** e depois em **Entrar no modo demo**. O painel administrativo aparece no menu lateral, com dados fictícios.
 
 ---
 
@@ -53,6 +69,7 @@ Um só portal para **reservar, rastrear e cuidar da frota**.
 | 🔧 **Manutenção** | Saúde da frota, diagnóstico por pontos no modelo 3D e ordens de serviço. |
 | 🛒 **Marketplace** | Compra de naves e publicação de anúncios. |
 | 🔐 **Contas e demo** | Cadastro com confirmação por e-mail, login e modo demo sem cadastro. |
+| 🛡️ **Painel administrativo** | Indicadores do negócio, gestão de usuários, suspensão, ajuste de créditos, exportação e auditoria. |
 
 ### Programados
 
@@ -64,9 +81,44 @@ Um só portal para **reservar, rastrear e cuidar da frota**.
 | 🧭 **Centro de comando** | Painel inicial com tudo o que importa ao piloto. |
 | 🎯 **Missões, carteira e perfil** | Missões, extrato de créditos, histórico e reputação do piloto. |
 | 🌦️ **Clima e notificações** | Previsão por setor e avisos em tempo real. |
-| 🛠️ **Administração** | Gestão de frota, hangares e usuários. |
+| 🛠️ **Gestão de frota** | Cadastro de veículos e hangares pelo painel administrativo. |
 
 Detalhes e decisões: [`docs/SPEC-ADENDO-DECISOES.md`](docs/SPEC-ADENDO-DECISOES.md).
+
+### Telas
+
+| Locadora com ocupação por período | Voo 3D |
+|---|---|
+| ![Locadora](docs/screenshots/locadora.png) | ![Voo 3D](docs/screenshots/voo-3d.png) |
+
+| Radar da frota | Hangar 3D |
+|---|---|
+| ![Radar](docs/screenshots/radar.png) | ![Hangar 3D](docs/screenshots/hangar.png) |
+
+## ◆ Painel administrativo
+
+![Painel administrativo](docs/screenshots/admin.png)
+
+Feito para responder o que decidir hoje, não só para listar usuários.
+
+| Pergunta do administrador | Onde responder |
+|---|---|
+| O produto está crescendo? | Usuários, novos em 7 e 30 dias, gráfico de cadastros. |
+| As pessoas usam de verdade? | Ativos em 30 dias e conversão para a primeira reserva. |
+| Quanto entra e de onde? | Receita total, ticket médio e veículos que mais faturam. |
+| A frota está bem dimensionada? | Ocupação da frota. |
+| Quem precisa de ação? | Exige atenção: e-mail pendente, nunca reservaram, inativos, saldo baixo, cancelam muito e suspensos. Cada contador filtra a tabela. |
+
+Cada indicador explica o próprio cálculo no ícone de informação. A tabela tem busca, ordenação e exportação para CSV. Ajustar créditos, alterar habilitação e suspender conta exigem motivo e ficam registrados na auditoria.
+
+**Segurança.** A permissão é verificada dentro do banco em cada operação, então esconder o menu não é a proteção. Métricas e usuários só saem por funções restritas a administradores.
+
+**Tornar alguém administrador.** Não há botão para isso, de propósito. Com a conta já criada, rode no SQL Editor do Supabase:
+
+```sql
+insert into public.admin_users (user_id)
+select id from auth.users where email = 'email-do-admin@exemplo.com';
+```
 
 ## ◆ Arquitetura
 
@@ -81,6 +133,7 @@ Detalhes e decisões: [`docs/SPEC-ADENDO-DECISOES.md`](docs/SPEC-ADENDO-DECISOES
 - **A API é opcional durante a migração.** Com `VITE_API_URL` definida, reservas, manutenção e compras passam por ela. Sem a variável, o front chama direto as funções do banco, que aplicam as mesmas regras.
 - **Dupla proteção.** A API repassa o token do usuário, então a RLS continua valendo no banco.
 - **Modo demo é um sandbox local.** Ele usa dados fictícios salvos no navegador e nunca toca no banco. Conta real nunca enxerga dados demo.
+- **Ocupação na trava do banco.** Uma restrição do Postgres impede duas reservas do mesmo veículo em períodos sobrepostos, mesmo em cliques simultâneos.
 
 ## ◆ Estrutura do projeto
 
@@ -88,58 +141,52 @@ Detalhes e decisões: [`docs/SPEC-ADENDO-DECISOES.md`](docs/SPEC-ADENDO-DECISOES
 .
 ├── src/                    Front
 │   ├── routes/             Telas (uma por arquivo: app.booking, app.mars-radar…)
-│   ├── components/         Componentes, cenas 3D e ui/ (shadcn)
+│   ├── components/         Componentes, cenas 3D, admin/ e ui/ (shadcn)
 │   ├── lib/
 │   │   ├── ares-data.ts    Leituras (queries)
 │   │   ├── ares-actions.ts Escritas (demo, API ou RPC, em um só lugar)
 │   │   ├── session.ts      Regras do modo demo
+│   │   ├── occupancy.ts    Regra de ocupação por período
+│   │   ├── admin.ts        Painel: consultas, ações e segmentos
 │   │   └── api-client.ts   Cliente da API
 │   └── test/               Testes unitários do front
 ├── backend/                API Fastify (package.json próprio)
-│   ├── src/modules/        rentals · maintenance · marketplace · me · health
+│   ├── src/modules/        rentals · maintenance · marketplace · admin · me · health
 │   ├── src/plugins/        Autenticação e tratamento de erros
 │   └── test/               Testes unitários e de integração
 ├── supabase/
 │   ├── migrations/         Histórico do banco (só novas migrations)
 │   └── tests/              Ataques simulados contra o banco
 ├── scripts/e2e/            Testes no navegador real
-├── docs/                   Auditoria, decisões e plano
+├── docs/                   Auditoria, decisões, plano e capturas de tela
 └── render.yaml             Deploy da API
 ```
 
-## ◆ Rodar localmente
+## ◆ Ambiente completo
 
-**Precisa de:** Node.js 20+ e, para o banco local, Docker.
-
-### Só o app (o caminho mais rápido)
+Para contas reais, reservas no banco e a API. Precisa de Docker.
 
 ```sh
-npm install
-cp .env.example .env     # preencha com os dados do seu projeto Supabase
-npm run dev              # http://localhost:8080
+# 1. Banco e Auth locais, com todas as migrations. Anote o Publishable key exibido.
+npx supabase start
 ```
 
-Clique em **Entrar no modo demo**: não precisa de conta.
-
-### Ambiente completo (banco, API e app)
+```sh
+# 2. API, em outro terminal
+cd backend
+npm install
+cp .env.example .env     # defina SUPABASE_URL=http://127.0.0.1:54321 e a chave acima
+npm run dev              # http://localhost:3001
+```
 
 ```sh
-# 1. Banco local com todas as migrations. Anote o publishable key exibido.
-npx supabase start
-
-# 2. API
-cd backend && npm install
-cp .env.example .env     # SUPABASE_URL=http://127.0.0.1:54321 e a chave acima
-npm run dev              # http://localhost:3001
-
-# 3. App apontando para o banco e a API locais (em outro terminal, na raiz)
-VITE_SUPABASE_URL=http://127.0.0.1:54321 \
-VITE_SUPABASE_PUBLISHABLE_KEY=<chave> \
-VITE_API_URL=http://localhost:3001 \
+# 3. App, em outro terminal, na raiz. No .env, defina:
+#    VITE_SUPABASE_PUBLISHABLE_KEY=<chave acima>
+#    VITE_API_URL=http://localhost:3001
 npm run dev
 ```
 
-No ambiente local não há confirmação de e-mail: o cadastro já entra no app.
+No ambiente local não há confirmação de e-mail: o cadastro já entra no app. O `CORS_ORIGINS` do `backend/.env` precisa incluir `http://localhost:8080`.
 
 ## ◆ Testes
 
@@ -148,19 +195,22 @@ No ambiente local não há confirmação de e-mail: o cadastro já entra no app.
 | Front | `npm run check` | Tipos, lint, testes unitários e build. |
 | API | `cd backend && npm run check` | Tipos, rotas, validações e build. |
 | Integração | Abaixo | API + Auth + Postgres + RLS reais. |
-| Navegador | Abaixo | Telas, login, reservas, animações 3D, tooltip e mobile. |
+| Navegador | Abaixo | Telas, login, reservas, ocupação, painel administrativo, animações 3D e mobile. |
 
 ```sh
-# Integração (com `supabase start` rodando)
+# Integração (com `npx supabase start` rodando)
 cd backend
 SUPABASE_TEST_URL=http://127.0.0.1:54321 SUPABASE_TEST_KEY=<chave> npx vitest run
 
-# Navegador (usa o Chrome instalado; o app precisa estar rodando)
+# Navegador, em ambiente completo (usa o Chrome instalado)
 E2E_BASE_URL=http://localhost:8080 npm run e2e
+E2E_BASE_URL=http://localhost:8080 npm run e2e:admin
 
-# Contra um Supabase que não seja local, pule a parte que cria contas
-E2E_SKIP_USER=1 npm run e2e
+# Navegador sem criar contas, para usar contra um Supabase que não seja local
+E2E_SKIP_USER=1 E2E_BASE_URL=http://localhost:8080 npm run e2e
 ```
+
+O CI do GitHub roda tipos, lint, testes unitários e build do front e da API a cada envio.
 
 ## ◆ Deploy
 
@@ -168,7 +218,7 @@ E2E_SKIP_USER=1 npm run e2e
 |---|---|
 | **Front** | Commits na `main` sincronizam com o Lovable automaticamente. |
 | **API** | Render, a partir do `render.yaml`. Defina `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY` e `CORS_ORIGINS`. |
-| **Banco** | Aplique as migrations primeiro em um projeto de desenvolvimento e só depois em produção. |
+| **Banco** | `npx supabase db push`. Aplique primeiro em um projeto de desenvolvimento e só depois em produção. |
 
 Regras do repositório:
 
@@ -187,14 +237,17 @@ Regras do repositório:
 - [x] API Fastify com validação, autenticação, limite de requisições e erros padronizados
 - [x] Animações de voo, radar e hangar em movimento
 - [x] Interface enxuta, com detalhes no ícone de informação
+- [x] Painel administrativo com indicadores, gestão de usuários e auditoria
+- [x] Barreira anti-tempestade cobrada e vendedor recebendo o valor da venda
 
 **Pendente em produção**
 
-- [ ] Aplicar a migration `20261106120000` (ocupação de veículos)
+- [ ] Aplicar as migrations `20261106120000` (ocupação), `20261107100000` (painel) e `20261107110000` (preços e marketplace)
 - [ ] Publicar a API no Render e definir `VITE_API_URL` no front
 - [ ] Mover as leituras restantes do front para a API
 
 **Limitações conhecidas**
 
-- A compra no marketplace ainda não credita o vendedor.
-- A barreira anti-tempestade aparece no preço da tela, mas ainda não é cobrada pelo banco em contas reais.
+- Os créditos MC$ são fictícios: não há pagamento real.
+- O status do veículo não muda sozinho quando a reserva começa ou termina.
+- No modo demo, o painel administrativo é somente leitura.
