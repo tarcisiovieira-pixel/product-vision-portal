@@ -137,6 +137,41 @@ describe("demais rotas", () => {
   });
 });
 
+describe("rotas administrativas", () => {
+  it("exigem token", async () => {
+    const res = await app.inject({ method: "GET", url: "/v1/admin/users" });
+    expect(res.statusCode).toBe(401);
+  });
+
+  it("repassam a recusa do banco para quem não é admin", async () => {
+    rpc.mockRejectedValue(mapDbError({ code: "P0001", message: "Acesso negado" }));
+    const res = await app.inject({ method: "GET", url: "/v1/admin/overview", headers });
+    expect(res.statusCode).toBe(403);
+  });
+
+  it.each([
+    ["sem motivo", { delta: 100 }],
+    ["motivo curto", { delta: 100, reason: "x" }],
+    ["delta zero", { delta: 0, reason: "motivo" }],
+    ["delta fracionado", { delta: 1.5, reason: "motivo" }],
+    ["acima do limite", { delta: 2_000_000, reason: "motivo" }],
+  ])("recusa ajuste de créditos %s", async (_nome, payload) => {
+    expect((await post(`/v1/admin/users/${ID}/credits`, payload)).statusCode).toBe(400);
+    expect(rpc).not.toHaveBeenCalled();
+  });
+
+  it("recusa habilitação inexistente", async () => {
+    const res = await post(`/v1/admin/users/${ID}/license`, { license: "deus", reason: "motivo" });
+    expect(res.statusCode).toBe(400);
+  });
+
+  it("ajusta créditos e devolve o saldo", async () => {
+    rpc.mockResolvedValue("5100");
+    const res = await post(`/v1/admin/users/${ID}/credits`, { delta: 100, reason: "bônus" });
+    expect(res.json()).toEqual({ balance: 5100 });
+  });
+});
+
 describe("mapDbError", () => {
   const cases: [string, string, number][] = [
     ["Veículo não encontrado", "P0001", 404],
@@ -144,6 +179,8 @@ describe("mapDbError", () => {
     ["Veículo indisponível no momento", "P0001", 409],
     ["Só reservas confirmadas podem ser canceladas", "P0001", 409],
     ["Veículo já reservado nesse período", "P0001", 409],
+    ["Acesso negado", "P0001", 403],
+    ["Conta suspensa. Fale com o suporte.", "P0001", 403],
     ["Saldo insuficiente", "P0001", 422],
     ["Habilitação insuficiente!", "P0001", 422],
     ["Não autenticado", "P0001", 401],

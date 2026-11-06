@@ -13,6 +13,7 @@ export interface UserDb {
 export type UserDbFactory = (token: string) => UserDb;
 
 const AUTH_ERRORS = /não autenticado|jwt/i;
+const FORBIDDEN_ERRORS = /acesso negado|conta suspensa/i;
 const NOT_FOUND_ERRORS = /não encontrad|não localizado/i;
 const CONFLICT_ERRORS =
   /indisponível|não está mais disponível|só reservas|próprio anúncio|já reservado/i;
@@ -26,6 +27,7 @@ export function mapDbError(error: { message: string; code?: string | undefined }
   if (code !== BUSINESS_CODE) {
     return new HttpError(502, "database_error", "Falha ao acessar os dados.");
   }
+  if (FORBIDDEN_ERRORS.test(message)) return new HttpError(403, "forbidden", message);
   if (NOT_FOUND_ERRORS.test(message)) return new HttpError(404, "not_found", message);
   if (CONFLICT_ERRORS.test(message)) return new HttpError(409, "conflict", message);
   return new HttpError(422, "business_rule", message);

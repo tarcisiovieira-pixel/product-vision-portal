@@ -6,11 +6,13 @@ import {
   CalendarRange,
   LogOut,
   Radar,
+  ShieldCheck,
   ShoppingBag,
   Wrench,
 } from "lucide-react";
 import { AresLogo } from "@/components/AresLogo";
 import { supabase } from "@/integrations/supabase/client";
+import { adminStatusQuery } from "@/lib/admin";
 import { licenseLabel, profileQuery } from "@/lib/ares-data";
 import { clearDemoState, isDemoSession } from "@/lib/session";
 
@@ -48,10 +50,14 @@ const nav = [
   { to: "/app/marketplace", label: "Compra & Venda", icon: ShoppingBag },
 ] as const;
 
+const adminLink = { to: "/app/admin", label: "Administração", icon: ShieldCheck } as const;
+
 function AppLayout() {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const { data: profile } = useQuery(profileQuery);
+  const { data: isAdmin } = useQuery(adminStatusQuery);
+  const links = isAdmin ? [...nav, adminLink] : nav;
 
   const signOut = async () => {
     clearDemoState();
@@ -68,7 +74,7 @@ function AppLayout() {
           <AresLogo />
         </div>
         <nav className="flex gap-1 overflow-x-auto p-3 md:flex-col">
-          {nav.map((n) => (
+          {links.map((n) => (
             <Link
               key={n.to}
               to={n.to}

@@ -4,6 +4,7 @@ import rateLimit from "@fastify/rate-limit";
 import Fastify, { type FastifyInstance } from "fastify";
 import type { Env } from "./config/env.js";
 import { supabaseUserDb, type UserDbFactory } from "./lib/supabase.js";
+import { adminRoutes } from "./modules/admin/routes.js";
 import { healthRoutes } from "./modules/health/routes.js";
 import { maintenanceRoutes } from "./modules/maintenance/routes.js";
 import { marketplaceRoutes } from "./modules/marketplace/routes.js";
@@ -50,6 +51,7 @@ export async function buildApp({ env, verifier, userDb }: BuildOptions): Promise
   await app.register(rentalRoutes(db));
   await app.register(maintenanceRoutes(db));
   await app.register(marketplaceRoutes(db));
+  await app.register(adminRoutes(db));
 
   return app;
 }

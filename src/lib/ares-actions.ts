@@ -55,6 +55,7 @@ export interface BookingInput {
   extraO2Tank: boolean;
   neuralAutopilot: boolean;
   evaSuits: number;
+  stormBarrier: boolean;
   /** Total calculado pela tela. Conta real: o valor oficial é o do servidor. */
   totalCredits: number;
 }
@@ -124,6 +125,30 @@ async function resolveIds(input: BookingInput): Promise<BookingInput> {
   };
 }
 
+async function bookViaRpc(b: BookingInput): Promise<string> {
+  const args = {
+    _vehicle_id: b.vehicle.id,
+    _pickup: b.pickup,
+    _dropoff: b.dropoff,
+    _start_sol: b.startSol,
+    _end_sol: b.endSol,
+    _silica_insurance: b.silicaInsurance,
+    _extra_o2_tank: b.extraO2Tank,
+    _neural_autopilot_l5: b.neuralAutopilot,
+    _extra_eva_suits: b.evaSuits,
+  };
+  if (!b.stormBarrier) return callRpc<string>("book_vehicle", args);
+  try {
+    return await callRpc<string>("book_vehicle", { ...args, _storm_barrier: true });
+  } catch (err) {
+    // Banco ainda sem a migration de preços: a reserva segue sem a cobrança da barreira.
+    if (err instanceof Error && err.message.includes("Could not find the function")) {
+      return callRpc<string>("book_vehicle", args);
+    }
+    throw err;
+  }
+}
+
 export async function createRental(input: BookingInput): Promise<Rental> {
   if (isDemoSession()) return createDemoRental(input);
 
@@ -140,19 +165,10 @@ export async function createRental(input: BookingInput): Promise<Rental> {
           extraO2Tank: b.extraO2Tank,
           neuralAutopilot: b.neuralAutopilot,
           extraEvaSuits: b.evaSuits,
+          stormBarrier: b.stormBarrier,
         })
       ).id
-    : await callRpc<string>("book_vehicle", {
-        _vehicle_id: b.vehicle.id,
-        _pickup: b.pickup,
-        _dropoff: b.dropoff,
-        _start_sol: b.startSol,
-        _end_sol: b.endSol,
-        _silica_insurance: b.silicaInsurance,
-        _extra_o2_tank: b.extraO2Tank,
-        _neural_autopilot_l5: b.neuralAutopilot,
-        _extra_eva_suits: b.evaSuits,
-      });
+    : await bookViaRpc(b);
 
   const { data, error } = await supabase.from("rentals").select("*").eq("id", rentalId).single();
   if (error) throw new Error(error.message);

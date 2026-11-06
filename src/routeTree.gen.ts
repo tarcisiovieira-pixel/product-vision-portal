@@ -14,6 +14,7 @@ import { Route as AppRouteImport } from './routes/app'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as PainelRouteImport } from './routes/painel'
 import { Route as AppIndexRouteImport } from './routes/app.index'
+import { Route as AppAdminRouteImport } from './routes/app.admin'
 import { Route as AppBookingRouteImport } from './routes/app.booking'
 import { Route as AppHangar3dRouteImport } from './routes/app.hangar-3d'
 import { Route as AppMaintenanceRouteImport } from './routes/app.maintenance'
@@ -44,6 +45,11 @@ const PainelRoute = PainelRouteImport.update({
 const AppIndexRoute = AppIndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppAdminRoute = AppAdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
   getParentRoute: () => AppRoute,
 } as any)
 const AppBookingRoute = AppBookingRouteImport.update({
@@ -82,6 +88,7 @@ export interface FileRoutesByFullPath {
   '/app': typeof AppRouteWithChildren
   '/login': typeof LoginRoute
   '/painel': typeof PainelRoute
+  '/app/admin': typeof AppAdminRoute
   '/app/booking': typeof AppBookingRoute
   '/app/hangar-3d': typeof AppHangar3dRoute
   '/app/maintenance': typeof AppMaintenanceRoute
@@ -94,6 +101,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/painel': typeof PainelRoute
+  '/app/admin': typeof AppAdminRoute
   '/app/booking': typeof AppBookingRoute
   '/app/hangar-3d': typeof AppHangar3dRoute
   '/app/maintenance': typeof AppMaintenanceRoute
@@ -108,6 +116,7 @@ export interface FileRoutesById {
   '/app': typeof AppRouteWithChildren
   '/login': typeof LoginRoute
   '/painel': typeof PainelRoute
+  '/app/admin': typeof AppAdminRoute
   '/app/booking': typeof AppBookingRoute
   '/app/hangar-3d': typeof AppHangar3dRoute
   '/app/maintenance': typeof AppMaintenanceRoute
@@ -123,6 +132,7 @@ export interface FileRouteTypes {
     | '/app'
     | '/login'
     | '/painel'
+    | '/app/admin'
     | '/app/booking'
     | '/app/hangar-3d'
     | '/app/maintenance'
@@ -135,6 +145,7 @@ export interface FileRouteTypes {
     | '/'
     | '/login'
     | '/painel'
+    | '/app/admin'
     | '/app/booking'
     | '/app/hangar-3d'
     | '/app/maintenance'
@@ -148,6 +159,7 @@ export interface FileRouteTypes {
     | '/app'
     | '/login'
     | '/painel'
+    | '/app/admin'
     | '/app/booking'
     | '/app/hangar-3d'
     | '/app/maintenance'
@@ -201,6 +213,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppIndexRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/admin': {
+      id: '/app/admin'
+      path: '/admin'
+      fullPath: '/app/admin'
+      preLoaderRoute: typeof AppAdminRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/booking': {
       id: '/app/booking'
       path: '/booking'
@@ -247,6 +266,7 @@ declare module '@tanstack/react-router' {
 }
 
 interface AppRouteChildren {
+  AppAdminRoute: typeof AppAdminRoute
   AppBookingRoute: typeof AppBookingRoute
   AppHangar3dRoute: typeof AppHangar3dRoute
   AppMaintenanceRoute: typeof AppMaintenanceRoute
@@ -257,6 +277,7 @@ interface AppRouteChildren {
 }
 
 const AppRouteChildren: AppRouteChildren = {
+  AppAdminRoute: AppAdminRoute,
   AppBookingRoute: AppBookingRoute,
   AppHangar3dRoute: AppHangar3dRoute,
   AppMaintenanceRoute: AppMaintenanceRoute,

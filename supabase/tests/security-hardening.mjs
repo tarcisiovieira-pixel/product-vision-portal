@@ -3,6 +3,7 @@
 //       node supabase/tests/security-hardening.mjs 99999999 tests      # todas as migrations + cenários
 //       node supabase/tests/security-hardening.mjs 20261103090000_zz tests  # sem o hardening (mostra as brechas)
 import { PGlite } from "@electric-sql/pglite";
+import { btree_gist } from "@electric-sql/pglite/contrib/btree_gist";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -14,7 +15,7 @@ const files = fs
   .sort();
 const upTo = process.argv[2]; // opcional: aplicar só até certo prefixo (para comparar antes/depois)
 
-const db = new PGlite();
+const db = new PGlite({ extensions: { btree_gist } });
 await db.exec(`
   create role anon nologin; create role authenticated nologin; create role service_role nologin bypassrls;
   grant usage on schema public to anon, authenticated, service_role;

@@ -22,6 +22,7 @@ export function rentalRoutes(db: UserDbFactory) {
         _extra_o2_tank: b.extraO2Tank,
         _neural_autopilot_l5: b.neuralAutopilot,
         _extra_eva_suits: b.extraEvaSuits,
+        _storm_barrier: b.stormBarrier,
       });
       return reply.code(201).send({ id });
     });

@@ -157,6 +157,7 @@ function Booking() {
         extraO2Tank,
         neuralAutopilot,
         evaSuits,
+        stormBarrier: stormBarrierShield,
         totalCredits: (v.daily_rate_sol + dailyExtrasRate) * sols,
       });
       return { vehicle: v, rental };

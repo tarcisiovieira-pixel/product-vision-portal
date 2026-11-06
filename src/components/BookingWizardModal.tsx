@@ -38,9 +38,11 @@ import {
   type Rental,
   type Vehicle,
   type WeatherEvent,
+  vehicleOccupancyQuery,
 } from "@/lib/ares-data";
 import { supabase } from "@/integrations/supabase/client";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { isOccupied } from "@/lib/occupancy";
 import { createRental } from "@/lib/ares-actions";
 import {
   clearDemoState,
@@ -93,6 +95,7 @@ function BookingWizardInner({
 }: BookingWizardModalProps & { vehicle: Vehicle }) {
   const navigate = useNavigate();
   const qc = useQueryClient();
+  const { data: occupancy = [] } = useQuery(vehicleOccupancyQuery);
   const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
 
   // Etapa 1: Voo & Itinerário
@@ -150,6 +153,8 @@ function BookingWizardInner({
   const dailyBase = vehicle.daily_rate_sol;
   const totalDailyRate = dailyBase + dailyExtrasRate;
   const totalCredits = totalDailyRate * sols;
+
+  const occupied = isOccupied(occupancy, vehicle.id, startSol, startSol + sols);
 
   // Validação de licença para este veículo
   const effectiveLicense = activeProfile?.pilot_license || pilotLicense;
@@ -271,6 +276,7 @@ function BookingWizardInner({
         extraO2Tank,
         neuralAutopilot,
         evaSuits,
+        stormBarrier: stormBarrierShield,
         totalCredits,
       });
       await qc.invalidateQueries({ queryKey: ["profile"] });
@@ -1104,10 +1110,12 @@ function BookingWizardInner({
               {step < 3 ? (
                 <button
                   type="button"
+                  disabled={occupied}
+                  title={occupied ? "Veículo já reservado nesse período" : undefined}
                   onClick={() => setStep((s) => Math.min(4, s + 1) as 1 | 2 | 3 | 4)}
                   className="cut-corner bg-mars-gradient px-6 py-2.5 font-sans font-semibold uppercase tracking-widest text-primary-foreground shadow-glow"
                 >
-                  Continuar →
+                  {occupied ? "Reservado neste período" : "Continuar →"}
                 </button>
               ) : (
                 <button

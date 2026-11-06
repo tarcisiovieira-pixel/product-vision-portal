@@ -1,3 +1,4 @@
+import { apiEnabled, apiGet } from "./api-client";
 import { isActiveRental, type OccupiedPeriod } from "./occupancy";
 import { queryOptions } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -116,6 +117,7 @@ export const rentalsQuery = queryOptions({
   queryKey: ["rentals"],
   queryFn: async (): Promise<Rental[]> => {
     if (isDemoSession()) return mergeById(readDemoRentals(), SEED_RENTALS);
+    if (apiEnabled()) return (await apiGet<{ items: Rental[] }>("/v1/rentals")).items;
     const { data, error } = await supabase
       .from("rentals")
       .select("*")
@@ -163,6 +165,10 @@ export const maintenanceLogsQuery = queryOptions({
   },
 });
 
+// Sem seller_user_id: visitantes não têm permissão de ler essa coluna.
+const SALE_COLUMNS =
+  "id, name, callsign, category, price_credits, sol_manufactured, flight_hours, hull_integrity_pct, battery_condition_pct, condition, hangar_id, seller_name, warranty_sols, features, status, created_at";
+
 export const vehicleSalesQuery = queryOptions({
   queryKey: ["vehicle_sales"],
   queryFn: async (): Promise<VehicleSaleItem[]> => {
@@ -172,7 +178,7 @@ export const vehicleSalesQuery = queryOptions({
     try {
       const { data, error } = await supabase
         .from("vehicle_sales")
-        .select("*")
+        .select(SALE_COLUMNS)
         .order("created_at", { ascending: false });
       if (!error && Array.isArray(data) && data.length > 0) return data as VehicleSaleItem[];
     } catch (err) {

@@ -39,6 +39,7 @@ describe("ocupação no modo demo", () => {
     extraO2Tank: false,
     neuralAutopilot: false,
     evaSuits: 0,
+    stormBarrier: false,
     totalCredits: 1000,
   };
   const list = () => (rentalsQuery.queryFn as unknown as () => Promise<Rental[]>)();

@@ -15,6 +15,7 @@ export const createRentalBody = z
     extraO2Tank: z.boolean().default(false),
     neuralAutopilot: z.boolean().default(false),
     extraEvaSuits: z.number().int().min(0).max(6).default(0),
+    stormBarrier: z.boolean().default(false),
   })
   .refine((b) => b.endSol > b.startSol, {
     path: ["endSol"],

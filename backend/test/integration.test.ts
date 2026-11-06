@@ -1,6 +1,7 @@
 // Integração real: API + Auth + Postgres + RLS de um Supabase local.
 // Rode com SUPABASE_TEST_URL e SUPABASE_TEST_KEY definidos (veja o README). Sem eles, é pulado.
 import { createClient } from "@supabase/supabase-js";
+import { execFileSync } from "node:child_process";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { FastifyInstance } from "fastify";
 import { buildApp } from "../src/app.js";
@@ -8,6 +9,20 @@ import { loadEnv } from "../src/config/env.js";
 
 const baseUrl = process.env["SUPABASE_TEST_URL"];
 const key = process.env["SUPABASE_TEST_KEY"];
+const dbContainer = process.env["SUPABASE_TEST_DB_CONTAINER"] ?? "supabase_db_qxlzdpahifwiyzmxlpef";
+
+/** Promover admin é operação manual no banco, de propósito: não existe rota para isso. */
+function promote(userId: string) {
+  execFileSync("docker", [
+    "exec",
+    dbContainer,
+    "psql",
+    "-U",
+    "postgres",
+    "-c",
+    `insert into public.admin_users (user_id) values ('${userId}')`,
+  ]);
+}
 
 describe.skipIf(!baseUrl || !key)("integração com Supabase real", () => {
   let app: FastifyInstance;
@@ -144,6 +159,7 @@ describe.skipIf(!baseUrl || !key)("integração com Supabase real", () => {
       .select("id, price_credits")
       .eq("status", "available_for_sale")
       .lte("price_credits", 24000)
+      .order("price_credits")
       .limit(1);
     const sale = sales![0]!;
     const before = await credits(pilot);
@@ -202,6 +218,165 @@ describe.skipIf(!baseUrl || !key)("integração com Supabase real", () => {
       await post(pilot, "/v1/maintenance", { vehicleId: id, serviceType: "thruster_calibration" });
       const { data } = await pilot.c.from("vehicles").select("status").eq("id", id).single();
       expect(data?.status).toBe("in_flight");
+    });
+  });
+
+  it("o usuário não se promove direto no banco", async () => {
+    await pilot.c.from("profiles").update({ pilot_license: "orbital" }).eq("user_id", pilot.id);
+    const { data } = await pilot.c
+      .from("profiles")
+      .select("pilot_license")
+      .eq("user_id", pilot.id)
+      .single();
+    expect(data?.pilot_license).toBe("atmospheric");
+  });
+
+  it("barreira anti-tempestade é cobrada", async () => {
+    const before = await credits(other);
+    const res = await post(other, "/v1/rentals", {
+      ...booking(),
+      startSol: 5200,
+      endSol: 5201,
+      stormBarrier: true,
+    });
+    expect(res.statusCode).toBe(201);
+    expect(await credits(other)).toBe(before - vehicle.daily_rate_sol - 220);
+  });
+
+  it("o vendedor recebe o valor da venda", async () => {
+    const callsign = `IT-${Date.now()}`;
+    const { error } = await pilot.c.from("vehicle_sales").insert({
+      name: "Nave de teste",
+      callsign,
+      category: "car_vtol",
+      price_credits: 300,
+      seller_user_id: pilot.id,
+    });
+    expect(error).toBeNull();
+    const { data: sale } = await other.c
+      .from("vehicle_sales")
+      .select("id")
+      .eq("callsign", callsign)
+      .single();
+    const seller = await credits(pilot);
+    const buyer = await credits(other);
+    expect((await post(other, `/v1/marketplace/${sale!.id}/purchase`)).statusCode).toBe(201);
+    expect(await credits(pilot)).toBe(seller + 300);
+    expect(await credits(other)).toBe(buyer - 300);
+  });
+
+  it("visitante não lê o id do vendedor", async () => {
+    const { error } = await client().from("vehicle_sales").select("seller_user_id").limit(1);
+    expect(error?.message).toMatch(/permission denied/);
+    const { data } = await client().from("vehicle_sales").select("callsign").limit(1);
+    expect(data?.length).toBe(1);
+  });
+
+  describe("administração", () => {
+    let admin: User;
+
+    beforeAll(async () => {
+      admin = await newUser("atmospheric");
+      promote(admin.id);
+    });
+
+    it("usuário comum recebe 403 em todas as leituras", async () => {
+      for (const path of ["overview", "users", "audit"]) {
+        expect((await get(pilot, `/v1/admin/${path}`)).statusCode).toBe(403);
+      }
+    });
+
+    it("usuário comum não executa ações, nem direto no banco", async () => {
+      const res = await post(pilot, `/v1/admin/users/${pilot.id}/credits`, {
+        delta: 999,
+        reason: "fraude",
+      });
+      expect(res.statusCode).toBe(403);
+      const { error } = await pilot.c.rpc("admin_adjust_credits", {
+        _user_id: pilot.id,
+        _delta: 999,
+        _reason: "fraude",
+      });
+      expect(error?.message).toMatch(/Acesso negado/);
+      const direct = await pilot.c.from("admin_users").insert({ user_id: pilot.id });
+      expect(direct.error).not.toBeNull();
+    });
+
+    it("visitante não executa as funções", async () => {
+      const { error } = await client().rpc("admin_overview");
+      expect(error?.message).toMatch(/permission denied/);
+    });
+
+    it("indicadores batem com os dados do banco", async () => {
+      const res = await get(admin, "/v1/admin/overview");
+      expect(res.statusCode).toBe(200);
+      const o = res.json();
+      expect(o.users.total).toBeGreaterThanOrEqual(3);
+      expect(o.signups_by_day).toHaveLength(14);
+      expect(o.fleet.total).toBe(8);
+      expect(o.rentals.revenue).toBeGreaterThan(0);
+    });
+
+    it("lista usuários com reservas e gasto", async () => {
+      const { items } = (await get(admin, "/v1/admin/users")).json();
+      const row = items.find((u: { user_id: string }) => u.user_id === other.id);
+      expect(row.email).toMatch(/@ares\.test$/);
+      expect(Number(row.rentals_total)).toBeGreaterThan(0);
+      expect(row.suspended).toBe(false);
+    });
+
+    it("ajusta créditos, não deixa saldo negativo e audita", async () => {
+      const before = await credits(other);
+      const url = `/v1/admin/users/${other.id}/credits`;
+      expect((await post(admin, url, { delta: 500, reason: "bônus" })).json().balance).toBe(
+        before + 500,
+      );
+      expect((await post(admin, url, { delta: -99999999 + 0, reason: "erro" })).statusCode).toBe(
+        400,
+      );
+      expect((await post(admin, url, { delta: -999999, reason: "erro" })).statusCode).toBe(422);
+      const { items } = (await get(admin, "/v1/admin/audit")).json();
+      expect(items[0].action).toBe("credits_adjusted");
+      expect(items[0].details.reason).toBe("bônus");
+    });
+
+    it("altera habilitação e a nova licença vale na reserva", async () => {
+      const res = await post(admin, `/v1/admin/users/${pilot.id}/license`, {
+        license: "orbital",
+        reason: "curso concluído",
+      });
+      expect(res.statusCode).toBe(200);
+      const { data } = await pilot.c
+        .from("profiles")
+        .select("pilot_license")
+        .eq("user_id", pilot.id)
+        .single();
+      expect(data?.pilot_license).toBe("orbital");
+    });
+
+    it("conta suspensa não reserva nem compra, mas volta ao ser reativada", async () => {
+      const url = `/v1/admin/users/${other.id}/suspension`;
+      expect((await post(admin, url, { suspended: true, reason: "fraude" })).statusCode).toBe(200);
+      const blocked = await post(other, "/v1/rentals", {
+        ...booking(),
+        startSol: 5300,
+        endSol: 5301,
+      });
+      expect(blocked.statusCode).toBe(403);
+      expect(blocked.json().message).toMatch(/suspensa/);
+      expect((await post(admin, url, { suspended: false, reason: "resolvido" })).statusCode).toBe(
+        200,
+      );
+      const ok = await post(other, "/v1/rentals", { ...booking(), startSol: 5300, endSol: 5301 });
+      expect(ok.statusCode).toBe(201);
+    });
+
+    it("admin não suspende a si mesmo", async () => {
+      const res = await post(admin, `/v1/admin/users/${admin.id}/suspension`, {
+        suspended: true,
+        reason: "teste",
+      });
+      expect(res.statusCode).toBe(422);
     });
   });
 

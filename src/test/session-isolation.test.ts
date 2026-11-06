@@ -58,6 +58,7 @@ const booking = {
   extraO2Tank: false,
   neuralAutopilot: false,
   evaSuits: 0,
+  stormBarrier: false,
   totalCredits: 3000,
 };
 

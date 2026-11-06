@@ -175,3 +175,14 @@
     background: repeating-linear-gradient(0deg, oklch(1 0 0 / 2.5%) 0 1px, transparent 1px 3px);
   }
 }
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+}

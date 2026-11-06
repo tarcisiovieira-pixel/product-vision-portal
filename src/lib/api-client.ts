@@ -5,7 +5,7 @@ const baseUrl = () => (import.meta.env["VITE_API_URL"] as string | undefined)?.r
 
 export const apiEnabled = () => Boolean(baseUrl());
 
-export async function apiPost<T = unknown>(path: string, body: unknown): Promise<T> {
+async function request<T>(path: string, init: RequestInit): Promise<T> {
   const { data } = await supabase.auth.getSession();
   const token = data.session?.access_token;
   if (!token) throw new Error("Sessão expirada. Entre novamente.");
@@ -13,9 +13,8 @@ export async function apiPost<T = unknown>(path: string, body: unknown): Promise
   let res: Response;
   try {
     res = await fetch(`${baseUrl()}${path}`, {
-      method: "POST",
-      headers: { "content-type": "application/json", authorization: `Bearer ${token}` },
-      body: JSON.stringify(body),
+      ...init,
+      headers: { ...init.headers, authorization: `Bearer ${token}` },
     });
   } catch {
     throw new Error("Não foi possível falar com o servidor. Tente novamente.");
@@ -25,3 +24,12 @@ export async function apiPost<T = unknown>(path: string, body: unknown): Promise
   if (!res.ok) throw new Error(payload?.message ?? `Erro ${res.status} no servidor.`);
   return payload as T;
 }
+
+export const apiGet = <T = unknown>(path: string) => request<T>(path, { method: "GET" });
+
+export const apiPost = <T = unknown>(path: string, body: unknown) =>
+  request<T>(path, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(body),
+  });
