@@ -9,7 +9,7 @@ em uma única plataforma, com a frota em 3D e o clima em tempo real.
 
 `React 19` · `TanStack Start` · `Three.js` · `Fastify` · `Supabase`
 
-[Teste em 2 minutos](#-teste-em-2-minutos) · [Módulos](#-módulos) · [Arquitetura](#-arquitetura) · [Ambiente completo](#-ambiente-completo) · [Testes](#-testes) · [Status](#-status-do-projeto)
+[Teste em 2 minutos](#-teste-em-2-minutos) · [Módulos](#-módulos) · [Arquitetura](#-arquitetura) · [Ambiente completo](#-ambiente-completo) · [Testes](#-testes) · [Status](#-status-e-próximos-passos)
 
 ![Página inicial da ARES Mobility](docs/screenshots/landing.png)
 
@@ -227,27 +227,18 @@ Regras do repositório:
 - Mudanças no banco entram **só por migrations novas**.
 - Nenhuma chave secreta no código ou no git.
 
-## ◆ Status do projeto
+## ◆ Status e próximos passos
 
-**Pronto e testado**
+| Parte | Situação |
+|---|---|
+| Front e modo demo | Disponível |
+| Painel administrativo | Disponível, com dados fictícios no demo |
+| API Fastify | Pronta, publicação no Render em andamento |
 
-- [x] Cadastro, login e modo demo isolados entre si
-- [x] Reservas, extensão, cancelamento com reembolso, manutenção e compra
-- [x] Ocupação por período: o banco impede duas reservas do mesmo veículo em sols sobrepostos
-- [x] API Fastify com validação, autenticação, limite de requisições e erros padronizados
-- [x] Animações de voo, radar e hangar em movimento
-- [x] Interface enxuta, com detalhes no ícone de informação
-- [x] Painel administrativo com indicadores, gestão de usuários e auditoria
-- [x] Barreira anti-tempestade cobrada e vendedor recebendo o valor da venda
+**A seguir**
 
-**Pendente em produção**
+- Publicar a API e migrar para ela as leituras que ainda vão direto ao banco.
+- Lançar o copiloto de bordo e os relatórios com IA.
+- Automatizar o status do veículo no início e no fim de cada reserva.
 
-- [ ] Aplicar as migrations `20261106120000` (ocupação), `20261107100000` (painel) e `20261107110000` (preços e marketplace)
-- [ ] Publicar a API no Render e definir `VITE_API_URL` no front
-- [ ] Mover as leituras restantes do front para a API
-
-**Limitações conhecidas**
-
-- Os créditos MC$ são fictícios: não há pagamento real.
-- O status do veículo não muda sozinho quando a reserva começa ou termina.
-- No modo demo, o painel administrativo é somente leitura.
+> Os créditos MC$ são fictícios: não há pagamento real.
