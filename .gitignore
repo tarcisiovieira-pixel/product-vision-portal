@@ -39,3 +39,4 @@ dist-ssr
 # Supabase CLI
 supabase/.temp/
 e2e-shots/
+supabase/.branches/
