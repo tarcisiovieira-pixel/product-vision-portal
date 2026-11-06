@@ -17,7 +17,7 @@ em uma única plataforma, com a frota em 3D e o clima em tempo real.
 
 ## ◆ Teste em 2 minutos
 
-Precisa apenas do Node.js 20+. Não é preciso criar conta nem configurar banco.
+Precisa apenas do Node.js 22 ou mais novo. Não é preciso criar conta nem configurar banco.
 
 ```sh
 git clone https://github.com/tarcisiovieira-pixel/product-vision-portal.git
