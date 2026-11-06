@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { InfoTip } from "@/components/InfoTip";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   AlertTriangle,
@@ -38,7 +39,8 @@ import {
   type Vehicle,
   type VehicleSaleItem,
 } from "@/lib/ares-data";
-import { supabase } from "@/integrations/supabase/client";
+import { buyVehicle, publishListing } from "@/lib/ares-actions";
+import { errorMessage } from "@/lib/utils";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 interface MarketplaceShowcaseProps {
@@ -90,66 +92,33 @@ export function MarketplaceShowcase({ hangars, currentProfile }: MarketplaceShow
   }, [hangars]);
 
   // Handler para comprar veículo
-  const handleConfirmPurchase = () => {
+  const handleConfirmPurchase = async () => {
     if (!selectedVehicleToBuy) return;
 
     if (!activeUser) {
-      toast.error("Autenticação necessária", {
-        description:
-          "Você precisa estar autenticado para adquirir uma espaçonave. Utilize o botão Acesso Rápido Demo ou acesse sua credencial.",
-      });
+      toast.error("Entre na sua conta ou use o modo demo para comprar.");
       return;
     }
 
-    const price = selectedVehicleToBuy.price_credits;
-    const currentCredits = Number(activeUser.martian_credits);
-
-    // Permite compra à vista ou simulação com entrada de 25.000 MC$ caso o saldo total seja menor
-    const isFullPayment = currentCredits >= price;
-    const isDownPayment = currentCredits >= 25000;
-
-    if (!isFullPayment && !isDownPayment) {
-      toast.error("Saldo insuficiente de Créditos Marcianos", {
-        description: `O valor do veículo é MC$ ${price.toLocaleString("pt-BR")}. Seu saldo atual é de MC$ ${currentCredits.toLocaleString("pt-BR")}.`,
-      });
+    const sale = selectedVehicleToBuy;
+    try {
+      await buyVehicle(sale);
+    } catch (err) {
+      toast.error("Compra não concluída", { description: errorMessage(err) });
       return;
     }
 
-    // Debitar créditos (à vista ou sinal de reserva definitiva)
-    const debited = isFullPayment ? price : 25000;
-    const updatedUser = { ...activeUser, martian_credits: currentCredits - debited };
-
-    // Tenta executar a transação atômica RPC no Supabase caso o banco esteja migrado
-    if (selectedVehicleToBuy.id.length === 36 && !selectedVehicleToBuy.id.startsWith("sale-")) {
-      supabase
-        .rpc("buy_marketplace_vehicle", { _sale_id: selectedVehicleToBuy.id })
-        .then(undefined, (err: unknown) => {
-          console.warn("Supabase RPC buy error (using local state fallback):", err);
-        });
-    }
-
-    if (typeof window !== "undefined") {
-      localStorage.setItem("ares_demo_session", JSON.stringify(updatedUser));
-      // Marca veículo como vendido localmente
-      const stored = JSON.parse(localStorage.getItem("ares_marketplace_sales") || "[]");
-      const updatedList = stored.map((s: VehicleSaleItem) =>
-        s.id === selectedVehicleToBuy.id ? { ...s, status: "sold" } : s,
-      );
-      localStorage.setItem("ares_marketplace_sales", JSON.stringify(updatedList));
-    }
-
-    setPurchasedVehicle(selectedVehicleToBuy);
+    setPurchasedVehicle(sale);
     setSelectedVehicleToBuy(null);
-    qc.invalidateQueries({ queryKey: ["profile"] });
-    qc.invalidateQueries({ queryKey: ["vehicle_sales"] });
-
-    toast.success("Aquisição confirmada com sucesso!", {
-      description: `Certificado Quântico de Propriedade emitido para ${selectedVehicleToBuy.callsign}.`,
-    });
+    await Promise.all([
+      qc.invalidateQueries({ queryKey: ["profile"] }),
+      qc.invalidateQueries({ queryKey: ["vehicle_sales"] }),
+    ]);
+    toast.success("Compra confirmada!", { description: sale.callsign });
   };
 
   // Handler para publicar anúncio de venda
-  const handlePublishVehicle = (e: React.FormEvent) => {
+  const handlePublishVehicle = async (e: React.FormEvent) => {
     e.preventDefault();
     const newCallsign = sellCallsign.trim() || `ARS-${Math.floor(1000 + Math.random() * 9000)}-EXP`;
 
@@ -178,51 +147,14 @@ export function MarketplaceShowcase({ hangars, currentProfile }: MarketplaceShow
       created_at: new Date().toISOString(),
     };
 
-    if (typeof window !== "undefined") {
-      const stored: VehicleSaleItem[] = JSON.parse(
-        localStorage.getItem("ares_marketplace_sales") || "[]",
-      );
-      localStorage.setItem("ares_marketplace_sales", JSON.stringify([newItem, ...stored]));
+    try {
+      await publishListing(newItem);
+    } catch (err) {
+      toast.error("Anúncio não publicado", { description: errorMessage(err) });
+      return;
     }
 
-    // Tenta persistir no Supabase se as tabelas estiverem migradas
-    supabase
-      .from("vehicle_sales")
-      .insert({
-        name: sellModel,
-        callsign: newCallsign,
-        category: sellCategory,
-        price_credits: Number(sellPrice),
-        sol_manufactured: 4210,
-        flight_hours: Number(sellHours),
-        hull_integrity_pct: 95,
-        battery_condition_pct: 92,
-        condition: "certified_preowned",
-        hangar_id: sellHangar || null,
-        seller_name: activeUser?.space_credential_id
-          ? `Colono ${activeUser.space_credential_id}`
-          : "Colono Particular",
-        features: sellFeatures
-          .split(",")
-          .map((f) => f.trim())
-          .filter(Boolean),
-        status: "available_for_sale",
-      })
-      .then(
-        ({ error }) => {
-          if (error) {
-            console.warn(
-              "Supabase insert vehicle_sales error (using local storage):",
-              error.message,
-            );
-          }
-        },
-        (err: unknown) => {
-          console.warn("Supabase insert vehicle_sales network fallback:", err);
-        },
-      );
-
-    qc.invalidateQueries({ queryKey: ["vehicle_sales"] });
+    await qc.invalidateQueries({ queryKey: ["vehicle_sales"] });
     setIsSellModalOpen(false);
     toast.success("Veículo anunciado com sucesso no Marketplace ARES!", {
       description: `${newItem.name} (${newItem.callsign}) disponível para compradores em Marte.`,
@@ -237,19 +169,12 @@ export function MarketplaceShowcase({ hangars, currentProfile }: MarketplaceShow
           <div>
             <div className="flex items-center gap-2">
               <span className="font-mono text-xs uppercase tracking-[0.4em] text-telemetry">
-                ARES Seminovos & Concessionária
-              </span>
-              <span className="rounded bg-telemetry/20 px-2 py-0.5 font-mono text-[10px] text-telemetry font-bold">
-                COMPRA & VENDA
+                Marketplace
               </span>
             </div>
             <h2 className="mt-2 font-display text-4xl font-bold tracking-tight md:text-5xl">
-              Compre sua Espaçonave Própria em Marte
+              Compre sua nave
             </h2>
-            <p className="mt-2 text-muted-foreground">
-              Veículos com Certificado de Integridade Estrutural ARES, laudo pericial contra
-              radiação e financiamento em Sols.
-            </p>
           </div>
 
           <div className="flex items-center gap-3">
@@ -269,10 +194,10 @@ export function MarketplaceShowcase({ hangars, currentProfile }: MarketplaceShow
           {/* Categorias */}
           <div className="flex flex-wrap gap-2">
             {[
-              { id: "all", label: "Todos os Tipos" },
-              { id: "car_vtol", label: "Carros Voadores" },
+              { id: "all", label: "Todos" },
+              { id: "car_vtol", label: "Carros" },
               { id: "space_truck", label: "Caminhões" },
-              { id: "interplanetary_rocket", label: "Foguetes Starship" },
+              { id: "interplanetary_rocket", label: "Foguetes" },
             ].map((cat) => (
               <button
                 key={cat.id}
@@ -396,14 +321,12 @@ export function MarketplaceShowcase({ hangars, currentProfile }: MarketplaceShow
                   </div>
 
                   {/* Lista de Destaques / Opcionais */}
-                  <ul className="mt-4 space-y-1 font-mono text-[11px] text-muted-foreground">
-                    {item.features.slice(0, 3).map((f, i) => (
-                      <li key={i} className="flex items-center gap-1.5">
-                        <CheckCircle2 className="h-3 w-3 text-emerald-400 shrink-0" />
-                        <span className="truncate">{f}</span>
-                      </li>
-                    ))}
-                  </ul>
+                  <div className="flex items-center gap-2 font-mono text-[11px] text-muted-foreground">
+                    <span>Garantia: {item.warranty_sols} sols</span>
+                    <InfoTip label={`Itens de ${item.callsign}`}>
+                      {item.features.join(" · ") || "Laudo estrutural ARES incluso."}
+                    </InfoTip>
+                  </div>
 
                   {/* Selo de Garantia */}
                   <div className="mt-4 flex items-center gap-2 font-mono text-[11px] text-muted-foreground border-t border-border/40 pt-3">

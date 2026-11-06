@@ -33,7 +33,8 @@ import {
   Zap,
 } from "lucide-react";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
+import { cancelRental, extendRental } from "@/lib/ares-actions";
+import { errorMessage } from "@/lib/utils";
 import { PageHeader, Bar, toneFor } from "@/components/PageHeader";
 import { FlightChaseViewer3D } from "@/components/FlightChaseViewer3D";
 import {
@@ -161,63 +162,37 @@ function MyRentals() {
 
   // Estender Reserva (+1 Sol)
   const handleExtendRental = async (r: Rental) => {
-    const veh = vMap.get(r.vehicle_id);
-    const extraRate = veh?.daily_rate_sol ?? 420;
-    const newEndSol = (r.end_sol ?? r.start_sol) + 1;
-    const newTotal = Number(r.total_credits) + extraRate;
-
-    if (typeof window !== "undefined") {
-      const raw = localStorage.getItem("ares_demo_rentals");
-      const currentList: Rental[] = raw ? JSON.parse(raw) : rentals;
-      const updatedList = currentList.map((item) =>
-        item.id === r.id ? { ...item, end_sol: newEndSol, total_credits: newTotal } : item,
-      );
-      localStorage.setItem("ares_demo_rentals", JSON.stringify(updatedList));
-    }
-
+    const rate = vMap.get(r.vehicle_id)?.daily_rate_sol ?? 420;
     try {
-      await supabase
-        .from("rentals")
-        .update({ end_sol: newEndSol, total_credits: newTotal })
-        .eq("id", r.id);
-    } catch {
-      // sem sessão Supabase (modo demo): o estado local já foi atualizado.
+      const newEndSol = await extendRental(r, rate);
+      await Promise.all([
+        qc.invalidateQueries({ queryKey: ["rentals"] }),
+        qc.invalidateQueries({ queryKey: ["profile"] }),
+      ]);
+      toast.success("Reserva estendida", { description: `Válida até o Sol ${newEndSol}.` });
+    } catch (err) {
+      toast.error("Não foi possível estender", { description: errorMessage(err) });
     }
-
-    await qc.invalidateQueries({ queryKey: ["rentals"] });
-    toast.success("Reserva estendida com sucesso!", {
-      description: `Mais 1 Sol adicionado. Válido até o Sol ${newEndSol} (+MC$ ${extraRate.toLocaleString("pt-BR")}).`,
-    });
   };
 
   // Cancelar Reserva
   const handleCancelRental = async (r: Rental) => {
     if (r.status === "in_flight") {
-      toast.error("Não é possível cancelar uma nave já em voo orbital.", {
-        description: "Contate a torre de controle de tráfego areográfico.",
-      });
+      toast.error("Não é possível cancelar uma nave em voo.");
       return;
     }
-
-    if (typeof window !== "undefined") {
-      const raw = localStorage.getItem("ares_demo_rentals");
-      const currentList: Rental[] = raw ? JSON.parse(raw) : rentals;
-      const updatedList = currentList.map((item) =>
-        item.id === r.id ? { ...item, status: "cancelled" } : item,
-      );
-      localStorage.setItem("ares_demo_rentals", JSON.stringify(updatedList));
-    }
-
     try {
-      await supabase.from("rentals").update({ status: "cancelled" }).eq("id", r.id);
-    } catch {
-      // sem sessão Supabase (modo demo): o estado local já foi atualizado.
+      const refunded = await cancelRental(r);
+      await Promise.all([
+        qc.invalidateQueries({ queryKey: ["rentals"] }),
+        qc.invalidateQueries({ queryKey: ["profile"] }),
+      ]);
+      toast.success("Reserva cancelada", {
+        description: `MC$ ${Number(refunded).toLocaleString("pt-BR")} devolvidos ao saldo.`,
+      });
+    } catch (err) {
+      toast.error("Não foi possível cancelar", { description: errorMessage(err) });
     }
-
-    await qc.invalidateQueries({ queryKey: ["rentals"] });
-    toast.success("Reserva cancelada com sucesso.", {
-      description: `Créditos marcianos de MC$ ${Number(r.total_credits).toLocaleString("pt-BR")} devolvidos ao seu saldo.`,
-    });
   };
 
   // Aplicar Cupom
@@ -231,18 +206,14 @@ function MyRentals() {
     safeNavigate({ to: "/app/booking" });
   };
 
-  // Simular Alerta
-  const handleTestNotification = () => {
-    toast.info("Transmissão Orbital Recebida · Canal Deep Space 4", {
-      description: "Condições operacionais ótimas na bacia de Jezero. Defletores calibrados.",
-      icon: <Radio className="h-4 w-4 text-telemetry animate-pulse" />,
-    });
-  };
-
   return (
     <div className="space-y-5 p-6 md:p-8">
       {/* 1. HEADER LIMPO & AÇÕES */}
-      <PageHeader kicker="Histórico de Frota" title="Minhas Reservas">
+      <PageHeader
+        kicker="Reservas"
+        title="Minhas reservas"
+        info="Acompanhe, estenda ou cancele reservas. Cancelar uma reserva confirmada devolve os créditos ao saldo."
+      >
         <div className="flex flex-wrap items-center gap-2">
           <button
             type="button"
@@ -251,16 +222,6 @@ function MyRentals() {
           >
             <Gift className="h-3.5 w-3.5" />
             <span>Benefícios & Cupons</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={handleTestNotification}
-            className="flex items-center gap-1.5 border border-border/70 hover:border-telemetry/60 bg-surface/40 hover:bg-surface/70 px-3 py-1.5 font-mono text-xs text-muted-foreground hover:text-telemetry transition rounded"
-            title="Testar canal de transmissão orbital"
-          >
-            <BellRing className="h-3.5 w-3.5" />
-            <span className="hidden sm:inline">Testar Alerta</span>
           </button>
 
           <Link
@@ -308,7 +269,7 @@ function MyRentals() {
 
         <div>
           <span className="text-[10px] uppercase text-muted-foreground block text-right">
-            Créditos Marcianos
+            Total investido
           </span>
           <span className="font-display font-bold text-foreground text-base">
             MC$ {stats.totalSpent.toLocaleString("pt-BR")}
@@ -320,9 +281,7 @@ function MyRentals() {
       <div className="border border-border/40 bg-surface/20 rounded p-2.5 font-mono text-xs flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           <Gift className="h-3.5 w-3.5 text-primary" />
-          <span className="text-muted-foreground text-[11px]">
-            Benefícios de frota: descontos executivos e blindagem contra tempestades disponíveis.
-          </span>
+          <span className="text-muted-foreground text-[11px]">Cupons disponíveis</span>
         </div>
         <div className="flex items-center gap-2">
           <button
@@ -330,7 +289,7 @@ function MyRentals() {
             onClick={() => handleApplyPromo("APEX-VIP35", "35% de desconto no Apex Phantom VIP")}
             className="text-[10px] text-amber-300 hover:underline font-bold"
           >
-            Usar Cupom APEX-VIP35
+            APEX-VIP35
           </button>
           <span className="text-border">·</span>
           <button
@@ -338,7 +297,7 @@ function MyRentals() {
             onClick={() => handleApplyPromo("ESCUDO-ZERO", "Barreira Anti-Tempestade Gratuita")}
             className="text-[10px] text-emerald-400 hover:underline font-bold"
           >
-            Usar Cupom ESCUDO-ZERO
+            ESCUDO-ZERO
           </button>
           <span className="text-border">·</span>
           <button
@@ -503,7 +462,7 @@ function MyRentals() {
                         title="Abrir popup com detalhes completos"
                       >
                         <Info className="h-3.5 w-3.5 text-primary" />
-                        <span>Ver Detalhes</span>
+                        <span>Detalhes</span>
                       </button>
 
                       <button
@@ -512,8 +471,7 @@ function MyRentals() {
                         className="cut-corner border border-telemetry/60 bg-telemetry/15 hover:bg-telemetry/25 px-2.5 py-1.5 text-xs font-bold text-telemetry transition flex items-center gap-1"
                       >
                         <KeyRound className="h-3.5 w-3.5" />
-                        <span className="hidden sm:inline">Chave Quântica & Controles</span>
-                        <span className="sm:hidden">Chave</span>
+                        <span>Chave</span>
                       </button>
 
                       {isInFlight ? (
@@ -1122,7 +1080,7 @@ function MyRentals() {
           hangars={hangars}
           onClose={() => setChasingVehicle(null)}
           onSelectVehicle={(v) => {
-            if (v.status !== "in_flight" || (v.speed_kmh || 0) <= 0) {
+            if (v.status !== "in_flight") {
               setChasingVehicle(null);
               safeNavigate({ to: "/app/hangar-3d", search: { vehicleId: v.id } });
             } else {

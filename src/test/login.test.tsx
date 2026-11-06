@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen, fireEvent, act } from "@testing-library/react";
 
 const mockNavigate = vi.fn();
@@ -45,22 +45,33 @@ vi.mock("@/integrations/supabase/client", () => ({
       getUser: vi.fn().mockResolvedValue({ data: { user: null } }),
       signInWithPassword: (...args: any[]) => mockSignIn(...args),
       signUp: (...args: any[]) => mockSignUp(...args),
+      signOut: vi.fn().mockResolvedValue({}),
     },
   },
 }));
 
 import { Route } from "@/routes/login";
-const Login = (Route as any).component;
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { isDemoSession } from "@/lib/session";
+
+const LoginScreen = (Route as any).component;
+const Login = () => (
+  <QueryClientProvider client={new QueryClient()}>
+    <LoginScreen />
+  </QueryClientProvider>
+);
 
 describe("Login screen", () => {
+  beforeEach(() => localStorage.clear());
+
   it("renders demo access button and form fields", async () => {
     await act(async () => {
       render(<Login />);
     });
 
     expect(screen.getByText(/Terminal de acesso/i)).toBeInTheDocument();
-    expect(screen.getByText(/Acesso Rápido Demo/i)).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Entrar/i })).toBeInTheDocument();
+    expect(screen.getByText(/Entrar no modo demo/i)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^Entrar$/i })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Cadastrar/i })).toBeInTheDocument();
     expect(screen.getByPlaceholderText("colono@jezero.mars")).toBeInTheDocument();
   });
@@ -88,15 +99,14 @@ describe("Login screen", () => {
       render(<Login />);
     });
 
-    const demoBtn = screen.getByRole("button", { name: /Acesso Rápido Demo/i });
+    const demoBtn = screen.getByRole("button", { name: /Entrar no modo demo/i });
     await act(async () => {
       fireEvent.click(demoBtn);
     });
 
-    expect(mockSignIn).toHaveBeenCalledWith({
-      email: "demo@aresmobility.com",
-      password: "DemoMars#2026",
-    });
+    // Demo é local: não pode depender da rede nem carregar senha no bundle.
+    expect(mockSignIn).not.toHaveBeenCalled();
+    expect(isDemoSession()).toBe(true);
     expect(mockNavigate).toHaveBeenCalledWith({
       to: "/app/booking",
       replace: true,

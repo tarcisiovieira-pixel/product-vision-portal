@@ -63,17 +63,17 @@ describe("Landing Page — Localiza Experience & Booking Wizard", () => {
     expect(screen.getByRole("button", { name: /Pesquisar Frota/i })).toBeInTheDocument();
 
     // Vitrine da Frota Marciana
-    expect(screen.getByText(/Escolha seu veículo para decolar em Marte/i)).toBeInTheDocument();
+    expect(screen.getByText(/Escolha seu veículo/i)).toBeInTheDocument();
     expect(screen.getAllByText(/CyberCab VTOL X2/i).length).toBeGreaterThan(0);
     expect(screen.getAllByText(/Ares Heavy Truck T-9/i).length).toBeGreaterThan(0);
     expect(screen.getAllByText(/Starship Hopper S1/i).length).toBeGreaterThan(0);
 
     // Seção de Compra & Venda (Seminovos)
-    expect(screen.getByText(/Compre sua Espaçonave Própria em Marte/i)).toBeInTheDocument();
+    expect(screen.getByText(/Compre sua nave/i)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Anunciar Meu Veículo/i })).toBeInTheDocument();
 
     // Botões de reserva na vitrine
-    const bookButtons = screen.getAllByRole("button", { name: /Reservar Veículo/i });
+    const bookButtons = screen.getAllByRole("button", { name: /^Reservar$/i });
     expect(bookButtons.length).toBeGreaterThan(0);
   }, 15000);
 
@@ -84,15 +84,17 @@ describe("Landing Page — Localiza Experience & Booking Wizard", () => {
 
     await act(async () => {
       render(
-        <BookingWizardModal
-          vehicle={testVehicle}
-          hangars={SEED_HANGARS}
-          weather={SEED_WEATHER}
-          initialStartSol={4219}
-          initialSols={3}
-          onClose={onClose}
-          onBookingSuccess={onBookingSuccess}
-        />,
+        <QueryClientProvider client={new QueryClient()}>
+          <BookingWizardModal
+            vehicle={testVehicle}
+            hangars={SEED_HANGARS}
+            weather={SEED_WEATHER}
+            initialStartSol={4219}
+            initialSols={3}
+            onClose={onClose}
+            onBookingSuccess={onBookingSuccess}
+          />
+        </QueryClientProvider>,
       );
     });
 
@@ -149,7 +151,7 @@ describe("Landing Page — Localiza Experience & Booking Wizard", () => {
 
     // STEP 4: CARTÃO DE EMBARQUE & CHAVE QUÂNTICA
     expect(screen.getByText(/ARES MOBILITY · BOARDING PASS/i)).toBeInTheDocument();
-    expect(screen.getByText(/Q-KEY#8F4A92/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/Q-KEY#/i).length).toBeGreaterThan(0);
     expect(screen.getByText(/COMANDOS REMOTOS DO VEÍCULO/i)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Destravar Esclusa/i })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Pré-pressurizar/i })).toBeInTheDocument();

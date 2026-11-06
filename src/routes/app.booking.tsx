@@ -1,4 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { InfoTip } from "@/components/InfoTip";
 import { useMutation, useQuery, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import {
@@ -25,7 +26,7 @@ import {
   Zap,
 } from "lucide-react";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
+import { createRental } from "@/lib/ares-actions";
 import { PageHeader, Bar, toneFor } from "@/components/PageHeader";
 import { FlightChaseViewer3D } from "@/components/FlightChaseViewer3D";
 import {
@@ -77,8 +78,14 @@ function Booking() {
   const { data: rentals } = useSuspenseQuery(rentalsQuery);
   const { data: profile } = useQuery(profileQuery);
 
-  const [pickup, setPickup] = useState(hangars[0]?.id ?? "");
-  const [dropoff, setDropoff] = useState(hangars[0]?.id ?? "");
+  // Começa pelo hangar com mais veículos livres, para a tela nunca abrir sem opções.
+  const [defaultHangar] = useState(() => {
+    const free = (id: string) =>
+      vehicles.filter((v) => v.hangar_id === id && v.status === "available").length;
+    return [...hangars].sort((a, b) => free(b.id) - free(a.id))[0]?.id ?? "";
+  });
+  const [pickup, setPickup] = useState(defaultHangar);
+  const [dropoff, setDropoff] = useState(defaultHangar);
   const [startSol, setStartSol] = useState(CURRENT_SOL + 1);
   const [sols, setSols] = useState(3);
   const [cat, setCat] = useState<Vehicle["category"] | "all">("all");
@@ -137,67 +144,23 @@ function Booking() {
         );
       }
 
-      const isDemo = typeof window !== "undefined" && !!localStorage.getItem("ares_demo_session");
-      if (isDemo) {
-        const total = (v.daily_rate_sol + dailyExtrasRate) * sols;
-        const demoRaw = localStorage.getItem("ares_demo_session");
-        if (demoRaw) {
-          const demoObj = JSON.parse(demoRaw);
-          if (demoObj.martian_credits < total) {
-            throw new Error(
-              `Créditos marcianos insuficientes! Custo total: MC$ ${total.toLocaleString("pt-BR")}, saldo atual: MC$ ${Number(demoObj.martian_credits).toLocaleString("pt-BR")}.`,
-            );
-          }
-          demoObj.martian_credits -= total;
-          localStorage.setItem("ares_demo_session", JSON.stringify(demoObj));
-        }
-
-        const newRental: Rental = {
-          id: `rent-${Date.now()}`,
-          user_id: "demo-commander-ares",
-          vehicle_id: v.id,
-          pickup_hangar_id: pickup,
-          dropoff_hangar_id: dropoff,
-          start_sol: startSol,
-          end_sol: startSol + sols,
-          total_credits: total,
-          silica_insurance: silicaInsurance,
-          extra_o2_tank: extraO2Tank,
-          neural_autopilot_l5: neuralAutopilot,
-          extra_eva_suits: evaSuits,
-          preflight_checked: false,
-          postflight_checked: false,
-          quantum_key: `Q-KEY#${Date.now().toString(36).toUpperCase().slice(-8)}`,
-          status: "confirmed",
-          created_at: new Date().toISOString(),
-        };
-
-        const existingRentals: Rental[] = JSON.parse(
-          localStorage.getItem("ares_demo_rentals") || "[]",
-        );
-        localStorage.setItem("ares_demo_rentals", JSON.stringify([newRental, ...existingRentals]));
-
-        return { vehicle: v, rentalId: newRental.id };
-      }
-
-      const { data, error } = await supabase.rpc("book_vehicle", {
-        _vehicle_id: v.id,
-        _pickup: pickup,
-        _dropoff: dropoff,
-        _start_sol: startSol,
-        _end_sol: startSol + sols,
-        _silica_insurance: silicaInsurance,
-        _extra_o2_tank: extraO2Tank,
-        _neural_autopilot_l5: neuralAutopilot,
-        _extra_eva_suits: evaSuits,
+      const rental = await createRental({
+        vehicle: v,
+        pickup,
+        dropoff,
+        startSol,
+        endSol: startSol + sols,
+        silicaInsurance,
+        extraO2Tank,
+        neuralAutopilot,
+        evaSuits,
+        totalCredits: (v.daily_rate_sol + dailyExtrasRate) * sols,
       });
-
-      if (error) throw new Error(error.message);
-      return { vehicle: v, rentalId: data };
+      return { vehicle: v, rental };
     },
-    onSuccess: ({ vehicle, rentalId }) => {
-      const successText = `Reserva confirmada! Chave quântica de decolagem emitida para ${vehicle.callsign} (${vehicle.name}).`;
-      const detailText = `Rota: ${pickupHangar?.name ?? "Origem"} → ${dropoffHangar?.name ?? "Destino"} (${distanceKm} km) · Sols ${startSol} a ${startSol + sols}. Créditos debitados automaticamente.`;
+    onSuccess: ({ vehicle, rental }) => {
+      const successText = `Reserva confirmada: ${vehicle.callsign}`;
+      const detailText = `${pickupHangar?.name ?? "Origem"} → ${dropoffHangar?.name ?? "Destino"} · Sols ${startSol}–${startSol + sols}`;
 
       setBookingNotice({
         type: "success",
@@ -206,27 +169,7 @@ function Booking() {
       });
       toast.success(successText, { description: detailText });
 
-      // Emite e abre imediatamente o Boarding Pass Quântico
-      const newRentalPass: Rental = {
-        id: rentalId || `rnt-${Date.now()}`,
-        user_id: profile?.id || "user-1",
-        vehicle_id: vehicle.id,
-        pickup_hangar_id: pickup,
-        dropoff_hangar_id: dropoff,
-        start_sol: startSol,
-        end_sol: startSol + sols,
-        total_credits: (vehicle.daily_rate_sol + dailyExtrasRate) * sols,
-        silica_insurance: silicaInsurance,
-        extra_o2_tank: extraO2Tank,
-        neural_autopilot_l5: neuralAutopilot,
-        extra_eva_suits: evaSuits,
-        quantum_key: "Q-KEY#8F4A92",
-        preflight_checked: false,
-        postflight_checked: false,
-        status: "confirmed",
-        created_at: new Date().toISOString(),
-      };
-      setActiveBoardingPass(newRentalPass);
+      setActiveBoardingPass(rental);
 
       qc.invalidateQueries({ queryKey: ["profile"] });
       qc.invalidateQueries({ queryKey: ["rentals"] });
@@ -366,7 +309,7 @@ function Booking() {
           </div>
           <div className="flex items-center gap-4">
             <span>
-              Distância Great-Circle:{" "}
+              Distância:{" "}
               <strong className="text-telemetry">{distanceKm.toLocaleString("pt-BR")} km</strong>
             </span>
           </div>
@@ -376,8 +319,7 @@ function Booking() {
       {/* Seção de Opcionais Espaciais de Marte */}
       <div className="glass space-y-3 p-5">
         <h3 className="font-mono text-xs uppercase tracking-widest text-primary">
-          Opcionais de Suporte à Vida & Segurança Marciana (+MC${" "}
-          {dailyExtrasRate.toLocaleString("pt-BR")}/sol)
+          Opcionais (+MC$ {dailyExtrasRate.toLocaleString("pt-BR")}/sol)
         </h3>
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {/* Barreira Anti-Tempestade de Areia & Escudo Iônico */}
@@ -398,13 +340,13 @@ function Booking() {
               <div className="flex items-center justify-between">
                 <span className="font-semibold text-foreground flex items-center gap-1.5">
                   <ShieldCheck className="h-4 w-4 text-telemetry" />
-                  Barreira Anti-Tempestade & Escudo Iônico
+                  Barreira anti-tempestade
                 </span>
-                <span className="text-telemetry font-bold">+MC$ 220/sol</span>
+                <span className="flex items-center gap-2 text-telemetry font-bold">
+                  +MC$ 220/sol
+                  <InfoTip>Defletor de rególito. Autoriza voo mesmo sob tempestade severa.</InfoTip>
+                </span>
               </div>
-              <p className="font-mono text-[11px] text-muted-foreground mt-0.5">
-                Defletor de rególito e autorização de voo sob tempestade severa.
-              </p>
             </div>
           </label>
 
@@ -416,10 +358,11 @@ function Booking() {
               className="mt-1 h-4 w-4 accent-primary"
             />
             <div className="text-xs">
-              <span className="font-semibold text-foreground">Seguro de Sílica</span>
-              <p className="font-mono text-[11px] text-muted-foreground">
-                +MC$ 120/sol · Cobertura contra rególito
-              </p>
+              <span className="flex items-center gap-1.5 font-semibold text-foreground">
+                Seguro de sílica{" "}
+                <InfoTip>Cobre danos causados por rególito no filtro e nas turbinas.</InfoTip>
+              </span>
+              <p className="font-mono text-[11px] text-muted-foreground">+MC$ 120/sol</p>
             </div>
           </label>
 
@@ -431,10 +374,10 @@ function Booking() {
               className="mt-1 h-4 w-4 accent-primary"
             />
             <div className="text-xs">
-              <span className="font-semibold text-foreground">Tanque Extra de O₂</span>
-              <p className="font-mono text-[11px] text-muted-foreground">
-                +MC$ 180/sol · +120h de oxigênio
-              </p>
+              <span className="flex items-center gap-1.5 font-semibold text-foreground">
+                Tanque extra de O₂ <InfoTip>Adiciona 120 horas de oxigênio à autonomia.</InfoTip>
+              </span>
+              <p className="font-mono text-[11px] text-muted-foreground">+MC$ 180/sol</p>
             </div>
           </label>
 
@@ -446,10 +389,10 @@ function Booking() {
               className="mt-1 h-4 w-4 accent-primary"
             />
             <div className="text-xs">
-              <span className="font-semibold text-foreground">Autopiloto Neural N5</span>
-              <p className="font-mono text-[11px] text-muted-foreground">
-                +MC$ 350/sol · Navegação orbital por IA
-              </p>
+              <span className="flex items-center gap-1.5 font-semibold text-foreground">
+                Autopiloto neural <InfoTip>Navegação orbital autônoma nível 5.</InfoTip>
+              </span>
+              <p className="font-mono text-[11px] text-muted-foreground">+MC$ 350/sol</p>
             </div>
           </label>
 
@@ -496,8 +439,7 @@ function Booking() {
           <div>
             {stormBarrierShield ? (
               <p className="text-xs">
-                <span className="font-bold">Barreira Ativa:</span> Escudo defletor habilitado.
-                Decolagem autorizada com segurança.
+                <span className="font-bold">Barreira ativa.</span> Decolagem autorizada.
               </p>
             ) : (
               <p className="text-xs">
@@ -569,8 +511,6 @@ function Booking() {
               <dl className="mt-4 space-y-2 font-mono text-xs">
                 <Row k="O₂ Autonomia" v={`${v.o2_hours} h`} icon={Wind} />
                 <Row k="Bateria" v={`${v.battery_pct}%`} icon={Battery} />
-                <Row k="Filtro Sílica" v={`${v.dust_filter_pct}%`} />
-                <Row k="Pressão Cabine" v={`${v.cabin_pressure_kpa ?? 101.3} kPa`} />
               </dl>
               <div className="mt-3">
                 <Bar value={v.battery_pct} tone={toneFor(v.battery_pct)} />
@@ -708,7 +648,7 @@ function Booking() {
           hangars={hangars}
           onClose={() => setChasingVehicle(null)}
           onSelectVehicle={(v) => {
-            if (v.status !== "in_flight" || (v.speed_kmh || 0) <= 0) {
+            if (v.status !== "in_flight") {
               setChasingVehicle(null);
               navigate({ to: "/app/hangar-3d", search: { vehicleId: v.id } });
             } else {

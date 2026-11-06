@@ -58,7 +58,11 @@ function Hangar() {
 
   return (
     <div className="space-y-6 p-6 md:p-10">
-      <PageHeader kicker="Hangar 3D" title="Inspeção e Engenharia dos Veículos">
+      <PageHeader
+        kicker="Hangar 3D"
+        title="Inspeção de veículos"
+        info="Arraste para girar e role para aproximar. Clique nos pontos do veículo para ver cada subsistema."
+      >
         <Link
           to="/app/mars-radar"
           className="cut-corner flex items-center gap-2 border border-telemetry/60 bg-telemetry/10 px-3.5 py-1.5 font-mono text-xs font-semibold text-telemetry hover:bg-telemetry/20 transition"
@@ -124,8 +128,7 @@ function Hangar() {
             <HangarScene category={v.category} callsign={v.callsign} name={v.name} />
           </Suspense>
           <div className="pointer-events-none absolute bottom-3 left-3 space-y-0.5 font-mono text-[10px] text-muted-foreground">
-            <p className="text-telemetry">MODO: INSPEÇÃO TÉCNICA EM GARAGEM DOCADA</p>
-            <p>ARRASTE PARA GIRAR · ROLE PARA ZOOM</p>
+            <p>ARRASTE PARA GIRAR</p>
           </div>
         </div>
 

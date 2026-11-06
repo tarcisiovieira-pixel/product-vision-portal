@@ -6,13 +6,16 @@ import { motion } from "framer-motion";
 import { AlertCircle, Fingerprint, Lock, Mail, ShieldCheck, Zap } from "lucide-react";
 import { toast } from "sonner";
 import { AresLogo } from "@/components/AresLogo";
+import { useQueryClient } from "@tanstack/react-query";
+import { InfoTip } from "@/components/InfoTip";
 import { supabase } from "@/integrations/supabase/client";
+import { enterRealSession, isDemoSession, startDemoSession } from "@/lib/session";
 
 const MarsGlobe = lazy(() => import("@/components/MarsGlobe"));
 
 export const Route = createFileRoute("/login")({
   beforeLoad: async () => {
-    if (typeof window !== "undefined" && localStorage.getItem("ares_demo_session")) {
+    if (isDemoSession()) {
       throw redirect({ to: "/app/booking" });
     }
     const { data: sessionData } = await supabase.auth.getSession();
@@ -44,11 +47,9 @@ const licenses = [
 
 type PilotLicenseType = (typeof licenses)[number]["id"];
 
-const DEMO_EMAIL = "demo@aresmobility.com";
-const DEMO_PASSWORD = "DemoMars#2026";
-
 function Login() {
   const nav = useNavigate();
+  const qc = useQueryClient();
   const [mode, setMode] = useState<"in" | "up">("in");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -56,10 +57,11 @@ function Login() {
   const [license, setLicense] = useState<PilotLicenseType>("atmospheric");
   const [loading, setLoading] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
+  const [pendingEmail, setPendingEmail] = useState<string | null>(null);
 
   // Checa se já existe sessão no cliente
   useEffect(() => {
-    if (typeof window !== "undefined" && localStorage.getItem("ares_demo_session")) {
+    if (isDemoSession()) {
       nav({ to: "/app/booking", replace: true });
       return;
     }
@@ -73,47 +75,10 @@ function Login() {
   const handleDemoAccess = async () => {
     setLoading(true);
     setAuthError(null);
-    try {
-      // 1. Tentar login direto via Supabase Auth com timeout resiliente de 2.5s
-      const signInPromise = supabase.auth.signInWithPassword({
-        email: DEMO_EMAIL,
-        password: DEMO_PASSWORD,
-      });
-      const timeoutPromise = new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error("Supabase timeout")), 2500),
-      );
-      const { data: signInData, error: signInError } = await Promise.race([
-        signInPromise,
-        timeoutPromise,
-      ]);
-
-      if (!signInError && signInData?.session) {
-        if (typeof window !== "undefined") {
-          localStorage.removeItem("ares_demo_session");
-        }
-        toast.success("Acesso Demo liberado via Supabase! Bem-vindo a Marte, Comandante.");
-        await nav({ to: "/app/booking", replace: true });
-        return;
-      }
-    } catch {
-      // continua para fallback resiliente instantâneo
-    }
-
-    // 2. Fallback resiliente: Login instantâneo independente de confirmação de e-mail ou limites SMTP
-    const demoProfile = {
-      id: "00000000-0000-0000-0000-000000000001",
-      user_id: "demo-commander-ares",
-      space_credential_id: "ARS-DEMO-01",
-      pilot_license: "orbital" as PilotLicenseType,
-      martian_credits: 25000,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    };
-    if (typeof window !== "undefined") {
-      localStorage.setItem("ares_demo_session", JSON.stringify(demoProfile));
-    }
-    toast.success("Acesso Demo liberado! Bem-vindo a Marte, Comandante.", {
-      description: "Credencial ARS-DEMO-01 ativa · Licença Orbital · MC$ 25.000",
+    await supabase.auth.signOut().catch(() => {});
+    startDemoSession(qc);
+    toast.success("Modo demo ativo", {
+      description: "Dados fictícios, salvos só neste navegador.",
     });
     await nav({ to: "/app/booking", replace: true });
     setLoading(false);
@@ -136,9 +101,7 @@ function Login() {
         }
 
         if (data.session) {
-          if (typeof window !== "undefined") {
-            localStorage.removeItem("ares_demo_session");
-          }
+          enterRealSession(qc);
           toast.success("Sessão orbital iniciada!");
           await nav({ to: "/app/booking", replace: true });
         }
@@ -149,6 +112,7 @@ function Login() {
           email: email.trim(),
           password,
           options: {
+            emailRedirectTo: `${window.location.origin}/login`,
             data: {
               space_credential_id: autoCredId,
               pilot_license: license,
@@ -160,28 +124,28 @@ function Login() {
           throw error;
         }
 
+        // O Supabase devolve identities vazio quando o e-mail já tem conta.
+        if (data.user && data.user.identities?.length === 0) {
+          throw new Error("Este e-mail já tem conta. Use a aba Entrar.");
+        }
+
         if (data.session) {
-          if (typeof window !== "undefined") {
-            localStorage.removeItem("ares_demo_session");
-          }
-          toast.success("Credencial registrada com sucesso! 25.000 créditos liberados.");
+          enterRealSession(qc);
+          toast.success("Conta criada! 25.000 créditos liberados.");
           await nav({ to: "/app/booking", replace: true });
         } else {
-          toast.success("Credencial criada com sucesso!");
-          toast.info(
-            "Confirmação de e-mail ativa no Supabase. Para entrar agora sem aguardar confirmação, utilize o botão 'Acesso Rápido Demo'.",
-          );
+          setPendingEmail(email.trim());
           setMode("in");
         }
       }
     } catch (err) {
-      console.error("Auth error:", err);
       let message = errorMessage(err) || "Erro na autenticação. Verifique os dados inseridos.";
       if (message.toLowerCase().includes("email not confirmed")) {
-        message =
-          "Confirmação de e-mail pendente no Supabase. Dica: use o botão 'Acesso Rápido Demo' acima para testar imediatamente, ou confirme o link no seu e-mail / desative 'Confirm email' no painel Supabase (Authentication > Providers > Email).";
+        message = "E-mail ainda não confirmado. Abra o link que enviamos e tente de novo.";
       } else if (message.toLowerCase().includes("invalid login credentials")) {
-        message = "Credenciais inválidas. Verifique seu e-mail e senha de acesso.";
+        message = "E-mail ou senha incorretos.";
+      } else if (message.toLowerCase().includes("rate limit")) {
+        message = "Muitas tentativas. Aguarde alguns minutos ou use o modo demo.";
       }
       setAuthError(message);
       toast.error("Falha na autenticação", { description: message });
@@ -207,8 +171,7 @@ function Login() {
         </div>
         <div className="space-y-2 font-mono text-xs text-telemetry">
           <p>LAT 18.65°N · LON 133.8°W · OLYMPUS MONS HUB</p>
-          <p>PRESSÃO EXT 0.006 atm · TEMP −63 °C</p>
-          <p className="text-warning">⚠ TEMPESTADE · SETOR ACIDALIA · 34% COBERTURA</p>
+          <p className="text-warning">⚠ TEMPESTADE · ACIDALIA</p>
         </div>
       </div>
 
@@ -269,21 +232,36 @@ function Login() {
             className="cut-corner group flex w-full items-center justify-center gap-2 border border-telemetry/60 bg-telemetry/10 py-3.5 font-mono text-xs font-semibold uppercase tracking-widest text-telemetry transition-all hover:bg-telemetry/20 hover:shadow-[0_0_20px_rgba(34,211,238,0.3)] disabled:opacity-50"
           >
             <Zap className="h-4 w-4 text-telemetry transition-transform group-hover:scale-110" />
-            <span>Acesso Rápido Demo</span>
-            <span className="text-[10px] text-telemetry/70">(Sem cadastro)</span>
+            <span>Entrar no modo demo</span>
           </button>
-          <div className="mt-2 text-center">
-            <span className="font-mono text-[10px] text-muted-foreground">
-              ou utilize suas credenciais espaciais abaixo
-            </span>
+          <div className="mt-2 flex items-center justify-center gap-2 font-mono text-[10px] text-muted-foreground">
+            <span>sem cadastro</span>
+            <InfoTip>
+              Explore com dados fictícios, salvos só neste navegador. Nada vai para sua conta.
+            </InfoTip>
           </div>
         </div>
+
+        {pendingEmail && !authError && (
+          <div
+            role="status"
+            className="mt-4 flex items-start gap-2 border border-telemetry/50 bg-telemetry/10 p-3 font-mono text-xs text-telemetry"
+          >
+            <Mail className="mt-0.5 h-4 w-4 shrink-0" />
+            <div className="space-y-1">
+              <p className="font-semibold">Confirme seu e-mail</p>
+              <p className="text-[11px] leading-relaxed">
+                Enviamos um link para {pendingEmail}. Depois de abrir, entre aqui.
+              </p>
+            </div>
+          </div>
+        )}
 
         {authError && (
           <div className="mt-4 flex items-start gap-2 border border-destructive/50 bg-destructive/10 p-3 font-mono text-xs text-destructive">
             <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
             <div className="space-y-1">
-              <p className="font-semibold">Falha de Autorização</p>
+              <p className="font-semibold">Não foi possível entrar</p>
               <p className="text-[11px] leading-relaxed">{authError}</p>
             </div>
           </div>
@@ -360,9 +338,7 @@ function Login() {
 
               <div className="flex items-center gap-2 border border-telemetry/40 bg-telemetry/5 p-3 text-[11px] text-telemetry">
                 <ShieldCheck className="h-4 w-4 shrink-0" />
-                <span>
-                  Bônus inaugural: 25.000 Créditos Marcianos creditados na ativação da credencial.
-                </span>
+                <span>25.000 créditos de boas-vindas</span>
               </div>
             </div>
           )}

@@ -7,6 +7,26 @@ const mockRpc = vi.fn();
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: {
     rpc: (...args: any[]) => mockRpc(...args),
+    from: () => ({
+      select: () => ({
+        eq: () => ({
+          single: async () => ({
+            data: {
+              id: "rnt-new",
+              vehicle_id: "11111111-1111-4111-8111-111111111111",
+              pickup_hangar_id: "22222222-2222-4222-8222-222222222221",
+              dropoff_hangar_id: "22222222-2222-4222-8222-222222222221",
+              start_sol: 4219,
+              end_sol: 4222,
+              total_credits: 1260,
+              quantum_key: "Q-KEY#TEST",
+              status: "confirmed",
+            },
+            error: null,
+          }),
+        }),
+      }),
+    }),
   },
 }));
 
@@ -46,7 +66,7 @@ const Booking = (Route as any).component;
 
 const mockVehicles = [
   {
-    id: "veh-1",
+    id: "11111111-1111-4111-8111-111111111111",
     name: "CyberCab VTOL X2",
     callsign: "CC-X2-01",
     category: "car_vtol",
@@ -56,7 +76,7 @@ const mockVehicles = [
     dust_filter_pct: 88,
     cabin_pressure_kpa: 101.3,
     status: "available",
-    hangar_id: "hng-1",
+    hangar_id: "22222222-2222-4222-8222-222222222221",
     lat: 18.7,
     lng: -133.6,
     altitude_km: 0,
@@ -64,7 +84,7 @@ const mockVehicles = [
     updated_at: new Date().toISOString(),
   },
   {
-    id: "veh-2",
+    id: "11111111-1111-4111-8111-111111111112",
     name: "Starship Hopper S1",
     callsign: "SSH-S1",
     category: "interplanetary_rocket",
@@ -74,7 +94,7 @@ const mockVehicles = [
     dust_filter_pct: 95,
     cabin_pressure_kpa: 101.3,
     status: "available",
-    hangar_id: "hng-1",
+    hangar_id: "22222222-2222-4222-8222-222222222221",
     lat: 18.6,
     lng: -134.0,
     altitude_km: 0,
@@ -85,7 +105,7 @@ const mockVehicles = [
 
 const mockHangars = [
   {
-    id: "hng-1",
+    id: "22222222-2222-4222-8222-222222222221",
     name: "Olympus Mons Hub",
     code: "OLY-01",
     sector: "Tharsis",
@@ -96,7 +116,7 @@ const mockHangars = [
     created_at: new Date().toISOString(),
   },
   {
-    id: "hng-2",
+    id: "22222222-2222-4222-8222-222222222222",
     name: "Jezero Crater Station",
     code: "JEZ-02",
     sector: "Isidis",
@@ -127,9 +147,9 @@ const mockWeather = [
 const mockRentals = [
   {
     id: "rnt-1",
-    vehicle_id: "veh-1",
-    pickup_hangar_id: "hng-1",
-    dropoff_hangar_id: "hng-2",
+    vehicle_id: "11111111-1111-4111-8111-111111111111",
+    pickup_hangar_id: "22222222-2222-4222-8222-222222222221",
+    dropoff_hangar_id: "22222222-2222-4222-8222-222222222222",
     start_sol: 4219,
     end_sol: 4222,
     total_credits: 1620,
@@ -180,7 +200,7 @@ describe("Booking route component", () => {
     expect(screen.getByText("CyberCab VTOL X2")).toBeInTheDocument();
     expect(screen.getByText("Starship Hopper S1")).toBeInTheDocument();
     expect(screen.getByText(/Seguro de Sílica/i)).toBeInTheDocument();
-    expect(screen.getByText(/Distância Great-Circle/i)).toBeInTheDocument();
+    expect(screen.getByText(/Distância:/i)).toBeInTheDocument();
 
     // Veículo VTOL deve estar compatível com licença atmosférica
     const bookButtons = screen.getAllByRole("button", { name: /Reservar Agora/i });
@@ -191,9 +211,9 @@ describe("Booking route component", () => {
       expect(mockRpc).toHaveBeenCalledWith(
         "book_vehicle",
         expect.objectContaining({
-          _vehicle_id: "veh-1",
-          _pickup: "hng-1",
-          _dropoff: "hng-1",
+          _vehicle_id: "11111111-1111-4111-8111-111111111111",
+          _pickup: "22222222-2222-4222-8222-222222222221",
+          _dropoff: "22222222-2222-4222-8222-222222222221",
           _start_sol: 4219,
           _end_sol: 4222,
           _silica_insurance: true,
@@ -203,7 +223,7 @@ describe("Booking route component", () => {
 
     await waitFor(() => {
       expect(screen.getByRole("alert")).toBeInTheDocument();
-      expect(screen.getByText(/Reserva confirmada!/i)).toBeInTheDocument();
+      expect(screen.getByText(/Reserva confirmada/i)).toBeInTheDocument();
     });
   });
 

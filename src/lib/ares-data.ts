@@ -2,7 +2,6 @@ import { queryOptions } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
 import {
-  DEMO_PROFILE,
   SEED_HANGARS,
   SEED_MAINTENANCE_LOGS,
   SEED_RENTALS,
@@ -15,6 +14,13 @@ import {
   type FlightRouteItem,
   type FlightTelemetryLogItem,
 } from "./ares-seed-data";
+import {
+  isDemoSession,
+  readDemoMaintenance,
+  readDemoProfile,
+  readDemoRentals,
+  readDemoSales,
+} from "./session";
 
 export type Vehicle = Tables<"vehicles">;
 export type Hangar = Tables<"hangars">;
@@ -77,102 +83,72 @@ export const weatherQuery = queryOptions({
     ),
 });
 
+// Dados pessoais: demo vê o sandbox local; conta real vê SOMENTE o banco.
+// Nunca usar seed aqui: foi assim que dados demo apareciam em contas novas.
 export const profileQuery = queryOptions({
   queryKey: ["profile"],
   queryFn: async (): Promise<Profile | null> => {
-    try {
-      const { data, error } = await supabase.from("profiles").select("*").maybeSingle();
-      if (!error && data) return data;
-    } catch {
-      // fallback to demo check
+    if (isDemoSession()) return readDemoProfile();
+    const { data, error } = await supabase.from("profiles").select("*").maybeSingle();
+    if (error) {
+      console.warn("Falha ao carregar perfil:", error.message);
+      return null;
     }
-
-    if (typeof window !== "undefined") {
-      const demoRaw = localStorage.getItem("ares_demo_session");
-      if (demoRaw) {
-        try {
-          return JSON.parse(demoRaw) as Profile;
-        } catch {
-          return DEMO_PROFILE;
-        }
-      }
-    }
-    return null;
+    return data;
   },
 });
+
+/** Une registros locais e seed; o registro local substitui o seed de mesmo id. */
+function mergeById<T extends { id: string }>(local: T[], seed: T[]): T[] {
+  const ids = new Set(local.map((item) => item.id));
+  return [...local, ...seed.filter((item) => !ids.has(item.id))];
+}
 
 export const rentalsQuery = queryOptions({
   queryKey: ["rentals"],
   queryFn: async (): Promise<Rental[]> => {
-    let localRentals: Rental[] = [];
-    if (typeof window !== "undefined") {
-      const stored = localStorage.getItem("ares_demo_rentals");
-      if (stored) {
-        try {
-          localRentals = JSON.parse(stored);
-        } catch {
-          // ignore
-        }
-      }
-    }
-    const combinedFallback = [...localRentals, ...SEED_RENTALS];
-    return runWithFallback<Rental[]>(
-      supabase.from("rentals").select("*").order("created_at", { ascending: false }),
-      combinedFallback,
-    );
+    if (isDemoSession()) return mergeById(readDemoRentals(), SEED_RENTALS);
+    const { data, error } = await supabase
+      .from("rentals")
+      .select("*")
+      .order("created_at", { ascending: false });
+    if (error) throw new Error(error.message);
+    return data ?? [];
   },
 });
 
 export const maintenanceLogsQuery = queryOptions({
   queryKey: ["maintenance_logs"],
   queryFn: async (): Promise<MaintenanceLog[]> => {
-    let localLogs: MaintenanceLog[] = [];
-    if (typeof window !== "undefined") {
-      const stored = localStorage.getItem("ares_local_maintenance_logs");
-      if (stored) {
-        try {
-          localLogs = JSON.parse(stored);
-        } catch {
-          // ignore
-        }
-      }
+    if (isDemoSession()) {
+      return mergeById(readDemoMaintenance<MaintenanceLog>(), SEED_MAINTENANCE_LOGS);
     }
-    return runWithFallback<MaintenanceLog[]>(
-      supabase.from("maintenance_logs").select("*").order("created_at", { ascending: false }),
-      [...localLogs, ...SEED_MAINTENANCE_LOGS],
-    );
+    const { data, error } = await supabase
+      .from("maintenance_logs")
+      .select("*")
+      .order("created_at", { ascending: false });
+    if (error) throw new Error(error.message);
+    return data ?? [];
   },
 });
 
 export const vehicleSalesQuery = queryOptions({
   queryKey: ["vehicle_sales"],
   queryFn: async (): Promise<VehicleSaleItem[]> => {
-    let localSales: VehicleSaleItem[] = [];
-    if (typeof window !== "undefined") {
-      const stored = localStorage.getItem("ares_marketplace_sales");
-      if (stored) {
-        try {
-          localSales = JSON.parse(stored);
-        } catch {
-          // JSON local corrompido: segue com lista vazia.
-        }
-      }
+    if (isDemoSession()) {
+      return mergeById(readDemoSales<VehicleSaleItem>(), SEED_VEHICLE_SALES);
     }
-
     try {
       const { data, error } = await supabase
         .from("vehicle_sales")
         .select("*")
         .order("created_at", { ascending: false });
-
-      if (!error && Array.isArray(data) && data.length > 0) {
-        return [...localSales, ...(data as VehicleSaleItem[])];
-      }
+      if (!error && Array.isArray(data) && data.length > 0) return data as VehicleSaleItem[];
     } catch (err) {
-      console.warn("Supabase vehicle_sales fetch error, using local seed:", err);
+      console.warn("Falha ao carregar anúncios, usando vitrine local:", err);
     }
-
-    return [...localSales, ...SEED_VEHICLE_SALES];
+    // Vitrine pública: não é dado pessoal. A compra exige anúncio real (ver buyVehicle).
+    return SEED_VEHICLE_SALES;
   },
 });
 

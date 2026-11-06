@@ -419,7 +419,7 @@ function StormDefenseBarrierCorridor({
 // ---------------------------------------------------------------------
 // Efeito de Fibras de Hiper-Espaço / Warp Drive no Turbo Espacial
 // ---------------------------------------------------------------------
-function WarpStarStreaks({ active }: { active: boolean }) {
+function WarpStarStreaks({ boost }: { boost: boolean }) {
   const count = 90;
   const meshRef = useRef<THREE.InstancedMesh>(null);
   const dummy = useMemo(() => new THREE.Object3D(), []);
@@ -437,21 +437,21 @@ function WarpStarStreaks({ active }: { active: boolean }) {
   }, [count]);
 
   useFrame((_, delta) => {
-    if (!meshRef.current || !active) return;
+    if (!meshRef.current) return;
+    const pace = boost ? 1 : 0.32;
+    const stretch = boost ? 1 : 0.4;
     for (let i = 0; i < count; i++) {
       const s = starData[i];
       if (!s) continue;
-      s.z += s.speed * delta;
+      s.z += s.speed * pace * delta;
       if (s.z > 6) s.z = -30;
       dummy.position.set(s.x, s.y, s.z);
-      dummy.scale.set(0.04, 0.04, s.len);
+      dummy.scale.set(0.04, 0.04, s.len * stretch);
       dummy.updateMatrix();
       meshRef.current.setMatrixAt(i, dummy.matrix);
     }
     meshRef.current.instanceMatrix.needsUpdate = true;
   });
-
-  if (!active) return null;
 
   return (
     <instancedMesh ref={meshRef} args={[undefined, undefined, count]}>
@@ -477,7 +477,7 @@ function MartianSurfaceAtmosphere({
 
   useFrame((_, delta) => {
     if (speed > 0 && terrainTex) {
-      terrainTex.offset.y -= speed * delta * 0.12;
+      terrainTex.offset.y += speed * delta * 0.7;
     }
   });
 
@@ -543,14 +543,18 @@ function DestinationCelestialSystem3D({
   const europaTex = useMemo(makeEuropaTexture, []);
   const moonGroup = useRef<THREE.Group>(null);
   const planetMesh = useRef<THREE.Mesh>(null);
+  const systemRef = useRef<THREE.Group>(null);
 
   useFrame((_, delta) => {
     if (planetMesh.current) planetMesh.current.rotation.y += delta * 0.06;
     if (moonGroup.current) moonGroup.current.rotation.y += delta * 0.22;
+    if (systemRef.current && systemRef.current.position.z < -13) {
+      systemRef.current.position.z += delta * 0.5;
+    }
   });
 
   return (
-    <group position={[0, 0.8, -26.0]}>
+    <group ref={systemRef} position={[0, 0.8, -26.0]}>
       {destination === "earth" && (
         <>
           {/* Globo Terrestre em 3D */}
@@ -1108,18 +1112,17 @@ function FlightScene({
   vehicle,
   cameraMode,
   isBoosting,
-  isActualFlight,
   currentSpeed,
   destinationPlanet,
 }: {
   vehicle: Vehicle;
   cameraMode: "chase" | "cockpit" | "orbit";
   isBoosting: boolean;
-  isActualFlight: boolean;
   currentSpeed: number;
   destinationPlanet: "earth" | "phobos" | "europa";
 }) {
-  const isMoving = isActualFlight || isBoosting;
+  // Mesmo veículo em hangar voa aqui: é a simulação de voo. Cena parada parecia travada.
+  const isMoving = true;
   const isStarship = vehicle.category === "interplanetary_rocket";
   const marsTex = useMemo(makeMarsSurfaceTexture, []);
   const craftGroupRef = useRef<THREE.Group>(null);
@@ -1130,16 +1133,22 @@ function FlightScene({
 
     if (craftGroupRef.current) {
       const shake = isBoosting ? (Math.random() - 0.5) * 0.016 : 0;
-      craftGroupRef.current.position.y = 0.06 * Math.sin(t * 1.8) + shake;
-      craftGroupRef.current.rotation.z = 0.04 * Math.sin(t * 1.2) + shake * 0.4;
-      craftGroupRef.current.rotation.x = -0.02 + 0.02 * Math.cos(t * 1.5);
+      // Curvas suaves: a nave desliza de um lado a outro e inclina ao virar.
+      const weave = isStarship ? 0.18 : 0.5;
+      const turn = t * 0.6;
+      craftGroupRef.current.position.x = Math.sin(turn) * weave;
+      craftGroupRef.current.position.y = 0.09 * Math.sin(t * 1.8) + shake;
+      craftGroupRef.current.rotation.z = -Math.cos(turn) * weave * 0.5 + shake * 0.4;
+      craftGroupRef.current.rotation.y = -Math.cos(turn) * weave * 0.22;
+      craftGroupRef.current.rotation.x = -0.02 + 0.03 * Math.cos(t * 1.5);
     }
 
     // Configuração de Câmeras Dinâmicas
     if (cameraMode === "chase") {
+      const followX = (craftGroupRef.current?.position.x ?? 0) * 0.6;
       const targetPos = isBoosting
-        ? new THREE.Vector3(0, 1.0, 3.4)
-        : new THREE.Vector3(0, 1.05, 3.0);
+        ? new THREE.Vector3(followX, 1.0, 3.4)
+        : new THREE.Vector3(followX, 1.05, 3.0);
       state.camera.position.lerp(targetPos, 0.08);
       state.camera.lookAt(0, 0.25, -6.0);
     } else if (cameraMode === "cockpit") {
@@ -1168,7 +1177,7 @@ function FlightScene({
       {isStarship && (
         <>
           {/* Fibras de velocidade da luz / dobra no Turbo Boost */}
-          <WarpStarStreaks active={isBoosting} />
+          <WarpStarStreaks boost={isBoosting} />
 
           {/* Marte ficando para trás na popa */}
           <MarsAftView marsTex={marsTex} />
@@ -1262,8 +1271,7 @@ export function FlightChaseViewer3D({
   };
 
   const handleSelectVehicleFromList = (targetVehicle: Vehicle) => {
-    const isStationary =
-      targetVehicle.status !== "in_flight" || (targetVehicle.speed_kmh || 0) <= 0;
+    const isStationary = targetVehicle.status !== "in_flight";
 
     if (isStationary) {
       handleGoToGarage(targetVehicle);
@@ -1279,22 +1287,15 @@ export function FlightChaseViewer3D({
     vehicle.category === "car_vtol" ? Plane : vehicle.category === "space_truck" ? Truck : Rocket;
 
   const isStarship = vehicle.category === "interplanetary_rocket";
-  const isActualFlight = vehicle.status === "in_flight" && (vehicle.speed_kmh || 0) > 0;
+  const isActualFlight = vehicle.status === "in_flight";
   const defaultCruiseSpeed = isStarship ? 14200 : vehicle.category === "car_vtol" ? 640 : 220;
-  const currentSpeed = isActualFlight
-    ? (vehicle.speed_kmh || defaultCruiseSpeed) * (isBoosting ? 1.6 : 1.0)
-    : isBoosting
-      ? defaultCruiseSpeed
-      : 0;
+  const baseSpeed = isActualFlight ? vehicle.speed_kmh || defaultCruiseSpeed : defaultCruiseSpeed;
+  const currentSpeed = baseSpeed * (isBoosting ? 1.6 : 1.0);
   const machNumber = (currentSpeed / 860).toFixed(1);
 
   // Separar naves em voo ativo e naves paradas na garagem
-  const inFlightVehicles = allVehicles.filter(
-    (v) => v.status === "in_flight" && (v.speed_kmh || 0) > 0,
-  );
-  const hangarVehicles = allVehicles.filter(
-    (v) => v.status !== "in_flight" || (v.speed_kmh || 0) <= 0,
-  );
+  const inFlightVehicles = allVehicles.filter((v) => v.status === "in_flight");
+  const hangarVehicles = allVehicles.filter((v) => v.status !== "in_flight");
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col bg-[#07080c]/95 backdrop-blur-xl animate-in fade-in duration-200">
@@ -1319,7 +1320,7 @@ export function FlightChaseViewer3D({
                 ? `CRUZEIRO INTERPLANETÁRIO DE ESCAPE · MARTE ➔ ${destinationPlanet === "earth" ? "TERRA (SOL-III)" : destinationPlanet === "phobos" ? "FOBOS" : "EUROPA"} · MACH ${machNumber}`
                 : isActualFlight
                   ? `TELEMETRIA ORBITAL DE PERCURSO EM TEMPO REAL · SOL 4.218 · MACH ${machNumber}`
-                  : `SIMULAÇÃO DE TESTE DE VOO E HOMOLOGAÇÃO · STATUS: ${statusLabel[vehicle.status]?.toUpperCase()} · MACH ${machNumber}`}
+                  : `VOO SIMULADO · NO SOLO: ${statusLabel[vehicle.status]?.toUpperCase()} · MACH ${machNumber}`}
             </p>
           </div>
         </div>
@@ -1380,7 +1381,6 @@ export function FlightChaseViewer3D({
             vehicle={vehicle}
             cameraMode={cameraMode}
             isBoosting={isBoosting}
-            isActualFlight={isActualFlight}
             currentSpeed={currentSpeed}
             destinationPlanet={destinationPlanet}
           />
@@ -1396,7 +1396,7 @@ export function FlightChaseViewer3D({
               <span
                 className={`text-[10px] font-bold ${isActualFlight ? "text-emerald-400" : isBoosting ? "text-telemetry" : "text-amber-400"}`}
               >
-                {isActualFlight ? "VOO ATIVO" : isBoosting ? "TESTE TURBO" : "DOCADA NO HANGAR"}
+                {isActualFlight ? "VOO ATIVO" : "VOO SIMULADO"}
               </span>
             </div>
 
@@ -1558,17 +1558,17 @@ export function FlightChaseViewer3D({
 
         {/* Banner de Aviso de Aeronave Estacionada na Garagem */}
         {!isActualFlight && (
-          <div className="pointer-events-auto absolute top-20 left-1/2 -translate-x-1/2 z-30 flex items-center gap-3 border border-emerald-500/80 bg-[#070b10]/95 px-5 py-2.5 font-mono text-xs shadow-2xl backdrop-blur-md">
+          <div className="pointer-events-auto absolute bottom-6 left-1/2 -translate-x-1/2 z-30 flex items-center gap-3 border border-emerald-500/80 bg-[#070b10]/95 px-5 py-2.5 font-mono text-xs shadow-2xl backdrop-blur-md">
             <Building2 className="h-4 w-4 text-emerald-400 shrink-0" />
             <span className="text-emerald-300 font-bold uppercase tracking-wider">
-              {vehicle.callsign} ESTÁ NA GARAGEM (0 KM/H).
+              SIMULAÇÃO · {vehicle.callsign} ESTÁ NO HANGAR
             </span>
             <button
               type="button"
               onClick={() => handleGoToGarage(vehicle)}
               className="cut-corner ml-2 flex items-center gap-1.5 border border-emerald-500 bg-emerald-500/25 px-3 py-1 font-bold uppercase text-emerald-200 hover:bg-emerald-500/45 transition shadow-glow"
             >
-              <span>🏢 Ir para a Garagem dos Veículos ➔</span>
+              <span>Ver no hangar</span>
             </button>
           </div>
         )}

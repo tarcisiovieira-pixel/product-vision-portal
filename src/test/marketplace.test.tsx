@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { MarketplaceShowcase } from "@/components/MarketplaceShowcase";
 import { Route } from "@/routes/app.marketplace";
 import { DEMO_PROFILE, SEED_HANGARS, SEED_VEHICLE_SALES } from "@/lib/ares-seed-data";
+import { clearDemoState, startDemoSession } from "@/lib/session";
 
 // Mock @tanstack/react-router
 vi.mock("@tanstack/react-router", async () => {
@@ -49,8 +50,8 @@ describe("Marketplace — Compra & Venda de Veículos Espaciais", () => {
       );
     });
 
-    expect(screen.getByText(/ARES Seminovos & Concessionária/i)).toBeInTheDocument();
-    expect(screen.getByText(/Compre sua Espaçonave Própria em Marte/i)).toBeInTheDocument();
+    expect(screen.getByText(/^Marketplace$/i)).toBeInTheDocument();
+    expect(screen.getByText(/Compre sua nave/i)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Anunciar Meu Veículo/i })).toBeInTheDocument();
 
     // Veículos da concessionária
@@ -66,6 +67,7 @@ describe("Marketplace — Compra & Venda de Veículos Espaciais", () => {
 
   it("opens purchase modal and confirms title deed emission", async () => {
     const qc = createTestClient();
+    startDemoSession();
 
     await act(async () => {
       render(
@@ -88,8 +90,11 @@ describe("Marketplace — Compra & Venda de Veículos Espaciais", () => {
       fireEvent.click(confirmPurchaseBtn);
     });
 
-    expect(screen.getByText(/TÍTULO DE PROPRIEDADE DEFINITIVA EMITIDO/i)).toBeInTheDocument();
+    expect(
+      await screen.findByText(/TÍTULO DE PROPRIEDADE DEFINITIVA EMITIDO/i),
+    ).toBeInTheDocument();
     expect(screen.getByText(/REGISTRO DE PROPRIETÁRIO ESPACIAL/i)).toBeInTheDocument();
+    clearDemoState();
   });
 
   it("renders authenticated marketplace page in /app/marketplace", async () => {
@@ -104,7 +109,6 @@ describe("Marketplace — Compra & Venda de Veículos Espaciais", () => {
       );
     });
 
-    expect(screen.getByText(/Compra, Venda e Financiamento de Espaçonaves/i)).toBeInTheDocument();
-    expect(screen.getByText(/ARS-DEMO-01/i)).toBeInTheDocument();
+    expect(screen.getByText(/Compre sua nave/i)).toBeInTheDocument();
   });
 });

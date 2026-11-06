@@ -1,9 +1,9 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { InfoTip } from "@/components/InfoTip";
 import { useSafeNavigate } from "@/hooks/use-safe-navigate";
 import { lazy, Suspense, useState } from "react";
 import { ClientOnly } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { motion } from "framer-motion";
 import {
   AlertTriangle,
   CloudLightning,
@@ -123,13 +123,13 @@ function Landing() {
             href="#frota"
             className="hidden font-mono text-xs uppercase tracking-widest text-muted-foreground hover:text-foreground md:inline-block"
           >
-            Locadora de Frota
+            Frota
           </a>
           <a
             href="#seminovos"
             className="hidden font-mono text-xs uppercase tracking-widest text-telemetry hover:text-foreground md:inline-block font-semibold"
           >
-            Compra & Venda (Seminovos)
+            Comprar
           </a>
           <Link
             to="/app/my-rentals"
@@ -161,12 +161,7 @@ function Landing() {
         <div className="pointer-events-none absolute inset-y-0 left-0 w-full md:w-3/5 bg-gradient-to-r from-background via-background/85 via-35% to-transparent z-[1]" />
 
         {/* Chamada Principal */}
-        <motion.div
-          initial={{ opacity: 0, y: 24 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8 }}
-          className="relative z-10 max-w-3xl px-6 md:px-12 mb-8"
-        >
+        <div className="relative z-10 mb-8 max-w-3xl px-6 duration-700 animate-in fade-in slide-in-from-bottom-4 md:px-12">
           <p className="mb-3 font-mono text-xs uppercase tracking-[0.4em] text-telemetry">
             Sol 4.218 · Jezero Station Fleet · Online
           </p>
@@ -174,10 +169,9 @@ function Landing() {
             Mobilidade para quem <span className="text-primary">mora em Marte.</span>
           </h1>
           <p className="mt-4 max-w-xl text-lg text-muted-foreground">
-            A primeira locadora de veículos espaciais de Marte. Reserve carros voadores VTOL,
-            caminhões e foguetes sem burocracia, com telemetria e clima em tempo real.
+            Carros voadores, caminhões e foguetes. Reserve em minutos, acompanhe em tempo real.
           </p>
-        </motion.div>
+        </div>
 
         {/* Buscador de Locação Estilo Localiza */}
         <div className="relative z-20 px-6 md:px-12 mt-2">
@@ -218,7 +212,7 @@ function Landing() {
           hangars={hangars}
           onClose={() => setChasingVehicle(null)}
           onSelectVehicle={(v) => {
-            if (v.status !== "in_flight" || (v.speed_kmh || 0) <= 0) {
+            if (v.status !== "in_flight") {
               setChasingVehicle(null);
               if (navigate) {
                 navigate({ to: "/app/hangar-3d", search: { vehicleId: v.id } });
@@ -266,9 +260,7 @@ function Landing() {
             Tornar cada cratera de Marte a um voo de distância.
           </h2>
           <p className="mt-6 max-w-2xl text-lg text-muted-foreground">
-            A conveniência de reserva de uma grande locadora terrena unida ao rigor de telemetria de
-            um centro espacial. Um só portal para reservar, rastrear e realizar diagnósticos 3D da
-            frota marciana.
+            Um só portal para reservar, rastrear e cuidar da frota marciana.
           </p>
         </div>
       </section>
@@ -286,8 +278,10 @@ function Landing() {
             {pains.map((p) => (
               <div key={p.title} className="cut-corner glass p-6">
                 <p.icon className="h-6 w-6 text-warning" />
-                <h3 className="mt-4 font-display text-xl font-semibold">{p.title}</h3>
-                <p className="mt-2 text-sm text-muted-foreground">{p.text}</p>
+                <h3 className="mt-4 flex items-center gap-2 font-display text-xl font-semibold">
+                  {p.title}
+                  <InfoTip label={`Sobre ${p.title}`}>{p.text}</InfoTip>
+                </h3>
               </div>
             ))}
           </div>
@@ -307,8 +301,10 @@ function Landing() {
             {solutions.map((s) => (
               <div key={s.title} className="cut-corner border border-primary/30 bg-surface p-6">
                 <s.icon className="h-6 w-6 text-primary" />
-                <h3 className="mt-4 font-display text-xl font-semibold">{s.title}</h3>
-                <p className="mt-2 text-sm text-muted-foreground">{s.text}</p>
+                <h3 className="mt-4 flex items-center gap-2 font-display text-xl font-semibold">
+                  {s.title}
+                  <InfoTip label={`Sobre ${s.title}`}>{s.text}</InfoTip>
+                </h3>
               </div>
             ))}
           </div>
@@ -333,8 +329,10 @@ function Landing() {
               <div key={f.t} className="flex gap-4 p-4">
                 <f.icon className="h-5 w-5 shrink-0 text-telemetry" />
                 <div>
-                  <p className="font-semibold">{f.t}</p>
-                  <p className="text-sm text-muted-foreground">{f.d}</p>
+                  <p className="flex items-center gap-2 font-semibold">
+                    {f.t}
+                    <InfoTip label={`Sobre ${f.t}`}>{f.d}</InfoTip>
+                  </p>
                 </div>
               </div>
             ))}

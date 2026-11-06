@@ -40,6 +40,26 @@ import {
   type WeatherEvent,
 } from "@/lib/ares-data";
 import { supabase } from "@/integrations/supabase/client";
+import { useQueryClient } from "@tanstack/react-query";
+import { createRental } from "@/lib/ares-actions";
+import {
+  clearDemoState,
+  enterRealSession,
+  isDemoSession,
+  startDemoSession,
+  writeDemoProfile,
+} from "@/lib/session";
+
+function friendlyAuthError(err: unknown): string {
+  const message = errorMessage(err);
+  const lower = message.toLowerCase();
+  if (lower.includes("email not confirmed")) {
+    return "E-mail ainda não confirmado. Abra o link que enviamos e tente de novo.";
+  }
+  if (lower.includes("invalid login credentials")) return "E-mail ou senha incorretos.";
+  if (lower.includes("rate limit")) return "Muitas tentativas. Aguarde alguns minutos.";
+  return message;
+}
 
 interface BookingWizardModalProps {
   vehicle: Vehicle | null;
@@ -72,6 +92,7 @@ function BookingWizardInner({
   onBookingSuccess,
 }: BookingWizardModalProps & { vehicle: Vehicle }) {
   const navigate = useNavigate();
+  const qc = useQueryClient();
   const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
 
   // Etapa 1: Voo & Itinerário
@@ -134,33 +155,18 @@ function BookingWizardInner({
   const effectiveLicense = activeProfile?.pilot_license || pilotLicense;
   const hasValidLicense = isLicenseValidForCategory(effectiveLicense, vehicle.category);
 
-  // 1-Clique Acesso Demo
   const handleQuickDemoLogin = () => {
-    const demoProfile: Profile = {
-      id: "00000000-0000-0000-0000-000000000001",
-      user_id: "demo-commander-ares",
-      space_credential_id: "ARS-DEMO-01",
-      pilot_license: "orbital",
-      martian_credits: 25000,
-      safety_reputation_score: 100,
-      flight_hours: 0,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    };
-    if (typeof window !== "undefined") {
-      localStorage.setItem("ares_demo_session", JSON.stringify(demoProfile));
-    }
+    const demoProfile = startDemoSession(qc);
     setActiveProfile(demoProfile);
     setPilotLicense("orbital");
     setAuthError(null);
-    toast.success("Credencial Demo Ativada! Comandante Orbital autenticado e vinculado.");
+    toast.success("Modo demo ativo");
   };
 
-  // Login de Colono existente
   const handleLoginExisting = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!pilotEmail.trim() || !pilotPassword) {
-      setAuthError("Informe o e-mail e a senha de acesso.");
+      setAuthError("Informe o e-mail e a senha.");
       return;
     }
     setIsAuthLoading(true);
@@ -171,63 +177,32 @@ function BookingWizardInner({
         email: pilotEmail.trim(),
         password: pilotPassword,
       });
+      if (error) throw error;
 
-      if (!error && data.session) {
-        const { data: prof } = await supabase.from("profiles").select("*").maybeSingle();
-        const p: Profile = prof || {
-          id: data.user.id,
-          user_id: data.user.id,
-          space_credential_id:
-            data.user.user_metadata?.["space_credential_id"] ||
-            `ARS-${data.user.id.slice(0, 4).toUpperCase()}`,
-          pilot_license:
-            (data.user.user_metadata?.["pilot_license"] as Profile["pilot_license"]) ||
-            "atmospheric",
-          martian_credits: 25000,
-          safety_reputation_score: 100,
-          flight_hours: 0,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        };
-        setActiveProfile(p);
-        toast.success(`Autenticado como ${p.space_credential_id}!`);
-        return;
-      }
-
-      throw error || new Error("Falha na autenticação");
+      enterRealSession(qc);
+      const { data: prof, error: profErr } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("user_id", data.user.id)
+        .maybeSingle();
+      if (profErr || !prof) throw profErr ?? new Error("Perfil não encontrado.");
+      setActiveProfile(prof);
+      toast.success(`Autenticado como ${prof.space_credential_id}`);
     } catch (err) {
-      console.warn("Supabase Auth error in wizard:", errorMessage(err));
-      // Fallback resiliente caso Supabase SMTP bloqueie e-mail
-      const fallbackProf: Profile = {
-        id: `user-${Date.now()}`,
-        user_id: `user-${Date.now()}`,
-        space_credential_id: `ARS-${Math.floor(1000 + Math.random() * 9000)}-EXP`,
-        pilot_license: pilotLicense,
-        martian_credits: 25000,
-        safety_reputation_score: 100,
-        flight_hours: 0,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      };
-      if (typeof window !== "undefined") {
-        localStorage.setItem("ares_demo_session", JSON.stringify(fallbackProf));
-      }
-      setActiveProfile(fallbackProf);
-      toast.success("Credencial autenticada e vinculada à reserva!");
+      setAuthError(friendlyAuthError(err));
     } finally {
       setIsAuthLoading(false);
     }
   };
 
-  // Cadastro facilitado de Colono
   const handleRegisterNew = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!pilotEmail.trim() || !pilotPassword) {
-      setAuthError("Preencha todos os campos para registrar sua credencial.");
+      setAuthError("Preencha e-mail e senha.");
       return;
     }
     if (pilotPassword.length < 6) {
-      setAuthError("A senha de acesso deve ter pelo menos 6 caracteres.");
+      setAuthError("A senha deve ter pelo menos 6 caracteres.");
       return;
     }
 
@@ -241,69 +216,44 @@ function BookingWizardInner({
         email: pilotEmail.trim(),
         password: pilotPassword,
         options: {
-          data: {
-            space_credential_id: autoCred,
-            pilot_license: pilotLicense,
-          },
+          emailRedirectTo: `${window.location.origin}/login`,
+          data: { space_credential_id: autoCred, pilot_license: pilotLicense },
         },
       });
-
-      if (!error && data.session) {
-        const newProf: Profile = {
-          id: data.user?.id || `user-${Date.now()}`,
-          user_id: data.user?.id || `user-${Date.now()}`,
-          space_credential_id: autoCred,
-          pilot_license: pilotLicense,
-          martian_credits: 25000,
-          safety_reputation_score: 100,
-          flight_hours: 0,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        };
-        if (typeof window !== "undefined") {
-          localStorage.setItem("ares_demo_session", JSON.stringify(newProf));
-        }
-        setActiveProfile(newProf);
-        toast.success("Credencial registrada! 25.000 Créditos liberados.");
+      if (error) throw error;
+      if (data.user && data.user.identities?.length === 0) {
+        throw new Error("Este e-mail já tem conta. Use a opção Entrar.");
+      }
+      if (!data.session) {
+        setAuthError("Conta criada! Confirme pelo link enviado ao seu e-mail e depois entre.");
         return;
       }
 
-      throw error || new Error("Registro pendente de verificação");
+      enterRealSession(qc);
+      const { data: prof, error: profErr } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("user_id", data.session.user.id)
+        .maybeSingle();
+      if (profErr || !prof) throw profErr ?? new Error("Perfil não encontrado.");
+      setActiveProfile(prof);
+      toast.success("Conta criada! 25.000 créditos liberados.");
     } catch (err) {
-      console.warn("Sign-up fallback in wizard:", errorMessage(err));
-      const fallbackProf: Profile = {
-        id: `user-${Date.now()}`,
-        user_id: `user-${Date.now()}`,
-        space_credential_id: autoCred,
-        pilot_license: pilotLicense,
-        martian_credits: 25000,
-        safety_reputation_score: 100,
-        flight_hours: 0,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      };
-      if (typeof window !== "undefined") {
-        localStorage.setItem("ares_demo_session", JSON.stringify(fallbackProf));
-      }
-      setActiveProfile(fallbackProf);
-      toast.success("Credencial criada e vinculada com sucesso!");
+      setAuthError(friendlyAuthError(err));
     } finally {
       setIsAuthLoading(false);
     }
   };
 
-  // Confirmação final da locação
   const handleConfirmBooking = async () => {
     if (!activeProfile) {
-      toast.error("Autenticação obrigatória", {
-        description: "Você precisa autenticar uma credencial para vincular a reserva.",
-      });
+      toast.error("Autentique-se para concluir a reserva.");
       return;
     }
 
     if (!hasValidLicense) {
       toast.error("Licença incompatível", {
-        description: `Este veículo (${vehicle.name}) exige habilitação "${getRequiredLicense(vehicle.category)}".`,
+        description: `${vehicle.name} exige habilitação "${getRequiredLicense(vehicle.category)}".`,
       });
       return;
     }
@@ -311,51 +261,26 @@ function BookingWizardInner({
     setIsAuthLoading(true);
 
     try {
-      // Verificar saldo
-      if (activeProfile.martian_credits < totalCredits) {
-        throw new Error(
-          `Saldo insuficiente de créditos marcianos! Custo: MC$ ${totalCredits.toLocaleString("pt-BR")}, seu saldo: MC$ ${Number(activeProfile.martian_credits).toLocaleString("pt-BR")}.`,
-        );
-      }
-
-      // Debitar créditos do titular
-      activeProfile.martian_credits -= totalCredits;
-      if (typeof window !== "undefined") {
-        localStorage.setItem("ares_demo_session", JSON.stringify(activeProfile));
-      }
-
-      // Criar registro da reserva vinculado ao user_id real
-      const newRental: Rental = {
-        id: `rent-${Date.now()}`,
-        user_id: activeProfile.user_id,
-        vehicle_id: vehicle.id,
-        pickup_hangar_id: pickup,
-        dropoff_hangar_id: dropoff,
-        start_sol: startSol,
-        end_sol: startSol + sols,
-        total_credits: totalCredits,
-        silica_insurance: silicaInsurance,
-        extra_o2_tank: extraO2Tank,
-        neural_autopilot_l5: neuralAutopilot,
-        extra_eva_suits: evaSuits,
-        quantum_key: "Q-KEY#8F4A92",
-        preflight_checked: false,
-        postflight_checked: false,
-        status: "confirmed",
-        created_at: new Date().toISOString(),
-      };
-
-      if (typeof window !== "undefined") {
-        const stored = JSON.parse(localStorage.getItem("ares_demo_rentals") || "[]");
-        localStorage.setItem("ares_demo_rentals", JSON.stringify([newRental, ...stored]));
-      }
-
-      setConfirmedRental(newRental);
-      onBookingSuccess?.(newRental);
+      const rental = await createRental({
+        vehicle,
+        pickup,
+        dropoff,
+        startSol,
+        endSol: startSol + sols,
+        silicaInsurance,
+        extraO2Tank,
+        neuralAutopilot,
+        evaSuits,
+        totalCredits,
+      });
+      await qc.invalidateQueries({ queryKey: ["profile"] });
+      await qc.invalidateQueries({ queryKey: ["rentals"] });
+      setConfirmedRental(rental);
+      onBookingSuccess?.(rental);
       setStep(4);
-      toast.success("Locação confirmada e vinculada à sua credencial!");
+      toast.success("Reserva confirmada!");
     } catch (err) {
-      toast.error("Falha ao concluir aluguel", { description: errorMessage(err) });
+      toast.error("Falha ao concluir a reserva", { description: errorMessage(err) });
     } finally {
       setIsAuthLoading(false);
     }
@@ -745,10 +670,9 @@ function BookingWizardInner({
                         type="button"
                         onClick={() => {
                           setActiveProfile(null);
-                          if (typeof window !== "undefined") {
-                            localStorage.removeItem("ares_demo_session");
-                          }
-                          toast.info("Sessão desconectada. Autentique-se com outra credencial.");
+                          clearDemoState();
+                          void supabase.auth.signOut();
+                          qc.clear();
                         }}
                         className="text-[10px] text-muted-foreground underline hover:text-foreground"
                       >
@@ -789,23 +713,23 @@ function BookingWizardInner({
                           {getRequiredLicense(vehicle.category)}", mas sua credencial possui apenas
                           "{licenseLabel[activeProfile.pilot_license]}".
                         </p>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const upgraded = {
-                              ...activeProfile,
-                              pilot_license: "orbital" as const,
-                            };
-                            setActiveProfile(upgraded);
-                            localStorage.setItem("ares_demo_session", JSON.stringify(upgraded));
-                            toast.success(
-                              "Habilitação elevada para Orbital para autorizar esta reserva!",
-                            );
-                          }}
-                          className="mt-2 text-primary hover:underline font-bold"
-                        >
-                          ⚡ Fazer Upgrade Imediato de Habilitação para Orbital
-                        </button>
+                        {isDemoSession() && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const upgraded = {
+                                ...activeProfile,
+                                pilot_license: "orbital" as const,
+                              };
+                              setActiveProfile(upgraded);
+                              writeDemoProfile(upgraded);
+                              toast.success("Habilitação elevada para Orbital.");
+                            }}
+                            className="mt-2 text-primary hover:underline font-bold"
+                          >
+                            ⚡ Elevar habilitação para Orbital (demo)
+                          </button>
+                        )}
                       </div>
                     )}
                   </div>

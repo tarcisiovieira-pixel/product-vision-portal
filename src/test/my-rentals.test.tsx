@@ -1,4 +1,5 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
+import { startDemoSession } from "@/lib/session";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
@@ -158,12 +159,11 @@ describe("MyRentals component", () => {
       </QueryClientProvider>,
     );
 
-    expect(screen.getByText("Minhas Reservas")).toBeInTheDocument();
-    expect(screen.getByText(/Histórico de Frota/i)).toBeInTheDocument();
+    expect(screen.getByText("Minhas reservas")).toBeInTheDocument();
     expect(screen.getByText("Total de Reservas")).toBeInTheDocument();
     expect(screen.getByText(/Reservas Ativas \/ Voo/i)).toBeInTheDocument();
     expect(screen.getByText("Sols em Missão")).toBeInTheDocument();
-    expect(screen.getAllByText(/Créditos Marcianos/i)[0]).toBeInTheDocument();
+    expect(screen.getByText(/Total investido/i)).toBeInTheDocument();
   });
 
   it("renders rental cards with vehicle info, itinerary, and quantum key", () => {
@@ -212,8 +212,7 @@ describe("MyRentals component", () => {
       </QueryClientProvider>,
     );
 
-    // Click "Chave Quântica & Controles" on the first rental
-    const boardingPassBtns = screen.getAllByRole("button", { name: /Chave Quântica & Controles/i });
+    const boardingPassBtns = screen.getAllByRole("button", { name: /^Chave$/i });
     fireEvent.click(boardingPassBtns[0]!);
 
     // Modal should appear
@@ -247,7 +246,7 @@ describe("MyRentals component", () => {
     expect(screen.getByText(/APEX-VIP35/i)).toBeInTheDocument();
     expect(screen.getByText(/ESCUDO-ZERO/i)).toBeInTheDocument();
 
-    const applyBtn = screen.getByRole("button", { name: /Usar Cupom APEX-VIP35/i });
+    const applyBtn = screen.getByRole("button", { name: /^APEX-VIP35$/i });
     fireEvent.click(applyBtn);
 
     const activePromo = JSON.parse(localStorage.getItem("ares_active_promo") || "{}");
@@ -255,6 +254,7 @@ describe("MyRentals component", () => {
   });
 
   it("extends rental duration when clicking Estender (+1 Sol)", async () => {
+    startDemoSession();
     render(
       <QueryClientProvider client={qc}>
         <MyRentals />
@@ -264,8 +264,9 @@ describe("MyRentals component", () => {
     const extendButtons = screen.getAllByRole("button", { name: /Estender/i });
     fireEvent.click(extendButtons[0]!);
 
-    const storedRentals = JSON.parse(localStorage.getItem("ares_demo_rentals") || "[]");
-    expect(storedRentals.length).toBeGreaterThan(0);
-    expect(storedRentals[0].end_sol).toBe(746); // 745 + 1
+    await waitFor(() => {
+      const storedRentals = JSON.parse(localStorage.getItem("ares_demo_rentals") || "[]");
+      expect(storedRentals[0]?.end_sol).toBe(746); // 745 + 1
+    });
   });
 });

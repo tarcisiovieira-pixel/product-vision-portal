@@ -1,6 +1,6 @@
-import { useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
-import { Html, OrbitControls, QuadraticBezierLine, Sparkles, Stars } from "@react-three/drei";
+import { OrbitControls, QuadraticBezierLine, Sparkles, Stars } from "@react-three/drei";
 import * as THREE from "three";
 import { latLngToVec, type Hangar, type Vehicle, type WeatherEvent } from "@/lib/ares-data";
 
@@ -152,16 +152,7 @@ function CelestialEarthSystem() {
       </mesh>
 
       {/* Rótulo HUD Interplanetário */}
-      <Html distanceFactor={14} center style={{ pointerEvents: "none" }}>
-        <div className="flex flex-col items-center border border-blue-400/50 bg-[#050b14]/90 px-2.5 py-1.5 backdrop-blur-md whitespace-nowrap shadow-[0_0_20px_rgba(56,189,248,0.25)]">
-          <span className="font-mono text-[9px] uppercase tracking-wider text-blue-300 font-bold flex items-center gap-1">
-            🌍 TERRA (SOL-III) · 54.6M KM
-          </span>
-          <span className="font-mono text-[8px] text-muted-foreground">
-            DESTINO INTERPLANETÁRIO HOMOLOGADO
-          </span>
-        </div>
-      </Html>
+      <GlobeLabel text="TERRA · 54,6M KM" color="#93c5fd" position={[0, 1.05, 0]} size={0.2} />
 
       {/* Lua Orbitando a Terra */}
       <mesh rotation={[Math.PI / 2, 0, 0.1]}>
@@ -174,11 +165,7 @@ function CelestialEarthSystem() {
             <sphereGeometry args={[0.16, 24, 24]} />
             <meshStandardMaterial color="#c0c4cc" roughness={0.9} />
           </mesh>
-          <Html distanceFactor={10} center style={{ pointerEvents: "none" }}>
-            <span className="whitespace-nowrap font-mono text-[8px] uppercase tracking-wider text-muted-foreground">
-              Lua
-            </span>
-          </Html>
+          <GlobeLabel text="LUA" position={[0, 0.32, 0]} size={0.12} />
         </group>
       </group>
     </group>
@@ -201,11 +188,7 @@ function InterplanetaryHohmannArc() {
         opacity={0.5}
       />
       <group position={[HOHMANN_MID.x, HOHMANN_MID.y, HOHMANN_MID.z]}>
-        <Html distanceFactor={12} center style={{ pointerEvents: "none" }}>
-          <span className="font-mono text-[8px] uppercase tracking-widest text-cyan-400 border border-cyan-500/40 bg-black/80 px-2 py-0.5 whitespace-nowrap shadow-glow">
-            ✦ ROTA INTERPLANETÁRIA HOHMANN (MARTE ➔ TERRA)
-          </span>
-        </Html>
+        <GlobeLabel text="ROTA HOHMANN" color="#22d3ee" position={[0, 0.2, 0]} size={0.13} />
       </group>
     </group>
   );
@@ -236,11 +219,7 @@ function MartianMoons() {
             <dodecahedronGeometry args={[0.07, 1]} />
             <meshStandardMaterial color="#6b6965" roughness={0.9} metalness={0.2} />
           </mesh>
-          <Html distanceFactor={8} center style={{ pointerEvents: "none" }}>
-            <span className="whitespace-nowrap font-mono text-[9px] uppercase tracking-wider text-telemetry">
-              Fobos
-            </span>
-          </Html>
+          <GlobeLabel text="FOBOS" color="#22d3ee" position={[0, 0.16, 0]} size={0.09} />
         </group>
       </group>
 
@@ -255,11 +234,7 @@ function MartianMoons() {
             <dodecahedronGeometry args={[0.045, 1]} />
             <meshStandardMaterial color="#827f7a" roughness={0.95} metalness={0.1} />
           </mesh>
-          <Html distanceFactor={10} center style={{ pointerEvents: "none" }}>
-            <span className="whitespace-nowrap font-mono text-[9px] uppercase tracking-wider text-telemetry">
-              Deimos
-            </span>
-          </Html>
+          <GlobeLabel text="DEIMOS" color="#22d3ee" position={[0, 0.16, 0]} size={0.09} />
         </group>
       </group>
     </>
@@ -371,6 +346,74 @@ function FlightRouteArcs({ hangars }: { hangars: Hangar[] }) {
 // Miniatura 3D Procedural da Nave (Carro VTOL, Foguete Starship ou Hauler)
 // Coerente: Se estacionada/docada, propulsores estão frios e rotores descansam
 // ---------------------------------------------------------------------
+// Rótulo desenhado em textura, sempre voltado para a câmera. Substitui o Html do drei,
+// que gerava erro do React ao desmontar a cena na troca de rota.
+function GlobeLabel({
+  text,
+  color = "#a1a1aa",
+  size,
+  position,
+}: {
+  text: string;
+  color?: string;
+  size: number;
+  position: [number, number, number];
+}) {
+  const { texture, aspect } = useMemo(() => {
+    const canvas = document.createElement("canvas");
+    const g = canvas.getContext("2d");
+    const font = "bold 40px monospace";
+    if (g) g.font = font;
+    const width = Math.ceil((g?.measureText?.(text)?.width ?? 200) + 24);
+    canvas.width = width;
+    canvas.height = 56;
+    if (g) {
+      g.font = font;
+      g.fillStyle = color;
+      g.textBaseline = "middle";
+      g.fillText(text, 12, 28);
+    }
+    return { texture: new THREE.CanvasTexture(canvas), aspect: width / 56 };
+  }, [text, color]);
+
+  useEffect(() => () => texture.dispose(), [texture]);
+
+  return (
+    <sprite position={position} scale={[size * aspect, size, 1]}>
+      <spriteMaterial map={texture} transparent depthWrite={false} toneMapped={false} />
+    </sprite>
+  );
+}
+
+// Faz as naves em voo se moverem: foguetes percorrem a rota Hohmann em loop e
+// veículos atmosféricos circulam o planeta na própria latitude.
+function FlightMotion({
+  mode,
+  offset,
+  children,
+}: {
+  mode: "parked" | "orbit" | "hohmann";
+  offset: number;
+  children: React.ReactNode;
+}) {
+  const ref = useRef<THREE.Group>(null);
+  const progress = useRef(0.1 + offset * 0.6);
+
+  useFrame((_, delta) => {
+    const group = ref.current;
+    if (!group) return;
+    if (mode === "orbit") {
+      group.rotation.y += Math.min(delta, 0.05) * 0.16;
+    } else if (mode === "hohmann") {
+      progress.current = (progress.current + Math.min(delta, 0.05) * 0.035) % 1;
+      const point = HOHMANN_CURVE.getPoint(progress.current);
+      group.position.copy(point).sub(HOHMANN_CURVE.getPoint(0.38));
+    }
+  });
+
+  return <group ref={ref}>{children}</group>;
+}
+
 function GlobeCraftMesh({
   category,
   callsign,
@@ -658,19 +701,14 @@ export default function RadarGlobe({
                 side={THREE.DoubleSide}
               />
             </mesh>
-            <Html distanceFactor={7} center style={{ pointerEvents: "none" }}>
-              <span className="whitespace-nowrap font-mono text-[9px] uppercase tracking-wider text-muted-foreground">
-                {h.code}
-              </span>
-            </Html>
+            <GlobeLabel text={h.code} position={[0, 0.13, 0]} size={0.08} />
           </group>
         );
       })}
 
       {/* Veículos em Tempo Real com Status Coerente Físico e Operacional */}
-      {vehicles.map((v) => {
-        const isAirborne =
-          v.status === "in_flight" && (v.altitude_km > 0.1 || (v.speed_kmh ?? 0) > 0);
+      {vehicles.map((v, index) => {
+        const isAirborne = v.status === "in_flight";
         const sel = v.id === selected;
 
         let p: [number, number, number];
@@ -714,135 +752,45 @@ export default function RadarGlobe({
 
         const assignedHangar = hangars.find((h) => h.id === v.hangar_id);
 
+        const motion = !isAirborne
+          ? "parked"
+          : v.category === "interplanetary_rocket"
+            ? "hohmann"
+            : "orbit";
+
         return (
-          <group key={v.id} position={p} quaternion={quat}>
-            {/* Anel Pulsante de Seleção / Rastreamento */}
-            {sel && (
-              <mesh rotation={[Math.PI / 2, 0, 0]}>
-                <ringGeometry args={[0.12, 0.16, 24]} />
-                <meshBasicMaterial
-                  color="#00f0ff"
-                  side={THREE.DoubleSide}
-                  transparent
-                  opacity={0.8}
-                />
-              </mesh>
-            )}
+          <FlightMotion key={v.id} mode={motion} offset={(index % 4) / 4}>
+            <group position={p} quaternion={quat}>
+              {/* Anel Pulsante de Seleção / Rastreamento */}
+              {sel && (
+                <mesh rotation={[Math.PI / 2, 0, 0]}>
+                  <ringGeometry args={[0.12, 0.16, 24]} />
+                  <meshBasicMaterial
+                    color="#00f0ff"
+                    side={THREE.DoubleSide}
+                    transparent
+                    opacity={0.8}
+                  />
+                </mesh>
+              )}
 
-            {/* Objeto 3D Interativo do Veículo (Carro VTOL, Foguete ou Hauler) */}
-            <group
-              onClick={(e) => {
-                e.stopPropagation();
-                onSelect(v.id);
-              }}
-            >
-              <GlobeCraftMesh
-                category={v.category}
-                callsign={v.callsign}
-                name={v.name}
-                sel={sel}
-                isAirborne={isAirborne}
-              />
-            </group>
-
-            {/* Card HUD Telemetria Hover / Seleção */}
-            {sel && (
-              <Html
-                distanceFactor={6}
-                center
-                position={[0, 0.24, 0]}
-                zIndexRange={[100, 0]}
-                style={{ pointerEvents: "auto" }}
+              {/* Objeto 3D Interativo do Veículo (Carro VTOL, Foguete ou Hauler) */}
+              <group
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onSelect(v.id);
+                }}
               >
-                <div className="min-w-48 border border-telemetry/80 bg-[#07080c] p-3.5 font-mono text-[10px] shadow-2xl z-50">
-                  <div className="flex items-center justify-between border-b border-telemetry/30 pb-1">
-                    <span className="font-bold text-primary">{v.callsign}</span>
-                    <span className="text-[9px] text-telemetry uppercase tracking-wider">
-                      {v.category === "car_vtol"
-                        ? "VTOL"
-                        : v.category === "space_truck"
-                          ? "Truck"
-                          : "Starship"}
-                    </span>
-                  </div>
-                  <p className="mt-1 font-semibold text-foreground">{v.name}</p>
-
-                  {/* Status Operacional Preciso */}
-                  {v.status === "in_flight" ? (
-                    <div className="mt-1 flex items-center gap-1.5 text-telemetry font-bold">
-                      <span className="h-1.5 w-1.5 rounded-full bg-telemetry animate-ping" />
-                      <span>EM VOO · ALT {v.altitude_km.toFixed(1)} km</span>
-                    </div>
-                  ) : v.status === "available" ? (
-                    <div className="mt-1 flex items-center gap-1.5 text-emerald-400 font-bold">
-                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
-                      <span>DOCADA NO HANGAR ({assignedHangar?.code ?? "PAD-01"})</span>
-                    </div>
-                  ) : v.status === "maintenance" ? (
-                    <div className="mt-1 flex items-center gap-1.5 text-amber-400 font-bold">
-                      <span className="h-1.5 w-1.5 rounded-full bg-amber-400" />
-                      <span>BAIA DE MANUTENÇÃO</span>
-                    </div>
-                  ) : (
-                    <div className="mt-1 flex items-center gap-1.5 text-warning font-bold">
-                      <span className="h-1.5 w-1.5 rounded-full bg-warning" />
-                      <span>ABRIGO SUBTERRÂNEO</span>
-                    </div>
-                  )}
-
-                  <div className="mt-2 flex justify-between border-t border-border/40 pt-1.5 text-muted-foreground text-[9px]">
-                    <span>BAT {v.battery_pct}%</span>
-                    <span>SÍLICA {v.dust_filter_pct}%</span>
-                    <span
-                      className={isAirborne ? "text-telemetry font-bold" : "text-muted-foreground"}
-                    >
-                      {Math.round(v.speed_kmh ?? 0)} km/h
-                    </span>
-                  </div>
-
-                  {/* Ação Operacional Coerente Conforme Status */}
-                  {v.status === "in_flight" && onChaseVehicle && (
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onChaseVehicle(v);
-                      }}
-                      className="cut-corner mt-2.5 flex w-full items-center justify-center gap-1.5 border border-telemetry bg-telemetry/20 py-1.5 text-[10px] font-bold uppercase tracking-wider text-telemetry hover:bg-telemetry/35 transition shadow-glow"
-                    >
-                      <span>⚡ Acompanhar Voo 3D</span>
-                    </button>
-                  )}
-
-                  {v.status === "available" && onInspectHangar && (
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onInspectHangar(v);
-                      }}
-                      className="cut-corner mt-2.5 flex w-full items-center justify-center gap-1.5 border border-emerald-500/70 bg-emerald-500/15 py-1.5 text-[10px] font-bold uppercase tracking-wider text-emerald-400 hover:bg-emerald-500/25 transition"
-                    >
-                      <span>🏢 Inspecionar no Hangar 3D</span>
-                    </button>
-                  )}
-
-                  {v.status === "maintenance" && onOpenMaintenance && (
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onOpenMaintenance(v);
-                      }}
-                      className="cut-corner mt-2.5 flex w-full items-center justify-center gap-1.5 border border-amber-500/70 bg-amber-500/15 py-1.5 text-[10px] font-bold uppercase tracking-wider text-amber-400 hover:bg-amber-500/25 transition"
-                    >
-                      <span>🔧 Baia Técnica & Diagnóstico</span>
-                    </button>
-                  )}
-                </div>
-              </Html>
-            )}
-          </group>
+                <GlobeCraftMesh
+                  category={v.category}
+                  callsign={v.callsign}
+                  name={v.name}
+                  sel={sel}
+                  isAirborne={isAirborne}
+                />
+              </group>
+            </group>
+          </FlightMotion>
         );
       })}
 

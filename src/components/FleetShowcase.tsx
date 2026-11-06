@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { InfoTip } from "@/components/InfoTip";
 import {
   AlertTriangle,
   Battery,
@@ -70,22 +71,16 @@ export function FleetShowcase({
         {/* Section Header */}
         <div className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
           <div>
-            <p className="font-mono text-xs uppercase tracking-[0.4em] text-primary">
-              Frota ARES Mobility · Jezero Fleet
-            </p>
+            <p className="font-mono text-xs uppercase tracking-[0.4em] text-primary">Frota</p>
             <h2 className="mt-2 font-display text-4xl font-bold tracking-tight md:text-5xl">
-              Escolha seu veículo para decolar em Marte
+              Escolha seu veículo
             </h2>
-            <p className="mt-2 text-muted-foreground">
-              Carros voadores pressurizados, caminhões blindados para cânions e foguetes
-              interplanetários classe Starship.
-            </p>
           </div>
 
           <div className="flex items-center gap-2 font-mono text-xs text-telemetry border border-telemetry/30 bg-telemetry/5 px-4 py-2">
             <Zap className="h-4 w-4 shrink-0 text-telemetry" />
             <span>
-              {vehicles.length} Aeronaves disponíveis em {hangars.length} Hangares
+              {vehicles.length} veículos · {hangars.length} hangares
             </span>
           </div>
         </div>
@@ -94,9 +89,9 @@ export function FleetShowcase({
         <div className="flex flex-wrap gap-2 border-b border-border/50 pb-4 font-mono text-xs">
           {[
             { id: "all", label: "Toda a Frota" },
-            { id: "car_vtol", label: "Carros Voadores (VTOL)" },
-            { id: "space_truck", label: "Caminhões Espaciais" },
-            { id: "interplanetary_rocket", label: "Foguetes Starship" },
+            { id: "car_vtol", label: "Carros voadores" },
+            { id: "space_truck", label: "Caminhões" },
+            { id: "interplanetary_rocket", label: "Foguetes" },
           ].map((cat) => (
             <button
               key={cat.id}
@@ -183,7 +178,7 @@ export function FleetShowcase({
                   </div>
 
                   {/* Telemetry Signals */}
-                  <div className="mt-4 grid grid-cols-3 gap-2 font-mono text-xs text-muted-foreground">
+                  <div className="mt-4 grid grid-cols-2 gap-2 font-mono text-xs text-muted-foreground">
                     <div className="border border-border/50 bg-surface/50 p-2 text-center">
                       <Battery className="mx-auto h-3.5 w-3.5 text-emerald-400 mb-1" />
                       <span className="block text-[10px] text-muted-foreground">BATERIA</span>
@@ -195,21 +190,20 @@ export function FleetShowcase({
                       <span className="block text-[10px] text-muted-foreground">O₂ SUPORTE</span>
                       <strong className="text-foreground font-bold">{v.o2_hours}h</strong>
                     </div>
-
-                    <div className="border border-border/50 bg-surface/50 p-2 text-center">
-                      <Filter className="mx-auto h-3.5 w-3.5 text-warning mb-1" />
-                      <span className="block text-[10px] text-muted-foreground">SÍLICA</span>
-                      <strong className="text-foreground font-bold">{v.dust_filter_pct}%</strong>
-                    </div>
                   </div>
 
                   {/* Required License Badge */}
                   <div className="mt-4 flex items-center gap-2 font-mono text-[11px] text-muted-foreground">
                     <ShieldCheck className="h-4 w-4 text-telemetry shrink-0" />
                     <span>
-                      Licença mínima:{" "}
+                      Licença:{" "}
                       <strong className="text-telemetry">{getRequiredLicense(v.category)}</strong>
                     </span>
+                    <InfoTip label={`Detalhes de ${v.callsign}`}>
+                      Filtro de sílica em {v.dust_filter_pct}%. Pressão de cabine{" "}
+                      {v.cabin_pressure_kpa ?? 101.3} kPa. A habilitação do piloto é validada na
+                      reserva.
+                    </InfoTip>
                   </div>
                 </div>
 
@@ -234,7 +228,7 @@ export function FleetShowcase({
                     onClick={() => onSelectVehicle(v)}
                     className="cut-corner mt-4 flex w-full items-center justify-center gap-2 bg-mars-gradient py-3 font-sans font-semibold uppercase tracking-widest text-primary-foreground shadow-glow transition hover:opacity-95"
                   >
-                    <span>Reservar Veículo</span>
+                    <span>Reservar</span>
                   </button>
 
                   {onInspect3D && (
@@ -244,7 +238,7 @@ export function FleetShowcase({
                       className="cut-corner mt-2 flex w-full items-center justify-center gap-2 border border-telemetry/40 bg-telemetry/10 py-2.5 font-mono text-xs uppercase tracking-wider text-telemetry transition hover:border-telemetry hover:bg-telemetry/20"
                     >
                       <Zap className="h-3.5 w-3.5" />
-                      <span>Acompanhar Percurso 3D</span>
+                      <span>Voo 3D</span>
                     </button>
                   )}
                 </div>

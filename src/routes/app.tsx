@@ -12,17 +12,18 @@ import {
 import { AresLogo } from "@/components/AresLogo";
 import { supabase } from "@/integrations/supabase/client";
 import { licenseLabel, profileQuery } from "@/lib/ares-data";
+import { clearDemoState, isDemoSession } from "@/lib/session";
 
 export const Route = createFileRoute("/app")({
   ssr: false,
   beforeLoad: async () => {
-    if (typeof window !== "undefined" && localStorage.getItem("ares_demo_session")) {
-      return;
-    }
+    // Conta real sempre vence: resquícios do demo são descartados.
     const { data: sessionData } = await supabase.auth.getSession();
     if (sessionData.session) {
+      clearDemoState();
       return;
     }
+    if (isDemoSession()) return;
     try {
       const userPromise = supabase.auth.getUser();
       const timeoutPromise = new Promise<{ data: { user: null } }>((resolve) =>
@@ -53,11 +54,7 @@ function AppLayout() {
   const { data: profile } = useQuery(profileQuery);
 
   const signOut = async () => {
-    if (typeof window !== "undefined") {
-      localStorage.removeItem("ares_demo_session");
-      localStorage.removeItem("ares_demo_rentals");
-      localStorage.removeItem("ares_local_maintenance_logs");
-    }
+    clearDemoState();
     await qc.cancelQueries();
     qc.clear();
     await supabase.auth.signOut().catch(() => {});

@@ -1,4 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { InfoTip } from "@/components/InfoTip";
 import { useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { lazy, Suspense, useEffect, useState } from "react";
 import {
@@ -98,11 +99,15 @@ function MarsRadar() {
 
   return (
     <div className="space-y-6 p-6 md:p-10">
-      <PageHeader kicker="Radar Marte" title="Rastreamento da Frota & Percurso 3D">
+      <PageHeader
+        kicker="Radar"
+        title="Frota em tempo real"
+        info="Naves em voo se movem pelo globo. Clique em uma nave para ver telemetria e ações."
+      >
         <div className="flex flex-wrap items-center gap-4">
           <span className="flex items-center gap-2 font-mono text-xs text-telemetry">
             <Radio className="h-4 w-4 animate-pulse" />
-            FREQUÊNCIA ORBITAL 1.420 GHz
+            1.420 GHz
           </span>
           <span
             className={`flex items-center gap-2 font-mono text-xs ${live ? "text-telemetry" : "text-muted-foreground"}`}
@@ -110,7 +115,7 @@ function MarsRadar() {
             <span
               className={`h-2 w-2 rounded-full ${live ? "animate-pulse bg-telemetry" : "bg-muted-foreground"}`}
             />
-            {live ? "REDE REALTIME ONLINE" : "SIMULAÇÃO AREOGRÁFICA"}
+            {live ? "AO VIVO" : "SIMULAÇÃO"}
           </span>
           <button
             type="button"
@@ -166,10 +171,8 @@ function MarsRadar() {
 
           <div className="pointer-events-none absolute bottom-4 left-4 space-y-1 font-mono text-[10px] text-muted-foreground">
             <p className="flex items-center gap-1.5 text-telemetry">
-              <Zap className="h-3 w-3" /> TELEMETRIA AREOGRÁFICA COERENTE: NAVES DOCADAS EM HANGAR &
-              VOO ORBITAL
+              <Zap className="h-3 w-3" /> CLIQUE EM UMA NAVE PARA VER DETALHES
             </p>
-            <p>CLIQUE EM QUALQUER NAVE NO GLOBO PARA SELEÇÃO E AÇÕES OPERACIONAIS</p>
           </div>
 
           <div className="absolute top-4 right-4 flex items-center gap-2 font-mono text-xs">
@@ -342,10 +345,11 @@ function MarsRadar() {
               <div key={w.id} className="border-l-2 border-warning pl-3 font-mono text-xs">
                 <p className="font-semibold text-foreground">{w.name}</p>
                 <p className="text-muted-foreground">
-                  Sev {w.severity}/5 · Vento {w.wind_speed_kmh} km/h · Raio {w.pulseRadiusKm} km
-                </p>
-                <p className="text-[10px] text-warning/80">
-                  Radiação: {w.radiation_msv ?? 0.15} mSv/h
+                  Severidade {w.severity}/5
+                  <InfoTip label={`Detalhes de ${w.name}`} className="ml-1.5">
+                    Vento {w.wind_speed_kmh} km/h · Raio {w.pulseRadiusKm} km · Radiação{" "}
+                    {w.radiation_msv ?? 0.15} mSv/h
+                  </InfoTip>
                 </p>
               </div>
             ))}
@@ -426,7 +430,7 @@ function MarsRadar() {
           hangars={hangars}
           onClose={() => setChasingVehicle(null)}
           onSelectVehicle={(v) => {
-            if (v.status !== "in_flight" || (v.speed_kmh || 0) <= 0) {
+            if (v.status !== "in_flight") {
               setChasingVehicle(null);
               navigate({ to: "/app/hangar-3d", search: { vehicleId: v.id } });
             } else {

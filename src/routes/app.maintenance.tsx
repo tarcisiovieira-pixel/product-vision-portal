@@ -15,7 +15,7 @@ import {
   Wrench,
 } from "lucide-react";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
+import { runMaintenance } from "@/lib/ares-actions";
 import { PageHeader, Bar, toneFor } from "@/components/PageHeader";
 import {
   MAINTENANCE_SERVICES,
@@ -73,67 +73,7 @@ function Maintenance() {
   // Executar Serviço de Manutenção via RPC Supabase
   const executeService = useMutation({
     mutationFn: async ({ serviceKey, vehicle }: { serviceKey: string; vehicle: Vehicle }) => {
-      const isDemo = typeof window !== "undefined" && !!localStorage.getItem("ares_demo_session");
-      if (isDemo) {
-        const cost = MAINTENANCE_SERVICES[serviceKey]?.cost ?? 450;
-        const newLog = {
-          id: `m-log-${Date.now()}`,
-          vehicle_id: vehicle.id,
-          service_type: serviceKey,
-          credits_cost: cost,
-          status: "completed",
-          notes: `Ordem de serviço autorizada pela Central de Manutenção ARES para ${vehicle.callsign}`,
-          created_at: new Date().toISOString(),
-        };
-        const currentLogs = JSON.parse(localStorage.getItem("ares_local_maintenance_logs") || "[]");
-        localStorage.setItem(
-          "ares_local_maintenance_logs",
-          JSON.stringify([newLog, ...currentLogs]),
-        );
-
-        const demoRaw = localStorage.getItem("ares_demo_session");
-        if (demoRaw) {
-          const demoObj = JSON.parse(demoRaw);
-          demoObj.martian_credits = Math.max(0, demoObj.martian_credits - cost);
-          localStorage.setItem("ares_demo_session", JSON.stringify(demoObj));
-        }
-        return serviceKey;
-      }
-
-      // 1. Tenta chamar a RPC execute_maintenance
-      const { data, error } = await supabase.rpc("execute_maintenance", {
-        _vehicle_id: vehicle.id,
-        _service_type: serviceKey,
-        _notes: `Ordem de serviço autorizada pela Central de Manutenção ARES para ${vehicle.callsign}`,
-      });
-
-      if (error) {
-        // Fallback defensivo com update direto na tabela caso a migration ainda não esteja propagada
-        let updatePayload: Partial<Vehicle> = { status: "available" };
-        if (serviceKey === "silica_clean")
-          updatePayload = { dust_filter_pct: 100, status: "available" };
-        if (serviceKey === "cryo_recharge")
-          updatePayload = { battery_pct: 100, status: "available" };
-        if (serviceKey === "o2_refill") {
-          updatePayload = {
-            o2_hours:
-              vehicle.category === "interplanetary_rocket"
-                ? 900
-                : vehicle.category === "space_truck"
-                  ? 120
-                  : 40,
-            status: "available",
-          };
-        }
-        if (serviceKey === "thruster_calibration")
-          updatePayload = { thruster_integrity: 100, status: "available" };
-
-        const { error: updErr } = await supabase
-          .from("vehicles")
-          .update(updatePayload)
-          .eq("id", vehicle.id);
-        if (updErr) throw new Error(updErr.message);
-      }
+      await runMaintenance(vehicle, serviceKey);
       return serviceKey;
     },
     onSuccess: (serviceKey) => {
@@ -158,7 +98,11 @@ function Maintenance() {
 
   return (
     <div className="mx-auto max-w-6xl space-y-8 p-6 md:p-10">
-      <PageHeader kicker="Manutenção & Engenharia" title="Diagnóstico 3D & Telemetria da Frota" />
+      <PageHeader
+        kicker="Manutenção"
+        title="Saúde da frota"
+        info="Selecione um veículo e clique nos pontos luminosos do modelo 3D para diagnosticar cada subsistema. O serviço debita créditos do seu saldo."
+      />
 
       {/* Cards de Métricas Gerais */}
       <div className="grid gap-4 md:grid-cols-3">
@@ -224,10 +168,8 @@ function Maintenance() {
             {/* Guia de Hotspots Sobreposta */}
             <div className="pointer-events-none absolute bottom-3 left-4 space-y-1 font-mono text-[10px] text-muted-foreground">
               <p className="flex items-center gap-1.5 text-telemetry">
-                <Sparkles className="h-3 w-3" /> PONTOS LUMINOSOS SÃO HOTSPOTS CLICÁVEIS DE
-                DIAGNÓSTICO
+                <Sparkles className="h-3 w-3" /> CLIQUE NOS PONTOS LUMINOSOS
               </p>
-              <p>ARRASTE PARA ROTACIONAR · ROLE PARA ZOOM</p>
             </div>
           </div>
 
@@ -343,8 +285,8 @@ function Maintenance() {
                     </div>
                     <p className="mt-2 text-[10px] text-muted-foreground">
                       {currentVehicle.dust_filter_pct < 50
-                        ? "CRÍTICO: Saturação severa por tempestade de poeira marciana. Risco de quebra de admissão."
-                        : "NOMINAL: Nível de retenção microparticulada dentro dos limites de segurança."}
+                        ? "Crítico: troque o filtro antes do próximo voo."
+                        : "Dentro do limite de segurança."}
                     </p>
                     <button
                       disabled={executeService.isPending}

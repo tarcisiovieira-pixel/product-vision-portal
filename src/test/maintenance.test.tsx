@@ -104,7 +104,7 @@ describe("Maintenance route component", () => {
       </QueryClientProvider>,
     );
 
-    expect(screen.getByText(/Diagnóstico 3D & Telemetria da Frota/i)).toBeInTheDocument();
+    expect(screen.getByText(/Saúde da frota/i)).toBeInTheDocument();
     expect(screen.getByText("CC-X2-01 — CyberCab VTOL X2")).toBeInTheDocument();
     expect(screen.getAllByText(/Filtro Sílica/i).length).toBeGreaterThan(0);
 

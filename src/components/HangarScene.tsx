@@ -1,5 +1,12 @@
 import { Canvas } from "@react-three/fiber";
-import { ContactShadows, Environment, Grid, Lightformer, OrbitControls } from "@react-three/drei";
+import {
+  Float,
+  ContactShadows,
+  Environment,
+  Grid,
+  Lightformer,
+  OrbitControls,
+} from "@react-three/drei";
 import * as THREE from "three";
 import { VehicleModel } from "./VehicleModel";
 import type { Vehicle } from "@/lib/ares-data";
@@ -68,14 +75,22 @@ export default function HangarScene({
         </mesh>
       </group>
 
-      <VehicleModel
-        category={category}
-        callsign={callsign}
-        name={name}
-        selectedHotspot={selectedHotspot}
-        onSelectHotspot={onSelectHotspot}
-        showHotspots={showHotspots}
-      />
+      {/* Pairando sobre o pad: com hotspot selecionado fica firme para leitura. */}
+      <Float
+        speed={selectedHotspot ? 0 : 1.8}
+        rotationIntensity={0.12}
+        floatIntensity={0.45}
+        floatingRange={[0, 0.22]}
+      >
+        <VehicleModel
+          category={category}
+          callsign={callsign}
+          name={name}
+          selectedHotspot={selectedHotspot}
+          onSelectHotspot={onSelectHotspot}
+          showHotspots={showHotspots}
+        />
+      </Float>
 
       <ContactShadows position={[0, -0.85, 0]} opacity={0.7} scale={11} blur={2.2} />
       <Grid
