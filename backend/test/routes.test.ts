@@ -143,6 +143,7 @@ describe("mapDbError", () => {
     ["Perfil do piloto não localizado", "P0001", 404],
     ["Veículo indisponível no momento", "P0001", 409],
     ["Só reservas confirmadas podem ser canceladas", "P0001", 409],
+    ["Veículo já reservado nesse período", "P0001", 409],
     ["Saldo insuficiente", "P0001", 422],
     ["Habilitação insuficiente!", "P0001", 422],
     ["Não autenticado", "P0001", 401],

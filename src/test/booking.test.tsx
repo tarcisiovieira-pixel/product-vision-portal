@@ -58,6 +58,7 @@ vi.mock("@/lib/ares-data", async () => {
     weatherQuery: { queryKey: ["weather"], queryFn: vi.fn() },
     rentalsQuery: { queryKey: ["rentals"], queryFn: vi.fn() },
     profileQuery: { queryKey: ["profile"], queryFn: vi.fn() },
+    vehicleOccupancyQuery: { queryKey: ["rentals", "occupancy"], queryFn: async () => [] },
   };
 });
 

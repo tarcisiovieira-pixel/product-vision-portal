@@ -44,7 +44,9 @@ import {
   weatherQuery,
   type Rental,
   type Vehicle,
+  vehicleOccupancyQuery,
 } from "@/lib/ares-data";
+import { isOccupied } from "@/lib/occupancy";
 
 export const Route = createFileRoute("/app/booking")({
   head: () => ({
@@ -77,6 +79,7 @@ function Booking() {
   const { data: weather } = useSuspenseQuery(weatherQuery);
   const { data: rentals } = useSuspenseQuery(rentalsQuery);
   const { data: profile } = useQuery(profileQuery);
+  const { data: occupancy = [] } = useQuery(vehicleOccupancyQuery);
 
   // Começa pelo hangar com mais veículos livres, para a tela nunca abrir sem opções.
   const [defaultHangar] = useState(() => {
@@ -468,7 +471,8 @@ function Booking() {
           const totalBooking = totalDaily * sols;
           const okStatus = v.status === "available";
           const hasLicense = isLicenseValidForCategory(profile?.pilot_license, v.category);
-          const canBook = okStatus && hasLicense && !book.isPending;
+          const occupied = isOccupied(occupancy, v.id, startSol, startSol + sols);
+          const canBook = okStatus && hasLicense && !occupied && !book.isPending;
 
           return (
             <div
@@ -489,8 +493,8 @@ function Booking() {
               <h3 className="mt-4 font-display text-xl font-semibold">{v.name}</h3>
               <p className="font-mono text-xs text-muted-foreground">
                 {v.callsign} ·{" "}
-                <span className={okStatus ? "text-telemetry" : "text-warning"}>
-                  {statusLabel[v.status]}
+                <span className={okStatus && !occupied ? "text-telemetry" : "text-warning"}>
+                  {okStatus && occupied ? "Reservado neste período" : statusLabel[v.status]}
                 </span>
               </p>
 
@@ -541,9 +545,11 @@ function Booking() {
                     ? `Requer Licença ${getRequiredLicense(v.category)}`
                     : !okStatus
                       ? "Indisponível"
-                      : book.isPending
-                        ? "Emitindo Chave Quântica..."
-                        : "Reservar Agora"}
+                      : occupied
+                        ? "Reservado neste período"
+                        : book.isPending
+                          ? "Emitindo Chave Quântica..."
+                          : "Reservar Agora"}
                 </button>
 
                 <button

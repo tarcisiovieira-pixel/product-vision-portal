@@ -14,7 +14,8 @@ export type UserDbFactory = (token: string) => UserDb;
 
 const AUTH_ERRORS = /não autenticado|jwt/i;
 const NOT_FOUND_ERRORS = /não encontrad|não localizado/i;
-const CONFLICT_ERRORS = /indisponível|não está mais disponível|só reservas|próprio anúncio/i;
+const CONFLICT_ERRORS =
+  /indisponível|não está mais disponível|só reservas|próprio anúncio|já reservado/i;
 /** Regras de negócio levantadas pelas funções SQL via RAISE EXCEPTION. */
 const BUSINESS_CODE = "P0001";
 

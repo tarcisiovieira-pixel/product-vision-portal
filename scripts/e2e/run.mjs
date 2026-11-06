@@ -22,6 +22,14 @@ const PASSWORD = "Teste#12345";
 const waitText = (page, text, timeout = 20000) =>
   page.waitForFunction((t) => document.body.innerText.includes(t), { timeout }, text);
 
+// Períodos ficam ocupados no banco: cada execução precisa de um sol próprio.
+const setStartSol = (page, sol) =>
+  page.evaluate((value) => {
+    const input = document.querySelector('input[type="number"]');
+    Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value").set.call(input, value);
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+  }, String(sol));
+
 async function fillLogin(page, email, password) {
   await page.waitForSelector('input[type="email"]');
   await page.$eval('input[type="email"]', (el) => (el.value = ""));
@@ -112,6 +120,17 @@ async function fillLogin(page, email, password) {
     await shot(page, "radar");
     r.check((await canvasMotion(page)) > 0.002, "radar: cena animada");
 
+    // Ocupação: APX-01 tem reserva nos sols 4221–4224; os padrões da tela (4219–4222) conflitam.
+    await goto(page, "/app/booking");
+    await waitText(page, "Reservado neste período");
+    r.ok("ocupação: veículo reservado aparece bloqueado");
+    await shot(page, "ocupacao-bloqueado");
+    await setStartSol(page, 4230);
+    await page.waitForFunction(() => !document.body.innerText.includes("Reservado neste período"), {
+      timeout: 8000,
+    });
+    r.ok("ocupação: mudar as datas libera o veículo");
+
     await clickText(page, "Sair");
     await waitPath(page, "/login");
     const left = await page.evaluate(() =>
@@ -163,6 +182,8 @@ if (!process.env.E2E_SKIP_USER) {
     await shot(page, "conta-nova-reservas");
 
     await goto(page, "/app/booking");
+    await waitText(page, "HANGAR RETIRADA");
+    await setStartSol(page, 6000 + Math.floor(Math.random() * 90000));
     await waitText(page, "RESERVAR AGORA");
     await clickText(page, "Reservar Agora");
     await sleep(2500);

@@ -152,6 +152,59 @@ describe.skipIf(!baseUrl || !key)("integração com Supabase real", () => {
     expect((await post(other, `/v1/marketplace/${sale.id}/purchase`)).statusCode).toBe(409);
   });
 
+  describe("ocupação", () => {
+    const slot = (startSol: number, endSol: number) => ({ ...booking(), startSol, endSol });
+
+    it("segundo usuário não reserva período ocupado e não é cobrado", async () => {
+      expect((await post(pilot, "/v1/rentals", slot(5000, 5003))).statusCode).toBe(201);
+      const before = await credits(other);
+      const res = await post(other, "/v1/rentals", slot(5002, 5004));
+      expect(res.statusCode).toBe(409);
+      expect(res.json().message).toMatch(/já reservado/);
+      expect(await credits(other)).toBe(before);
+    });
+
+    it("período colado é permitido, e estender não invade o próximo", async () => {
+      expect((await post(other, "/v1/rentals", slot(5003, 5005))).statusCode).toBe(201);
+      const items = (await get(pilot, "/v1/rentals")).json().items;
+      const rental = items.find((r: { start_sol: number }) => r.start_sol === 5000);
+      expect((await post(pilot, `/v1/rentals/${rental.id}/extend`)).statusCode).toBe(409);
+    });
+
+    it("reservas simultâneas: só uma vence", async () => {
+      const results = await Promise.all([
+        post(pilot, "/v1/rentals", slot(5100, 5101)),
+        post(other, "/v1/rentals", slot(5100, 5101)),
+      ]);
+      expect(results.map((r) => r.statusCode).sort()).toEqual([201, 409]);
+    });
+
+    it("cancelar libera o período", async () => {
+      const items = (await get(pilot, "/v1/rentals")).json().items;
+      const rental = items.find((r: { start_sol: number }) => r.start_sol === 5000);
+      await post(pilot, `/v1/rentals/${rental.id}/cancel`);
+      expect((await post(other, "/v1/rentals", slot(5000, 5002))).statusCode).toBe(201);
+    });
+
+    it("a tela enxerga a ocupação sem expor quem reservou", async () => {
+      const { data } = await pilot.c.rpc("vehicle_occupancy");
+      expect(data!.length).toBeGreaterThan(0);
+      expect(Object.keys(data![0]!).sort()).toEqual(["end_sol", "start_sol", "vehicle_id"]);
+    });
+
+    it("manutenção não libera veículo em voo", async () => {
+      const { data: flying } = await pilot.c
+        .from("vehicles")
+        .select("id")
+        .eq("status", "in_flight")
+        .limit(1);
+      const id = flying![0]!.id;
+      await post(pilot, "/v1/maintenance", { vehicleId: id, serviceType: "thruster_calibration" });
+      const { data } = await pilot.c.from("vehicles").select("status").eq("id", id).single();
+      expect(data?.status).toBe("in_flight");
+    });
+  });
+
   it("o usuário não altera os próprios créditos direto no banco", async () => {
     const before = await credits(pilot);
     await pilot.c.from("profiles").update({ martian_credits: 999999 }).eq("user_id", pilot.id);

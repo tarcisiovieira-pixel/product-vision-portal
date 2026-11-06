@@ -5,6 +5,8 @@
 import { supabase } from "@/integrations/supabase/client";
 import { MAINTENANCE_SERVICES, type Rental, type Vehicle, type VehicleSaleItem } from "./ares-data";
 import { apiEnabled, apiPost } from "./api-client";
+import { isActiveRental, isOccupied } from "./occupancy";
+import { SEED_RENTALS } from "./ares-seed-data";
 import {
   DEMO_USER_ID,
   adjustDemoCredits,
@@ -57,7 +59,25 @@ export interface BookingInput {
   totalCredits: number;
 }
 
+const OCCUPIED_MESSAGE = "Veículo já reservado nesse período.";
+
+/** Reservas ativas do demo, sem duplicar as do seed já alteradas localmente. */
+function demoActivePeriods(exceptId?: string) {
+  const local = readDemoRentals();
+  const ids = new Set(local.map((r) => r.id));
+  return [...local, ...SEED_RENTALS.filter((r) => !ids.has(r.id))]
+    .filter((r) => isActiveRental(r.status) && r.id !== exceptId)
+    .map((r) => ({
+      vehicle_id: r.vehicle_id,
+      start_sol: r.start_sol,
+      end_sol: r.end_sol ?? r.start_sol + 1,
+    }));
+}
+
 function createDemoRental(input: BookingInput): Rental {
+  if (isOccupied(demoActivePeriods(), input.vehicle.id, input.startSol, input.endSol)) {
+    throw new Error(OCCUPIED_MESSAGE);
+  }
   assertDemoBalance(input.totalCredits);
   adjustDemoCredits(-input.totalCredits);
   const rental: Rental = {
@@ -141,9 +161,12 @@ export async function createRental(input: BookingInput): Promise<Rental> {
 
 export async function extendRental(rental: Rental, dailyRate: number): Promise<number> {
   if (isDemoSession()) {
+    const newEnd = (rental.end_sol ?? rental.start_sol) + 1;
+    if (isOccupied(demoActivePeriods(rental.id), rental.vehicle_id, rental.start_sol, newEnd)) {
+      throw new Error(OCCUPIED_MESSAGE);
+    }
     assertDemoBalance(dailyRate);
     adjustDemoCredits(-dailyRate);
-    const newEnd = (rental.end_sol ?? rental.start_sol) + 1;
     const updated = {
       ...rental,
       end_sol: newEnd,

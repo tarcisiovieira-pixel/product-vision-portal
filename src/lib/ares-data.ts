@@ -1,3 +1,4 @@
+import { isActiveRental, type OccupiedPeriod } from "./occupancy";
 import { queryOptions } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
@@ -21,6 +22,13 @@ import {
   readDemoRentals,
   readDemoSales,
 } from "./session";
+
+// RPC nova: ainda não consta em types.ts (arquivo gerado pelo Lovable).
+type OccupancyClient = {
+  rpc(
+    fn: string,
+  ): PromiseLike<{ data: OccupiedPeriod[] | null; error: { message: string } | null }>;
+};
 
 export type Vehicle = Tables<"vehicles">;
 export type Hangar = Tables<"hangars">;
@@ -113,6 +121,29 @@ export const rentalsQuery = queryOptions({
       .select("*")
       .order("created_at", { ascending: false });
     if (error) throw new Error(error.message);
+    return data ?? [];
+  },
+});
+
+// Períodos ocupados de toda a frota. A chave fica sob ["rentals"] para ser
+// atualizada junto com as reservas. Se falhar, a tela libera e o banco decide.
+export const vehicleOccupancyQuery = queryOptions({
+  queryKey: ["rentals", "occupancy"],
+  queryFn: async (): Promise<OccupiedPeriod[]> => {
+    if (isDemoSession()) {
+      return mergeById(readDemoRentals(), SEED_RENTALS)
+        .filter((r) => isActiveRental(r.status))
+        .map((r) => ({
+          vehicle_id: r.vehicle_id,
+          start_sol: r.start_sol,
+          end_sol: r.end_sol ?? r.start_sol + 1,
+        }));
+    }
+    const { data, error } = await (supabase as unknown as OccupancyClient).rpc("vehicle_occupancy");
+    if (error) {
+      console.warn("Ocupação indisponível:", error.message);
+      return [];
+    }
     return data ?? [];
   },
 });

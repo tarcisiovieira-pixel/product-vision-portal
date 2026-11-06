@@ -183,13 +183,14 @@ Regras do repositório:
 
 - [x] Cadastro, login e modo demo isolados entre si
 - [x] Reservas, extensão, cancelamento com reembolso, manutenção e compra
+- [x] Ocupação por período: o banco impede duas reservas do mesmo veículo em sols sobrepostos
 - [x] API Fastify com validação, autenticação, limite de requisições e erros padronizados
 - [x] Animações de voo, radar e hangar em movimento
 - [x] Interface enxuta, com detalhes no ícone de informação
 
 **Pendente em produção**
 
-- [ ] Aplicar as migrations `20261105100000` (segurança) e `20261106100000` (estender/cancelar e vitrine)
+- [ ] Aplicar a migration `20261106120000` (ocupação de veículos)
 - [ ] Publicar a API no Render e definir `VITE_API_URL` no front
 - [ ] Mover as leituras restantes do front para a API
 
@@ -197,4 +198,3 @@ Regras do repositório:
 
 - A compra no marketplace ainda não credita o vendedor.
 - A barreira anti-tempestade aparece no preço da tela, mas ainda não é cobrada pelo banco em contas reais.
-- Duas reservas podem usar o mesmo veículo no mesmo período: falta validar conflito de datas.
