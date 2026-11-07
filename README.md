@@ -135,6 +135,22 @@ select id from auth.users where email = 'email-do-admin@exemplo.com';
 - **Modo demo é um sandbox local.** Ele usa dados fictícios salvos no navegador e nunca toca no banco. Conta real nunca enxerga dados demo.
 - **Ocupação na trava do banco.** Uma restrição do Postgres impede duas reservas do mesmo veículo em períodos sobrepostos, mesmo em cliques simultâneos.
 
+### Regras de negócio que vivem no banco
+
+Valem para o app, para a API e para qualquer acesso direto ao Supabase. Não dependem da tela.
+
+| Regra | Como funciona |
+|---|---|
+| Relógio de sols | O servidor calcula o sol atual (1 sol = 88.775 s). O demo usa o sol 4218 congelado. |
+| Ciclo da reserva | Confirmada → em voo → concluída, conforme o relógio. |
+| Cancelamento | Reembolso integral apenas antes do início. Depois, é recusado. |
+| Reserva | Sol inicial não pode estar no passado, de 1 a 90 sols, de 0 a 6 trajes EVA, sem sobreposição. |
+| Clima | Hangar com tempestade na retirada ou na devolução exige a barreira anti-tempestade. |
+| Extensão | Cobra a diária mais os adicionais da reserva e respeita o total de 90 sols. |
+| Habilitação | Todo cadastro começa Atmosférico. Só o administrador altera. |
+| Manutenção | Exige reserva ativa do veículo (ou administrador). O histórico é visível só ao dono. |
+| Marketplace | Anúncio só pela função `create_listing`. Preço maior que zero, sem edição depois de publicado. |
+
 ## ◆ Estrutura do projeto
 
 ```
@@ -226,6 +242,7 @@ Regras do repositório:
 - A `main` precisa estar sempre funcionando.
 - Mudanças no banco entram **só por migrations novas**.
 - Nenhuma chave secreta no código ou no git.
+- Dependências: o Lovable usa `bun.lock` e o CI usa `package-lock.json`. Ao mudar o `package.json`, atualize os dois (o `package-lock.json` deve ser gerado em uma pasta sem `node_modules`).
 
 ## ◆ Status e próximos passos
 
@@ -235,10 +252,12 @@ Regras do repositório:
 | Painel administrativo | Disponível, com dados fictícios no demo |
 | API Fastify | Pronta, publicação no Render em andamento |
 
+Em um banco que já existe, aplique as migrations pendentes antes de usar contas reais: `npx supabase db push`. A mais recente é `20261108100000_ares_review_fixes`. O modo demo não depende delas.
+
 **A seguir**
 
 - Publicar a API e migrar para ela as leituras que ainda vão direto ao banco.
 - Lançar o copiloto de bordo e os relatórios com IA.
-- Automatizar o status do veículo no início e no fim de cada reserva.
+- Mudar o status do veículo (disponível, em voo) junto com a reserva. Hoje só a reserva avança.
 
 > Os créditos MC$ são fictícios: não há pagamento real.
