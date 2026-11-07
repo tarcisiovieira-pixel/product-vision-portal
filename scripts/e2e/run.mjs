@@ -140,13 +140,17 @@ async function fillLogin(page, email, password) {
 
     // Clima: hangar com tempestade exige a barreira (mesma regra do banco).
     await setStartSol(page, 4219);
-    await page.select("select", "h-aci-04");
+    const dropoff = (await page.$$("select"))[1];
+    await dropoff.select("h-aci-04");
     await page.evaluate(() => {
       const box = document.querySelector('input[type="checkbox"]');
       if (box.checked) box.click();
     });
-    await waitText(page, "Ative a barreira anti-tempestade");
-    const stormButtons = await page.$eval("button", (bs) =>
+    await page.waitForFunction(
+      () => /ative a barreira anti-tempestade/i.test(document.body.innerText),
+      { timeout: 20000 },
+    );
+    const stormButtons = await page.$$eval("button", (bs) =>
       bs.filter((b) => b.textContent.includes("Ative a barreira")).map((b) => b.disabled),
     );
     r.check(
@@ -156,7 +160,7 @@ async function fillLogin(page, email, password) {
     await shot(page, "clima-bloqueado");
     await page.evaluate(() => document.querySelector('input[type="checkbox"]').click());
     await page.waitForFunction(
-      () => !document.body.innerText.includes("Ative a barreira anti-tempestade"),
+      () => !/ative a barreira anti-tempestade/i.test(document.body.innerText),
       { timeout: 8000 },
     );
     r.ok("clima: com a barreira ligada o bloqueio some");
@@ -206,8 +210,10 @@ if (!process.env.E2E_SKIP_USER) {
     const text = await bodyText(page);
     r.check(!text.includes("ARS-DEMO-01"), "conta nova: sem credencial demo");
     const solServidor = Number(sql("select public.current_sol()")).toLocaleString("pt-BR");
+    // A tela de reservas pode ainda estar carregando quando o saldo aparece no menu.
+    await waitText(page, `SOL ${solServidor}`).catch(() => {});
     r.check(
-      text.includes(`SOL ${solServidor}`),
+      (await bodyText(page)).includes(`SOL ${solServidor}`),
       "conta real usa o relógio de sols do servidor",
       solServidor,
     );
