@@ -41,11 +41,11 @@ A ARES une a facilidade de reservar em uma locadora à precisão de um centro de
 
 ## ◆ A dor
 
-| | Problema | O que acontece hoje |
-|---|---|---|
-| 🌪️ | **Tempestades imprevisíveis** | Rotas somem sob a poeira e colonos ficam presos sem aviso. |
-| 📡 | **Frota sem visibilidade** | Ninguém sabe onde está cada veículo nem quanto oxigênio resta. |
-| 📋 | **Reservas analógicas** | Rádio e planilha de papel: alugar um foguete levava dias. |
+|     | Problema                      | O que acontece hoje                                            |
+| --- | ----------------------------- | -------------------------------------------------------------- |
+| 🌪️  | **Tempestades imprevisíveis** | Rotas somem sob a poeira e colonos ficam presos sem aviso.     |
+| 📡  | **Frota sem visibilidade**    | Ninguém sabe onde está cada veículo nem quanto oxigênio resta. |
+| 📋  | **Reservas analógicas**       | Rádio e planilha de papel: alugar um foguete levava dias.      |
 
 ## ◆ A solução
 
@@ -59,40 +59,40 @@ Um só portal para **reservar, rastrear e cuidar da frota**.
 
 ### Disponíveis
 
-| Módulo | O que faz |
-|---|---|
-| 🚀 **Locadora** | Busca por hangar e categoria, opcionais, cálculo de custo e reserva. |
-| 🎫 **Minhas Reservas** | Lista, filtros, chave quântica, estender e cancelar com reembolso. |
-| 🛰️ **Radar Marte** | Globo 3D com a frota em movimento, tempestades e rotas. |
-| 🛩️ **Voo 3D** | Acompanhamento em câmera traseira, cockpit ou 360°, com turbo e áudio. |
-| 🏗️ **Hangar 3D** | Inspeção de cada veículo pairando no pad, com dados técnicos. |
-| 🔧 **Manutenção** | Saúde da frota, diagnóstico por pontos no modelo 3D e ordens de serviço. |
-| 🛒 **Marketplace** | Compra de naves e publicação de anúncios. |
-| 🔐 **Contas e demo** | Cadastro com confirmação por e-mail, login e modo demo sem cadastro. |
+| Módulo                       | O que faz                                                                                          |
+| ---------------------------- | -------------------------------------------------------------------------------------------------- |
+| 🚀 **Locadora**              | Busca por hangar e categoria, opcionais, cálculo de custo e reserva.                               |
+| 🎫 **Minhas Reservas**       | Lista, filtros, chave quântica, estender e cancelar com reembolso.                                 |
+| 🛰️ **Radar Marte**           | Globo 3D com a frota em movimento, tempestades e rotas.                                            |
+| 🛩️ **Voo 3D**                | Acompanhamento em câmera traseira, cockpit ou 360°, com turbo e áudio.                             |
+| 🏗️ **Hangar 3D**             | Inspeção de cada veículo pairando no pad, com dados técnicos.                                      |
+| 🔧 **Manutenção**            | Saúde da frota, diagnóstico por pontos no modelo 3D e ordens de serviço.                           |
+| 🛒 **Marketplace**           | Compra de naves e publicação de anúncios.                                                          |
+| 🔐 **Contas e demo**         | Cadastro com confirmação por e-mail, login e modo demo sem cadastro.                               |
 | 🛡️ **Painel administrativo** | Indicadores do negócio, gestão de usuários, suspensão, ajuste de créditos, exportação e auditoria. |
 
 ### Programados
 
-| Módulo | O que vai fazer |
-|---|---|
-| 🤖 **Copiloto de bordo (IA)** | GPS com assistente de voz e texto: rota, clima e alertas em linguagem natural. |
-| 📊 **Relatórios com IA** | Resumo de custos, uso da frota e sugestões, gerado sob demanda. |
-| 🔮 **Manutenção preditiva** | Previsão de falhas a partir da telemetria dos veículos. |
-| 🧭 **Centro de comando** | Painel inicial com tudo o que importa ao piloto. |
-| 🎯 **Missões, carteira e perfil** | Missões, extrato de créditos, histórico e reputação do piloto. |
-| 🌦️ **Clima e notificações** | Previsão por setor e avisos em tempo real. |
-| 🛠️ **Gestão de frota** | Cadastro de veículos e hangares pelo painel administrativo. |
+| Módulo                            | O que vai fazer                                                                |
+| --------------------------------- | ------------------------------------------------------------------------------ |
+| 🤖 **Copiloto de bordo (IA)**     | GPS com assistente de voz e texto: rota, clima e alertas em linguagem natural. |
+| 📊 **Relatórios com IA**          | Resumo de custos, uso da frota e sugestões, gerado sob demanda.                |
+| 🔮 **Manutenção preditiva**       | Previsão de falhas a partir da telemetria dos veículos.                        |
+| 🧭 **Centro de comando**          | Painel inicial com tudo o que importa ao piloto.                               |
+| 🎯 **Missões, carteira e perfil** | Missões, extrato de créditos, histórico e reputação do piloto.                 |
+| 🌦️ **Clima e notificações**       | Previsão por setor e avisos em tempo real.                                     |
+| 🛠️ **Gestão de frota**            | Cadastro de veículos e hangares pelo painel administrativo.                    |
 
 Detalhes e decisões: [`docs/SPEC-ADENDO-DECISOES.md`](docs/SPEC-ADENDO-DECISOES.md).
 
 ### Telas
 
-| Locadora com ocupação por período | Voo 3D |
-|---|---|
+| Locadora com ocupação por período          | Voo 3D                                 |
+| ------------------------------------------ | -------------------------------------- |
 | ![Locadora](docs/screenshots/locadora.png) | ![Voo 3D](docs/screenshots/voo-3d.png) |
 
-| Radar da frota | Hangar 3D |
-|---|---|
+| Radar da frota                       | Hangar 3D                                 |
+| ------------------------------------ | ----------------------------------------- |
 | ![Radar](docs/screenshots/radar.png) | ![Hangar 3D](docs/screenshots/hangar.png) |
 
 ## ◆ Painel administrativo
@@ -101,13 +101,13 @@ Detalhes e decisões: [`docs/SPEC-ADENDO-DECISOES.md`](docs/SPEC-ADENDO-DECISOES
 
 Feito para responder o que decidir hoje, não só para listar usuários.
 
-| Pergunta do administrador | Onde responder |
-|---|---|
-| O produto está crescendo? | Usuários, novos em 7 e 30 dias, gráfico de cadastros. |
-| As pessoas usam de verdade? | Ativos em 30 dias e conversão para a primeira reserva. |
-| Quanto entra e de onde? | Receita total, ticket médio e veículos que mais faturam. |
-| A frota está bem dimensionada? | Ocupação da frota. |
-| Quem precisa de ação? | Exige atenção: e-mail pendente, nunca reservaram, inativos, saldo baixo, cancelam muito e suspensos. Cada contador filtra a tabela. |
+| Pergunta do administrador      | Onde responder                                                                                                                      |
+| ------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------- |
+| O produto está crescendo?      | Usuários, novos em 7 e 30 dias, gráfico de cadastros.                                                                               |
+| As pessoas usam de verdade?    | Ativos em 30 dias e conversão para a primeira reserva.                                                                              |
+| Quanto entra e de onde?        | Receita total, ticket médio e veículos que mais faturam.                                                                            |
+| A frota está bem dimensionada? | Ocupação da frota.                                                                                                                  |
+| Quem precisa de ação?          | Exige atenção: e-mail pendente, nunca reservaram, inativos, saldo baixo, cancelam muito e suspensos. Cada contador filtra a tabela. |
 
 Cada indicador explica o próprio cálculo no ícone de informação. A tabela tem busca, ordenação e exportação para CSV. Ajustar créditos, alterar habilitação e suspender conta exigem motivo e ficam registrados na auditoria.
 
@@ -139,17 +139,17 @@ select id from auth.users where email = 'email-do-admin@exemplo.com';
 
 Valem para o app, para a API e para qualquer acesso direto ao Supabase. Não dependem da tela.
 
-| Regra | Como funciona |
-|---|---|
-| Relógio de sols | O servidor calcula o sol atual (1 sol = 88.775 s). O demo usa o sol 4218 congelado. |
-| Ciclo da reserva | Confirmada → em voo → concluída, conforme o relógio. |
-| Cancelamento | Reembolso integral apenas antes do início. Depois, é recusado. |
-| Reserva | Sol inicial não pode estar no passado, de 1 a 90 sols, de 0 a 6 trajes EVA, sem sobreposição. |
-| Clima | Hangar com tempestade na retirada ou na devolução exige a barreira anti-tempestade. |
-| Extensão | Cobra a diária mais os adicionais da reserva e respeita o total de 90 sols. |
-| Habilitação | Todo cadastro começa Atmosférico. Só o administrador altera. |
-| Manutenção | Exige reserva ativa do veículo (ou administrador). O histórico é visível só ao dono. |
-| Marketplace | Anúncio só pela função `create_listing`. Preço maior que zero, sem edição depois de publicado. |
+| Regra            | Como funciona                                                                                                                                                                                                                 |
+| ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Relógio de sols  | Contas reais usam o relógio do servidor: 1 sol = 88.775 s, com o sol 4218 começando em 07/11/2026 (UTC) e avançando daí. O demo e a vitrine pública usam o sol 4218 congelado, então os números só coincidem no primeiro dia. |
+| Ciclo da reserva | Confirmada → em voo → concluída, conforme o relógio.                                                                                                                                                                          |
+| Cancelamento     | Reembolso integral apenas antes do início. Depois, é recusado.                                                                                                                                                                |
+| Reserva          | Sol inicial não pode estar no passado, de 1 a 90 sols, de 0 a 6 trajes EVA, sem sobreposição.                                                                                                                                 |
+| Clima            | Hangar com tempestade na retirada ou na devolução exige a barreira anti-tempestade.                                                                                                                                           |
+| Extensão         | Cobra a diária mais os adicionais da reserva e respeita o total de 90 sols.                                                                                                                                                   |
+| Habilitação      | Todo cadastro começa Atmosférico. Só o administrador altera.                                                                                                                                                                  |
+| Manutenção       | Exige reserva ativa do veículo (ou administrador). O histórico de manutenção é visível ao dono e aos administradores.                                                                                                         |
+| Marketplace      | Anúncio só pela função `create_listing`. Preço maior que zero, sem edição depois de publicado.                                                                                                                                |
 
 ## ◆ Estrutura do projeto
 
@@ -206,12 +206,12 @@ No ambiente local não há confirmação de e-mail: o cadastro já entra no app.
 
 ## ◆ Testes
 
-| Camada | Comando | Cobre |
-|---|---|---|
-| Front | `npm run check` | Tipos, lint, testes unitários e build. |
-| API | `cd backend && npm run check` | Tipos, rotas, validações e build. |
-| Integração | Abaixo | API + Auth + Postgres + RLS reais. |
-| Navegador | Abaixo | Telas, login, reservas, ocupação, painel administrativo, animações 3D e mobile. |
+| Camada     | Comando                       | Cobre                                                                           |
+| ---------- | ----------------------------- | ------------------------------------------------------------------------------- |
+| Front      | `npm run check`               | Tipos, lint, testes unitários e build.                                          |
+| API        | `cd backend && npm run check` | Tipos, rotas, validações e build.                                               |
+| Integração | Abaixo                        | API + Auth + Postgres + RLS reais.                                              |
+| Navegador  | Abaixo                        | Telas, login, reservas, ocupação, painel administrativo, animações 3D e mobile. |
 
 ```sh
 # Integração (com `npx supabase start` rodando)
@@ -230,11 +230,11 @@ O CI do GitHub roda tipos, lint, testes unitários e build do front e da API a c
 
 ## ◆ Deploy
 
-| Parte | Como funciona |
-|---|---|
-| **Front** | Commits na `main` sincronizam com o Lovable automaticamente. |
-| **API** | Render, a partir do `render.yaml`. Defina `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY` e `CORS_ORIGINS`. |
-| **Banco** | `npx supabase db push`. Aplique primeiro em um projeto de desenvolvimento e só depois em produção. |
+| Parte     | Como funciona                                                                                          |
+| --------- | ------------------------------------------------------------------------------------------------------ |
+| **Front** | Commits na `main` sincronizam com o Lovable automaticamente.                                           |
+| **API**   | Render, a partir do `render.yaml`. Defina `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY` e `CORS_ORIGINS`. |
+| **Banco** | `npx supabase db push`. Aplique primeiro em um projeto de desenvolvimento e só depois em produção.     |
 
 Regras do repositório:
 
@@ -242,17 +242,17 @@ Regras do repositório:
 - A `main` precisa estar sempre funcionando.
 - Mudanças no banco entram **só por migrations novas**.
 - Nenhuma chave secreta no código ou no git.
-- Dependências: o Lovable usa `bun.lock` e o CI usa `package-lock.json`. Ao mudar o `package.json`, atualize os dois (o `package-lock.json` deve ser gerado em uma pasta sem `node_modules`).
+- Dependências: o Lovable usa `bun.lock` e o CI usa `package-lock.json`. Ao mudar o `package.json`, atualize os dois (gere o `package-lock.json` em uma pasta sem `node_modules`). O CI roda `npm run check:locks` e falha se os dois divergirem do `package.json`.
 
 ## ◆ Status e próximos passos
 
-| Parte | Situação |
-|---|---|
-| Front e modo demo | Disponível |
-| Painel administrativo | Disponível, com dados fictícios no demo |
-| API Fastify | Pronta, publicação no Render em andamento |
+| Parte                 | Situação                                  |
+| --------------------- | ----------------------------------------- |
+| Front e modo demo     | Disponível                                |
+| Painel administrativo | Disponível, com dados fictícios no demo   |
+| API Fastify           | Pronta, publicação no Render em andamento |
 
-Em um banco que já existe, aplique as migrations pendentes antes de usar contas reais: `npx supabase db push`. A mais recente é `20261108100000_ares_review_fixes`. O modo demo não depende delas.
+Em um banco que já existe, aplique todas as migrations de `supabase/migrations/` antes de usar contas reais: `npx supabase db push`. O modo demo não depende delas.
 
 **A seguir**
 
