@@ -1,6 +1,7 @@
 // Teste de ponta a ponta no navegador real.
 // Pré-requisitos: app em E2E_BASE_URL apontando para um Supabase local com auto-confirmação
 // e, para validar a API, VITE_API_URL definida. Instruções no README.
+import { execFileSync } from "node:child_process";
 import {
   Report,
   bodyText,
@@ -13,6 +14,12 @@ import {
   sleep,
   waitPath,
 } from "./lib.mjs";
+
+const container = process.env.SUPABASE_TEST_DB_CONTAINER ?? "supabase_db_qxlzdpahifwiyzmxlpef";
+const sql = (query) =>
+  execFileSync("docker", ["exec", container, "psql", "-U", "postgres", "-tAc", query], {
+    encoding: "utf8",
+  }).trim();
 
 const r = new Report();
 const browser = await launch();
@@ -131,6 +138,29 @@ async function fillLogin(page, email, password) {
     });
     r.ok("ocupação: mudar as datas libera o veículo");
 
+    // Clima: hangar com tempestade exige a barreira (mesma regra do banco).
+    await setStartSol(page, 4219);
+    await page.select("select", "h-aci-04");
+    await page.evaluate(() => {
+      const box = document.querySelector('input[type="checkbox"]');
+      if (box.checked) box.click();
+    });
+    await waitText(page, "Ative a barreira anti-tempestade");
+    const stormButtons = await page.$eval("button", (bs) =>
+      bs.filter((b) => b.textContent.includes("Ative a barreira")).map((b) => b.disabled),
+    );
+    r.check(
+      stormButtons.length > 0 && stormButtons.every(Boolean),
+      "clima: sem barreira a reserva fica bloqueada",
+    );
+    await shot(page, "clima-bloqueado");
+    await page.evaluate(() => document.querySelector('input[type="checkbox"]').click());
+    await page.waitForFunction(
+      () => !document.body.innerText.includes("Ative a barreira anti-tempestade"),
+      { timeout: 8000 },
+    );
+    r.ok("clima: com a barreira ligada o bloqueio some");
+
     await clickText(page, "Sair");
     await waitPath(page, "/login");
     const left = await page.evaluate(() =>
@@ -160,6 +190,11 @@ if (!process.env.E2E_SKIP_USER) {
     r.check(page.url().endsWith("/login"), "login: senha errada é recusada");
 
     await clickText(page, "Cadastrar", "button");
+    r.check(
+      (await bodyText(page)).includes("Habilitação inicial: Atmosférico") &&
+        !(await bodyText(page)).includes("Carga Pesada"),
+      "cadastro: não há escolha de habilitação",
+    );
     await fillLogin(page, uniqueEmail, PASSWORD);
     await clickText(page, "Emitir Credencial");
     await waitPath(page, "/app/booking");
@@ -170,6 +205,12 @@ if (!process.env.E2E_SKIP_USER) {
 
     const text = await bodyText(page);
     r.check(!text.includes("ARS-DEMO-01"), "conta nova: sem credencial demo");
+    const solServidor = Number(sql("select public.current_sol()")).toLocaleString("pt-BR");
+    r.check(
+      text.includes(`SOL ${solServidor}`),
+      "conta real usa o relógio de sols do servidor",
+      solServidor,
+    );
 
     await goto(page, "/app/my-rentals");
     await waitText(page, "Minhas reservas");
