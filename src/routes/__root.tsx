@@ -14,6 +14,7 @@ import { useEffect, type ReactNode } from "react";
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { Toaster } from "@/components/ui/sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 function NotFoundComponent() {
   return (
@@ -114,6 +115,21 @@ function RootShell({ children }: { children: ReactNode }) {
   );
 }
 
+/**
+ * Se o link do e-mail abrir em outra página (por exemplo, a URL de destino não está na
+ * lista do Supabase), o evento de recuperação ainda leva o usuário à tela de nova senha.
+ */
+function RecoveryRedirect() {
+  const router = useRouter();
+  useEffect(() => {
+    const { data } = supabase.auth.onAuthStateChange((event) => {
+      if (event === "PASSWORD_RECOVERY") void router.navigate({ to: "/redefinir-senha" });
+    });
+    return () => data.subscription.unsubscribe();
+  }, [router]);
+  return null;
+}
+
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
 
@@ -121,6 +137,7 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
       <Outlet />
+      <RecoveryRedirect />
       <Toaster position="top-right" richColors theme="dark" />
     </QueryClientProvider>
   );

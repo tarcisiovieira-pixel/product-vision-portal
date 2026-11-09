@@ -59,17 +59,17 @@ Um só portal para **reservar, rastrear e cuidar da frota**.
 
 ### Disponíveis
 
-| Módulo                       | O que faz                                                                                          |
-| ---------------------------- | -------------------------------------------------------------------------------------------------- |
-| 🚀 **Locadora**              | Busca por hangar e categoria, opcionais, cálculo de custo e reserva.                               |
-| 🎫 **Minhas Reservas**       | Lista, filtros, chave quântica, estender e cancelar com reembolso.                                 |
-| 🛰️ **Radar Marte**           | Globo 3D com a frota em movimento, tempestades e rotas.                                            |
-| 🛩️ **Voo 3D**                | Acompanhamento em câmera traseira, cockpit ou 360°, com turbo e áudio.                             |
-| 🏗️ **Hangar 3D**             | Inspeção de cada veículo pairando no pad, com dados técnicos.                                      |
-| 🔧 **Manutenção**            | Saúde da frota, diagnóstico por pontos no modelo 3D e ordens de serviço.                           |
-| 🛒 **Marketplace**           | Compra de naves e publicação de anúncios.                                                          |
-| 🔐 **Contas e demo**         | Cadastro com confirmação por e-mail, login e modo demo sem cadastro.                               |
-| 🛡️ **Painel administrativo** | Indicadores do negócio, gestão de usuários, suspensão, ajuste de créditos, exportação e auditoria. |
+| Módulo                       | O que faz                                                                                                           |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| 🚀 **Locadora**              | Busca por hangar e categoria, opcionais, cálculo de custo e reserva.                                                |
+| 🎫 **Minhas Reservas**       | Lista, filtros, chave quântica, estender e cancelar com reembolso.                                                  |
+| 🛰️ **Radar Marte**           | Globo 3D com a frota em movimento, tempestades e rotas.                                                             |
+| 🛩️ **Voo 3D**                | Acompanhamento em câmera traseira, cockpit ou 360°, com turbo e áudio.                                              |
+| 🏗️ **Hangar 3D**             | Inspeção de cada veículo pairando no pad, com dados técnicos.                                                       |
+| 🔧 **Manutenção**            | Saúde da frota, diagnóstico por pontos no modelo 3D e ordens de serviço.                                            |
+| 🛒 **Marketplace**           | Compra de naves e publicação de anúncios.                                                                           |
+| 🔐 **Contas e demo**         | Cadastro com confirmação por e-mail, login, troca de senha no app, recuperação por e-mail e modo demo sem cadastro. |
+| 🛡️ **Painel administrativo** | Indicadores do negócio, gestão de usuários, suspensão, ajuste de créditos, exportação e auditoria.                  |
 
 ### Programados
 
@@ -222,6 +222,7 @@ SUPABASE_TEST_URL=http://127.0.0.1:54321 SUPABASE_TEST_KEY=<chave> npx vitest ru
 # Navegador, em ambiente completo (usa o Chrome instalado)
 E2E_BASE_URL=http://localhost:8080 npm run e2e
 E2E_BASE_URL=http://localhost:8080 npm run e2e:admin
+E2E_BASE_URL=http://localhost:8080 npm run e2e:senha   # troca e recuperação de senha, com e-mail no Mailpit
 
 # Navegador sem criar contas, para usar contra um Supabase que não seja local
 E2E_SKIP_USER=1 E2E_BASE_URL=http://localhost:8080 npm run e2e
@@ -236,6 +237,8 @@ O CI do GitHub roda tipos, lint, testes unitários e build do front e da API a c
 | **Front** | Commits na `main` sincronizam com o Lovable automaticamente.                                           |
 | **API**   | Render, a partir do `render.yaml`. Defina `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY` e `CORS_ORIGINS`. |
 | **Banco** | `npx supabase db push`. Aplique primeiro em um projeto de desenvolvimento e só depois em produção.     |
+
+**Recuperação de senha em produção.** O e-mail "Esqueci minha senha" só leva o usuário à tela certa se o destino estiver autorizado no Supabase. Em **Authentication → URL Configuration**, deixe o **Site URL** como a URL publicada do app e inclua em **Redirect URLs** `https://SEU-APP.lovable.app/**`. Sem isso, o link cai na página inicial; o app ainda reconhece o link e abre a tela de nova senha, mas a configuração correta evita surpresa.
 
 Regras do repositório:
 

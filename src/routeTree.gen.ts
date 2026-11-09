@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppRouteImport } from './routes/app'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as PainelRouteImport } from './routes/painel'
+import { Route as RedefinirSenhaRouteImport } from './routes/redefinir-senha'
 import { Route as AppIndexRouteImport } from './routes/app.index'
 import { Route as AppAdminRouteImport } from './routes/app.admin'
 import { Route as AppBookingRouteImport } from './routes/app.booking'
@@ -40,6 +41,11 @@ const LoginRoute = LoginRouteImport.update({
 const PainelRoute = PainelRouteImport.update({
   id: '/painel',
   path: '/painel',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RedefinirSenhaRoute = RedefinirSenhaRouteImport.update({
+  id: '/redefinir-senha',
+  path: '/redefinir-senha',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AppIndexRoute = AppIndexRouteImport.update({
@@ -88,6 +94,7 @@ export interface FileRoutesByFullPath {
   '/app': typeof AppRouteWithChildren
   '/login': typeof LoginRoute
   '/painel': typeof PainelRoute
+  '/redefinir-senha': typeof RedefinirSenhaRoute
   '/app/admin': typeof AppAdminRoute
   '/app/booking': typeof AppBookingRoute
   '/app/hangar-3d': typeof AppHangar3dRoute
@@ -101,6 +108,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/painel': typeof PainelRoute
+  '/redefinir-senha': typeof RedefinirSenhaRoute
   '/app/admin': typeof AppAdminRoute
   '/app/booking': typeof AppBookingRoute
   '/app/hangar-3d': typeof AppHangar3dRoute
@@ -116,6 +124,7 @@ export interface FileRoutesById {
   '/app': typeof AppRouteWithChildren
   '/login': typeof LoginRoute
   '/painel': typeof PainelRoute
+  '/redefinir-senha': typeof RedefinirSenhaRoute
   '/app/admin': typeof AppAdminRoute
   '/app/booking': typeof AppBookingRoute
   '/app/hangar-3d': typeof AppHangar3dRoute
@@ -132,6 +141,7 @@ export interface FileRouteTypes {
     | '/app'
     | '/login'
     | '/painel'
+    | '/redefinir-senha'
     | '/app/admin'
     | '/app/booking'
     | '/app/hangar-3d'
@@ -145,6 +155,7 @@ export interface FileRouteTypes {
     | '/'
     | '/login'
     | '/painel'
+    | '/redefinir-senha'
     | '/app/admin'
     | '/app/booking'
     | '/app/hangar-3d'
@@ -159,6 +170,7 @@ export interface FileRouteTypes {
     | '/app'
     | '/login'
     | '/painel'
+    | '/redefinir-senha'
     | '/app/admin'
     | '/app/booking'
     | '/app/hangar-3d'
@@ -174,6 +186,7 @@ export interface RootRouteChildren {
   AppRoute: typeof AppRouteWithChildren
   LoginRoute: typeof LoginRoute
   PainelRoute: typeof PainelRoute
+  RedefinirSenhaRoute: typeof RedefinirSenhaRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -204,6 +217,13 @@ declare module '@tanstack/react-router' {
       path: '/painel'
       fullPath: '/painel'
       preLoaderRoute: typeof PainelRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/redefinir-senha': {
+      id: '/redefinir-senha'
+      path: '/redefinir-senha'
+      fullPath: '/redefinir-senha'
+      preLoaderRoute: typeof RedefinirSenhaRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/app/': {
@@ -294,6 +314,7 @@ const rootRouteChildren: RootRouteChildren = {
   AppRoute: AppRouteWithChildren,
   LoginRoute: LoginRoute,
   PainelRoute: PainelRoute,
+  RedefinirSenhaRoute: RedefinirSenhaRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

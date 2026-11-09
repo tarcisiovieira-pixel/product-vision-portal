@@ -1,9 +1,12 @@
 import { createFileRoute, Link, Outlet, redirect, useNavigate } from "@tanstack/react-router";
+import { useState } from "react";
+import { toast } from "sonner";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Boxes,
   CalendarCheck,
   CalendarRange,
+  KeyRound,
   LogOut,
   Radar,
   ShieldCheck,
@@ -11,10 +14,14 @@ import {
   Wrench,
 } from "lucide-react";
 import { AresLogo } from "@/components/AresLogo";
+import { ChangePasswordDialog } from "@/components/ChangePasswordDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { adminStatusQuery } from "@/lib/admin";
 import { licenseLabel, profileQuery } from "@/lib/ares-data";
 import { clearDemoState, isDemoSession } from "@/lib/session";
+
+const money = (value: number | string | null | undefined) =>
+  value == null ? "—" : Number(value).toLocaleString("pt-BR");
 
 export const Route = createFileRoute("/app")({
   ssr: false,
@@ -58,6 +65,17 @@ function AppLayout() {
   const { data: profile } = useQuery(profileQuery);
   const { data: isAdmin } = useQuery(adminStatusQuery);
   const links = isAdmin ? [...nav, adminLink] : nav;
+  const [changingPassword, setChangingPassword] = useState(false);
+
+  const openChangePassword = () => {
+    if (isDemoSession()) {
+      toast.info("Indisponível no modo demo", {
+        description: "O demo não tem senha. Crie uma conta para usar este recurso.",
+      });
+      return;
+    }
+    setChangingPassword(true);
+  };
 
   const signOut = async () => {
     clearDemoState();
@@ -94,11 +112,17 @@ function AppLayout() {
             <p className="text-telemetry">{profile ? licenseLabel[profile.pilot_license] : "—"}</p>
             <p className="text-muted-foreground">CRÉDITOS</p>
             <p className="font-display text-xl text-primary">
-              MC$ {Number(profile?.martian_credits ?? 0).toLocaleString("pt-BR")}
+              MC$ {money(profile?.martian_credits)}
             </p>
             <button
-              onClick={signOut}
+              onClick={openChangePassword}
               className="flex items-center gap-2 pt-2 text-muted-foreground transition hover:text-foreground"
+            >
+              <KeyRound className="h-4 w-4" /> Alterar senha
+            </button>
+            <button
+              onClick={signOut}
+              className="flex items-center gap-2 text-muted-foreground transition hover:text-foreground"
             >
               <LogOut className="h-4 w-4" /> Sair
             </button>
@@ -107,21 +131,31 @@ function AppLayout() {
             <div>
               <p className="text-muted-foreground">{profile?.space_credential_id ?? "—"}</p>
               <p className="font-display text-sm text-primary">
-                MC$ {Number(profile?.martian_credits ?? 0).toLocaleString("pt-BR")}
+                MC$ {money(profile?.martian_credits)}
               </p>
             </div>
-            <button
-              onClick={signOut}
-              className="flex items-center gap-1.5 border border-muted px-2.5 py-1.5 text-xs text-muted-foreground hover:text-foreground"
-            >
-              <LogOut className="h-3.5 w-3.5" /> Sair
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={openChangePassword}
+                aria-label="Alterar senha"
+                className="flex items-center border border-muted px-2.5 py-1.5 text-xs text-muted-foreground hover:text-foreground"
+              >
+                <KeyRound className="h-3.5 w-3.5" />
+              </button>
+              <button
+                onClick={signOut}
+                className="flex items-center gap-1.5 border border-muted px-2.5 py-1.5 text-xs text-muted-foreground hover:text-foreground"
+              >
+                <LogOut className="h-3.5 w-3.5" /> Sair
+              </button>
+            </div>
           </div>
         </div>
       </aside>
       <main className="min-w-0 flex-1">
         <Outlet />
       </main>
+      {changingPassword && <ChangePasswordDialog onClose={() => setChangingPassword(false)} />}
     </div>
   );
 }

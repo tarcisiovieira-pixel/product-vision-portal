@@ -9,6 +9,7 @@ import { AresLogo } from "@/components/AresLogo";
 import { useQueryClient } from "@tanstack/react-query";
 import { InfoTip } from "@/components/InfoTip";
 import { supabase } from "@/integrations/supabase/client";
+import { passwordErrorMessage } from "@/lib/password";
 import { enterRealSession, isDemoSession, startDemoSession } from "@/lib/session";
 
 const MarsGlobe = lazy(() => import("@/components/MarsGlobe"));
@@ -49,6 +50,7 @@ function Login() {
   const [loading, setLoading] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
   const [pendingEmail, setPendingEmail] = useState<string | null>(null);
+  const [resetSentTo, setResetSentTo] = useState<string | null>(null);
 
   // Checa se já existe sessão no cliente
   useEffect(() => {
@@ -73,6 +75,29 @@ function Login() {
     });
     await nav({ to: "/app/booking", replace: true });
     setLoading(false);
+  };
+
+  const handleForgotPassword = async () => {
+    const address = email.trim();
+    if (!address) {
+      setAuthError("Digite seu e-mail no campo acima para receber o link.");
+      return;
+    }
+    setLoading(true);
+    setAuthError(null);
+    setResetSentTo(null);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(address, {
+        redirectTo: `${window.location.origin}/redefinir-senha`,
+      });
+      if (error) throw error;
+      // Mesma resposta exista a conta ou não: não revela quem tem cadastro.
+      setResetSentTo(address);
+    } catch (err) {
+      setAuthError(passwordErrorMessage(err));
+    } finally {
+      setLoading(false);
+    }
   };
 
   const submit = async (e: React.FormEvent) => {
@@ -247,6 +272,22 @@ function Login() {
           </div>
         )}
 
+        {resetSentTo && !authError && (
+          <div
+            role="status"
+            className="mt-4 flex items-start gap-2 border border-telemetry/50 bg-telemetry/10 p-3 font-mono text-xs text-telemetry"
+          >
+            <Mail className="mt-0.5 h-4 w-4 shrink-0" />
+            <div className="space-y-1">
+              <p className="font-semibold">Verifique seu e-mail</p>
+              <p className="text-[11px] leading-relaxed">
+                Se existir uma conta com {resetSentTo}, enviamos um link para criar uma nova senha.
+                Ele vale por pouco tempo.
+              </p>
+            </div>
+          </div>
+        )}
+
         {authError && (
           <div className="mt-4 flex items-start gap-2 border border-destructive/50 bg-destructive/10 p-3 font-mono text-xs text-destructive">
             <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
@@ -286,6 +327,16 @@ function Login() {
                 className="w-full bg-transparent p-2 text-foreground focus:outline-none"
               />
             </div>
+            {mode === "in" && (
+              <button
+                type="button"
+                onClick={handleForgotPassword}
+                disabled={loading}
+                className="mt-2 text-[11px] text-primary hover:underline disabled:opacity-50"
+              >
+                Esqueci minha senha
+              </button>
+            )}
           </div>
 
           {mode === "up" && (
