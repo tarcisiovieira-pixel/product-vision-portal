@@ -3,6 +3,7 @@ services:
   - type: web
     name: ares-api
     runtime: node
+    plan: free # sem custo; dorme após 15 min sem uso e acorda em ~1 min
     rootDir: backend
     # NODE_ENV=production faz o npm omitir devDependencies; o build precisa do typescript.
     buildCommand: npm ci --include=dev && npm run build
