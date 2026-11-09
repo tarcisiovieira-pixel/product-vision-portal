@@ -131,6 +131,7 @@ select id from auth.users where email = 'email-do-admin@exemplo.com';
 ```
 
 - **A API é opcional durante a migração.** Com `VITE_API_URL` definida, reservas, manutenção e compras passam por ela. Sem a variável, o front chama direto as funções do banco, que aplicam as mesmas regras.
+- **Em produção a API já vem ligada.** O `.env.production` define `VITE_API_URL` com o endereço do Render, e o `npm run dev` não lê esse arquivo. Para voltar o front a falar direto com o banco, apague a linha e publique de novo.
 - **Dupla proteção.** A API repassa o token do usuário, então a RLS continua valendo no banco.
 - **Modo demo é um sandbox local.** Ele usa dados fictícios salvos no navegador e nunca toca no banco. Conta real nunca enxerga dados demo.
 - **Ocupação na trava do banco.** Uma restrição do Postgres impede duas reservas do mesmo veículo em períodos sobrepostos, mesmo em cliques simultâneos.
