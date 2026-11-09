@@ -32,6 +32,7 @@ const mockSignIn = vi.fn().mockResolvedValue({
   data: { session: { user: { id: "test-user-demo" } } },
   error: null,
 });
+const mockReset = vi.fn().mockResolvedValue({ data: {}, error: null });
 const mockSignUp = vi.fn().mockResolvedValue({
   data: { session: { user: { id: "test-user-demo" } } },
   error: null,
@@ -46,6 +47,7 @@ vi.mock("@/integrations/supabase/client", () => ({
       signInWithPassword: (...args: any[]) => mockSignIn(...args),
       signUp: (...args: any[]) => mockSignUp(...args),
       signOut: vi.fn().mockResolvedValue({}),
+      resetPasswordForEmail: (...args: any[]) => mockReset(...args),
     },
   },
 }));
@@ -110,6 +112,67 @@ describe("Login screen", () => {
     expect(mockNavigate).toHaveBeenCalledWith({
       to: "/app/booking",
       replace: true,
+    });
+  });
+
+  describe("Esqueci minha senha", () => {
+    beforeEach(() => mockReset.mockClear());
+
+    it("pede o e-mail antes de enviar o link", async () => {
+      await act(async () => {
+        render(<Login />);
+      });
+      await act(async () => {
+        fireEvent.click(screen.getByRole("button", { name: /Esqueci minha senha/i }));
+      });
+      expect(mockReset).not.toHaveBeenCalled();
+      expect(screen.getByText(/Digite seu e-mail no campo acima/i)).toBeInTheDocument();
+    });
+
+    it("envia o link para a tela de redefinição e confirma sem revelar se a conta existe", async () => {
+      await act(async () => {
+        render(<Login />);
+      });
+      fireEvent.change(screen.getByPlaceholderText("colono@jezero.mars"), {
+        target: { value: "piloto@exemplo.com" },
+      });
+      await act(async () => {
+        fireEvent.click(screen.getByRole("button", { name: /Esqueci minha senha/i }));
+      });
+      expect(mockReset).toHaveBeenCalledWith("piloto@exemplo.com", {
+        redirectTo: `${window.location.origin}/redefinir-senha`,
+      });
+      expect(screen.getByText(/Se existir uma conta com piloto@exemplo.com/i)).toBeInTheDocument();
+    });
+
+    it("mostra erro em português quando o limite de e-mails estoura", async () => {
+      mockReset.mockResolvedValueOnce({
+        data: null,
+        error: new Error("email rate limit exceeded"),
+      });
+      await act(async () => {
+        render(<Login />);
+      });
+      fireEvent.change(screen.getByPlaceholderText("colono@jezero.mars"), {
+        target: { value: "piloto@exemplo.com" },
+      });
+      await act(async () => {
+        fireEvent.click(screen.getByRole("button", { name: /Esqueci minha senha/i }));
+      });
+      expect(screen.getByText(/Muitas tentativas/i)).toBeInTheDocument();
+      expect(screen.queryByText(/Verifique seu e-mail/i)).not.toBeInTheDocument();
+    });
+
+    it("não oferece o link no modo de cadastro", async () => {
+      await act(async () => {
+        render(<Login />);
+      });
+      await act(async () => {
+        fireEvent.click(screen.getByRole("button", { name: /Cadastrar/i }));
+      });
+      expect(
+        screen.queryByRole("button", { name: /Esqueci minha senha/i }),
+      ).not.toBeInTheDocument();
     });
   });
 });

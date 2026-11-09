@@ -604,6 +604,126 @@ describe.skipIf(!baseUrl || !key)("integração com Supabase real", () => {
     });
   });
 
+  describe("senha: troca e recuperação por e-mail", () => {
+    const mailUrl = process.env["SUPABASE_TEST_MAIL_URL"] ?? "http://127.0.0.1:54324";
+    const PASSWORD = "Teste#12345";
+
+    async function signUpFresh() {
+      const c = client();
+      const email = `senha-${Date.now()}-${Math.random().toString(36).slice(2)}@ares.test`;
+      const { data, error } = await c.auth.signUp({ email, password: PASSWORD });
+      if (error || !data.session) throw error ?? new Error("Sem sessão");
+      return { c, email };
+    }
+
+    const signIn = (email: string, password: string) =>
+      client().auth.signInWithPassword({ email, password });
+
+    /** Último e-mail recebido pelo endereço, lido na caixa de testes (Mailpit). */
+    async function latestMailTo(email: string) {
+      for (let i = 0; i < 20; i++) {
+        const list = (await (await fetch(`${mailUrl}/api/v1/messages`)).json()) as {
+          messages: { ID: string; To: { Address: string }[] }[];
+        };
+        const found = list.messages.find((m) => m.To.some((t) => t.Address === email));
+        if (found) {
+          const full = (await (await fetch(`${mailUrl}/api/v1/message/${found.ID}`)).json()) as {
+            Text: string;
+            HTML: string;
+          };
+          return full;
+        }
+        await new Promise((r) => setTimeout(r, 300));
+      }
+      throw new Error(`Nenhum e-mail para ${email}`);
+    }
+
+    const recoveryLink = (mail: { Text: string; HTML: string }) => {
+      const match = /https?:\/\/[^\s"'<>]+\/auth\/v1\/verify\?[^\s"'<>]+/.exec(
+        mail.HTML + " " + mail.Text,
+      );
+      if (!match) throw new Error("Link de recuperação não encontrado no e-mail");
+      return match[0].replace(/&amp;/g, "&");
+    };
+
+    /** Segue o link do e-mail como o navegador: o Supabase responde com redirect e tokens no #. */
+    async function followRecovery(link: string) {
+      const res = await fetch(link, { redirect: "manual" });
+      const location = res.headers.get("location") ?? "";
+      const hash = new URLSearchParams(location.split("#")[1] ?? "");
+      return { status: res.status, location, hash };
+    }
+
+    it("logado, troca a senha: a nova entra e a antiga deixa de valer", async () => {
+      const { c, email } = await signUpFresh();
+      const { error } = await c.auth.updateUser({ password: "Nova#Senha-2026" });
+      expect(error).toBeNull();
+      expect((await signIn(email, "Nova#Senha-2026")).error).toBeNull();
+      expect((await signIn(email, PASSWORD)).error?.message).toMatch(/Invalid login credentials/);
+    });
+
+    it("o servidor recusa senha curta demais, mesmo sem passar pela tela", async () => {
+      const { c } = await signUpFresh();
+      const { error } = await c.auth.updateUser({ password: "12345" });
+      expect(error?.message).toMatch(/at least/i);
+    });
+
+    it("sem sessão ninguém troca a senha de ninguém", async () => {
+      const { error } = await client().auth.updateUser({ password: "Qualquer#Coisa1" });
+      expect(error?.message).toMatch(/session/i);
+    });
+
+    it("pedir recuperação não revela se o e-mail tem conta", async () => {
+      const unknown = await client().auth.resetPasswordForEmail(`ninguem-${Date.now()}@ares.test`);
+      expect(unknown.error).toBeNull();
+    });
+
+    it("recuperação por e-mail: o link abre uma sessão de recuperação e define a nova senha", async () => {
+      const { email } = await signUpFresh();
+      const redirectTo = "http://localhost:8081/redefinir-senha";
+      expect((await client().auth.resetPasswordForEmail(email, { redirectTo })).error).toBeNull();
+
+      const link = recoveryLink(await latestMailTo(email));
+      const followed = await followRecovery(link);
+      expect([301, 302, 303]).toContain(followed.status);
+      // O destino pedido está na lista permitida: o usuário cai na tela de nova senha.
+      expect(followed.location.startsWith(redirectTo)).toBe(true);
+      expect(followed.hash.get("type")).toBe("recovery");
+
+      const recovered = client();
+      const { error: sessionError } = await recovered.auth.setSession({
+        access_token: followed.hash.get("access_token")!,
+        refresh_token: followed.hash.get("refresh_token")!,
+      });
+      expect(sessionError).toBeNull();
+      expect((await recovered.auth.updateUser({ password: "Recuperada#2026" })).error).toBeNull();
+
+      expect((await signIn(email, "Recuperada#2026")).error).toBeNull();
+      expect((await signIn(email, PASSWORD)).error?.message).toMatch(/Invalid login credentials/);
+    });
+
+    it("o link de recuperação só vale uma vez", async () => {
+      const { email } = await signUpFresh();
+      await client().auth.resetPasswordForEmail(email, {
+        redirectTo: "http://localhost:8081/redefinir-senha",
+      });
+      const link = recoveryLink(await latestMailTo(email));
+      expect((await followRecovery(link)).hash.get("type")).toBe("recovery");
+      const second = await followRecovery(link);
+      expect(second.hash.get("access_token")).toBeNull();
+      expect(second.hash.get("error_code") ?? second.location).toMatch(/otp_expired|error/);
+    });
+
+    it("destino fora da lista permitida não recebe os tokens", async () => {
+      const { email } = await signUpFresh();
+      await client().auth.resetPasswordForEmail(email, {
+        redirectTo: "https://evil.example.com/roubar",
+      });
+      const followed = await followRecovery(recoveryLink(await latestMailTo(email)));
+      expect(followed.location.startsWith("https://evil.example.com")).toBe(false);
+    });
+  });
+
   describe("administração", () => {
     let admin: User;
 

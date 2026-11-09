@@ -1,1 +1,13 @@
 project_id = "qxlzdpahifwiyzmxlpef"
+
+[auth]
+site_url = "http://localhost:8080"
+additional_redirect_urls = ["http://localhost:8080/**", "http://localhost:8081/**"]
+
+# Só no Supabase local: sem esses limites, os testes de recuperação de senha esbarram
+# no máximo de e-mails por hora e no intervalo de 60 s entre envios ao mesmo endereço.
+[auth.rate_limit]
+email_sent = 100
+
+[auth.email]
+max_frequency = "1s"
