@@ -23,6 +23,15 @@ const schema = z.object({
    * Só o IP que o último proxy anexou vale: o resto do X-Forwarded-For é do cliente.
    */
   TRUST_PROXY_HOPS: z.coerce.number().int().min(0).max(5).default(1),
+  /** Sem chave, as IAs seguem funcionando com o motor de regras (sem texto gerado). */
+  ANTHROPIC_API_KEY: z
+    .string()
+    .trim()
+    .optional()
+    .transform((v) => v || undefined),
+  ANTHROPIC_MODEL: z.string().trim().min(1).default("claude-opus-5-5"),
+  /** Chamadas por usuário por dia, por tipo de IA, ao modelo generativo. */
+  AI_DAILY_LIMIT: z.coerce.number().int().min(1).max(1000).default(30),
 });
 
 export type Env = z.infer<typeof schema>;

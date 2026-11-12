@@ -724,6 +724,88 @@ describe.skipIf(!baseUrl || !key)("integração com Supabase real", () => {
     });
   });
 
+  describe("IA", () => {
+    it("consultoria sem chave: indica veículo real do catálogo, com a habilitação do usuário", async () => {
+      const res = await post(pilot, "/v1/ai/consult", {
+        message: "Somos 2 pessoas, preciso de um carro por 2 dias, o mais barato",
+      });
+      expect(res.statusCode).toBe(200);
+      const body = res.json();
+      expect(body.mode).toBe("rules");
+      expect(body.recommendations.length).toBeGreaterThan(0);
+      const ids = new Set(
+        ((await pilot.c.from("vehicles").select("id")).data ?? []).map((v) => v.id),
+      );
+      for (const r of body.recommendations) expect(ids.has(r.vehicleId)).toBe(true);
+      // habilitação atmosférica: nunca indica foguete nem caminhão
+      const categories = new Set(
+        ((await pilot.c.from("vehicles").select("id, category")).data ?? [])
+          .filter((v) =>
+            body.recommendations.some((r: { vehicleId: string }) => r.vehicleId === v.id),
+          )
+          .map((v) => v.category),
+      );
+      expect([...categories]).toEqual(["car_vtol"]);
+    });
+
+    it("resumo analítico é só para administrador", async () => {
+      const res = await post(pilot, "/v1/ai/analytics/summary", {
+        totals: {
+          users: 1,
+          pendingEmail: 0,
+          newUsers7d: 0,
+          activeUsers30d: 0,
+          suspended: 0,
+          rentals: 0,
+          activeRentals: 0,
+          cancelledRentals: 0,
+          revenue: 0,
+          avgTicket: 0,
+          fleetTotal: 1,
+          fleetOccupied: 0,
+          fleetDown: 0,
+        },
+        insights: [{ id: "a", severity: "info", title: "Teste", detail: "Teste" }],
+      });
+      expect(res.statusCode).toBe(403);
+    });
+
+    it("cota diária: consome até o limite e nega depois, por usuário e por tipo", async () => {
+      const taker = await newUser("atmospheric");
+      const take = (kind: string, limit: number) =>
+        taker.c.rpc("ai_take_quota", { _kind: kind, _limit: limit });
+      expect((await take("consult", 2)).data).toBe(true);
+      expect((await take("consult", 2)).data).toBe(true);
+      expect((await take("consult", 2)).data).toBe(false);
+      expect((await take("consult", 2)).data).toBe(false);
+      expect((await take("analytics", 2)).data).toBe(true); // outro tipo, outra cota
+      const { data } = await other.c.rpc("ai_take_quota", { _kind: "consult", _limit: 2 });
+      expect(data).toBe(true); // outro usuário, outra cota
+    });
+
+    it("a cota não se burla pelo banco", async () => {
+      const taker = await newUser("atmospheric");
+      expect(
+        (await taker.c.rpc("ai_take_quota", { _kind: "nada", _limit: 5 })).error?.message,
+      ).toMatch(/inválido/);
+      expect(
+        (await taker.c.rpc("ai_take_quota", { _kind: "consult", _limit: 0 })).error?.message,
+      ).toMatch(/inválido/);
+      expect(
+        (await taker.c.rpc("ai_take_quota", { _kind: "consult", _limit: 5000 })).error?.message,
+      ).toMatch(/inválido/);
+      const direct = await taker.c.from("ai_usage").select("*");
+      expect(direct.data ?? []).toEqual([]);
+      const write = await taker.c.from("ai_usage").update({ used: 0 }).eq("user_id", taker.id);
+      expect(write.error?.message ?? "").toMatch(/permission denied/);
+      const anon = await createClient(baseUrl!, key!).rpc("ai_take_quota", {
+        _kind: "consult",
+        _limit: 5,
+      });
+      expect(anon.error).not.toBeNull();
+    });
+  });
+
   describe("administração", () => {
     let admin: User;
 
