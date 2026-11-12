@@ -203,6 +203,106 @@ describe("reservas: relógio de sols", () => {
   });
 });
 
+describe("frota (CRUD administrativo)", () => {
+  const vehicle = {
+    name: "CyberCab Teste",
+    callsign: "tst-01",
+    modelKey: "cybercab_x2",
+    dailyRate: 420,
+    hangarId: ID,
+    status: "available",
+    seats: 4,
+    cargoKg: 200,
+    rangeKm: 800,
+    description: null,
+    reason: "Novo veículo de teste",
+  };
+
+  it("exige token", async () => {
+    const res = await app.inject({ method: "GET", url: "/v1/admin/vehicles" });
+    expect(res.statusCode).toBe(401);
+  });
+
+  it("lista pelo banco (que decide quem é administrador)", async () => {
+    rpc.mockResolvedValue([{ id: ID }]);
+    const res = await app.inject({ method: "GET", url: "/v1/admin/vehicles", headers });
+    expect(res.json()).toEqual({ items: [{ id: ID }] });
+    expect(rpc).toHaveBeenCalledWith("admin_list_vehicles", {});
+  });
+
+  it("cria normalizando o indicativo para maiúsculas", async () => {
+    rpc.mockResolvedValue(ID);
+    const res = await post("/v1/admin/vehicles", vehicle);
+    expect(res.statusCode).toBe(201);
+    expect(rpc).toHaveBeenCalledWith(
+      "admin_save_vehicle",
+      expect.objectContaining({ _id: null, _callsign: "TST-01", _model_key: "cybercab_x2" }),
+    );
+  });
+
+  it.each([
+    ["nome curto", { name: "ab" }],
+    ["indicativo inválido", { callsign: "x y!" }],
+    ["modelo inexistente", { modelKey: "nave_secreta" }],
+    ["diária zero", { dailyRate: 0 }],
+    ["diária negativa", { dailyRate: -5 }],
+    ["diária absurda", { dailyRate: 2_000_000 }],
+    ["assentos zero", { seats: 0 }],
+    ["assentos fracionados", { seats: 2.5 }],
+    ["carga negativa", { cargoKg: -1 }],
+    ["status inválido", { status: "voando_alto" }],
+    ["sem motivo", { reason: "" }],
+    ["campo extra", { id: ID }],
+  ])("recusa %s sem tocar no banco", async (_nome, patch) => {
+    const res = await post("/v1/admin/vehicles", { ...vehicle, ...patch });
+    expect(res.statusCode).toBe(400);
+    expect(rpc).not.toHaveBeenCalled();
+  });
+
+  it("edita pelo ID da URL", async () => {
+    rpc.mockResolvedValue(ID);
+    const res = await app.inject({
+      method: "PUT",
+      url: `/v1/admin/vehicles/${ID}`,
+      headers,
+      payload: vehicle,
+    });
+    expect(res.statusCode).toBe(200);
+    expect(rpc).toHaveBeenCalledWith("admin_save_vehicle", expect.objectContaining({ _id: ID }));
+  });
+
+  it("arquiva e restaura com motivo obrigatório", async () => {
+    rpc.mockResolvedValue(null);
+    expect((await post(`/v1/admin/vehicles/${ID}/archive`, { reason: "x" })).statusCode).toBe(400);
+    expect(rpc).not.toHaveBeenCalled();
+    expect(
+      (await post(`/v1/admin/vehicles/${ID}/archive`, { reason: "Fim de vida útil" })).statusCode,
+    ).toBe(200);
+    expect(
+      (await post(`/v1/admin/vehicles/${ID}/restore`, { reason: "Voltou à operação" })).statusCode,
+    ).toBe(200);
+    expect(rpc).toHaveBeenCalledWith("admin_archive_vehicle", {
+      _id: ID,
+      _reason: "Fim de vida útil",
+    });
+  });
+
+  it("devolve 403 para quem não é administrador", async () => {
+    rpc.mockRejectedValue(mapDbError({ code: "P0001", message: "Acesso negado" }));
+    expect((await post("/v1/admin/vehicles", vehicle)).statusCode).toBe(403);
+  });
+
+  it("indicativo repetido vira 409", async () => {
+    rpc.mockRejectedValue(
+      mapDbError({
+        code: "P0001",
+        message: "Já existe um veículo com este indicativo (inclusive arquivado)",
+      }),
+    );
+    expect((await post("/v1/admin/vehicles", vehicle)).statusCode).toBe(409);
+  });
+});
+
 describe("mapDbError", () => {
   const cases: [string, string, number][] = [
     ["Veículo não encontrado", "P0001", 404],

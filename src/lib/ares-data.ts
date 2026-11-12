@@ -20,6 +20,7 @@ import {
   readDemoProfile,
   readDemoRentals,
   readDemoSales,
+  readDemoVehicles,
 } from "./session";
 
 export type Vehicle = Tables<"vehicles">;
@@ -108,13 +109,28 @@ export function addonsPerSol(r: {
   );
 }
 
+/** Veículo com os campos do catálogo (modelo 3D, ficha técnica, arquivamento). */
+export type FleetVehicle = Vehicle & {
+  model_key?: string;
+  seats?: number;
+  cargo_kg?: number;
+  range_km?: number;
+  description?: string | null;
+  deleted_at?: string | null;
+};
+
+/** Arquivados somem do catálogo, inclusive para o administrador (que a RLS deixa enxergá-los). */
 export const vehiclesQuery = queryOptions({
   queryKey: ["vehicles"],
-  queryFn: () =>
-    loadCatalog<Vehicle[]>(
+  queryFn: async (): Promise<FleetVehicle[]> => {
+    const rows = await loadCatalog<FleetVehicle[]>(
       () => supabase.from("vehicles").select("*").order("category").order("callsign"),
-      SEED_VEHICLES,
-    ),
+      (readDemoVehicles<FleetVehicle>() ?? (SEED_VEHICLES as FleetVehicle[])).filter(
+        (v) => !v.deleted_at,
+      ),
+    );
+    return rows.filter((v) => !v.deleted_at);
+  },
 });
 
 export const hangarsQuery = queryOptions({

@@ -125,7 +125,12 @@ function Hangar() {
               </div>
             }
           >
-            <HangarScene category={v.category} callsign={v.callsign} name={v.name} />
+            <HangarScene
+              category={v.category}
+              modelKey={v.model_key}
+              callsign={v.callsign}
+              name={v.name}
+            />
           </Suspense>
           <div className="pointer-events-none absolute bottom-3 left-3 space-y-0.5 font-mono text-[10px] text-muted-foreground">
             <p>ARRASTE PARA GIRAR</p>

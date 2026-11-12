@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useQuery, useSuspenseQuery } from "@tanstack/react-query";
 import { ArrowDown, ArrowUp, Download, RefreshCw, Search, ShieldAlert } from "lucide-react";
+import { AdminFleet } from "@/components/admin/AdminFleet";
 import { AdminUserDialog } from "@/components/admin/AdminUserDialog";
 import { SignupsChart, TopVehicles } from "@/components/admin/AdminCharts";
 import { InfoTip } from "@/components/InfoTip";
@@ -100,13 +101,20 @@ const AUDIT_LABEL: Record<string, string> = {
   license_changed: "Habilitação alterada",
   user_suspended: "Conta suspensa",
   user_reactivated: "Conta reativada",
+  vehicle_created: "Veículo cadastrado",
+  vehicle_updated: "Veículo editado",
+  vehicle_archived: "Veículo arquivado",
+  vehicle_restored: "Veículo restaurado",
 };
 
 function AuditRow({ entry }: { entry: AdminAuditEntry }) {
   return (
     <li className="flex flex-wrap items-baseline justify-between gap-2 border-b border-border/40 py-2 font-mono text-xs last:border-0">
       <span className="text-foreground">
-        {AUDIT_LABEL[entry.action] ?? entry.action} · {entry.target_email ?? "conta removida"}
+        {AUDIT_LABEL[entry.action] ?? entry.action} ·{" "}
+        {entry.action.startsWith("vehicle_")
+          ? String(entry.details["callsign"] ?? "veículo")
+          : (entry.target_email ?? "conta removida")}
       </span>
       <span className="text-muted-foreground">
         {String(entry.details["reason"] ?? "")} · {entry.admin_email ?? "—"} ·{" "}
@@ -121,6 +129,7 @@ function AdminPage() {
   const { data: users } = useSuspenseQuery(adminUsersQuery);
   const { data: audit = [] } = useQuery(adminAuditQuery);
 
+  const [tab, setTab] = useState<"users" | "fleet">("users");
   const [segment, setSegment] = useState<UserSegment>("all");
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState<{ key: SortKey; desc: boolean }>({
@@ -258,152 +267,185 @@ function AdminPage() {
         </div>
       </section>
 
-      <section aria-label="Exige atenção" className="space-y-2">
-        <h2 className="flex items-center gap-2 font-mono text-xs uppercase tracking-widest text-primary">
-          <ShieldAlert className="h-4 w-4" /> Exige atenção
-        </h2>
-        <div className="grid gap-2 sm:grid-cols-3 xl:grid-cols-6">
-          {SEGMENTS.map((s) => (
-            <div
-              key={s.id}
-              className={`flex items-start justify-between gap-2 border p-3 transition ${
-                segment === s.id
-                  ? "border-telemetry bg-telemetry/10"
-                  : "border-border/60 hover:border-telemetry/50"
-              }`}
-            >
-              <button
-                type="button"
-                aria-pressed={segment === s.id}
-                onClick={() => setSegment(segment === s.id ? "all" : s.id)}
-                className="min-w-0 flex-1 text-left"
-              >
-                <span className="block font-display text-xl font-bold text-foreground">
-                  {counts[s.id]}
-                </span>
-                <span className="mt-1 block font-mono text-[11px] text-muted-foreground">
-                  {s.label}
-                </span>
-              </button>
-              <InfoTip label={s.label}>{s.hint}</InfoTip>
-            </div>
-          ))}
-        </div>
-      </section>
+      <div role="tablist" aria-label="Seções do painel" className="flex gap-2">
+        {(
+          [
+            ["users", "Usuários"],
+            ["fleet", "Frota"],
+          ] as const
+        ).map(([id, label]) => (
+          <button
+            key={id}
+            type="button"
+            role="tab"
+            aria-selected={tab === id}
+            onClick={() => setTab(id)}
+            className={`border px-4 py-2 font-mono text-xs uppercase tracking-wider transition ${
+              tab === id
+                ? "border-telemetry bg-telemetry/10 text-telemetry"
+                : "border-border text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+      {tab === "fleet" && <AdminFleet />}
 
-      <section aria-label="Usuários" className="glass p-5">
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-          <h2 className="font-mono text-xs uppercase tracking-widest text-primary">
-            {visible.length} de {users.length} usuários
-          </h2>
-          <div className="flex items-center gap-2">
-            <label className="flex items-center gap-2 border border-border bg-background/50 px-3 py-1.5">
-              <Search className="h-3.5 w-3.5 text-muted-foreground" />
-              <input
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Buscar e-mail ou credencial"
-                aria-label="Buscar usuário"
-                className="w-52 bg-transparent font-mono text-xs text-foreground focus:outline-none"
-              />
-            </label>
-            <button
-              type="button"
-              onClick={() => downloadCsv(visible)}
-              className="flex items-center gap-1.5 border border-border px-3 py-1.5 font-mono text-xs text-muted-foreground transition hover:border-telemetry hover:text-telemetry"
-            >
-              <Download className="h-3.5 w-3.5" /> CSV
-            </button>
-          </div>
-        </div>
-
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[820px] font-mono text-xs">
-            <thead>
-              <tr className="border-b border-border text-left text-muted-foreground">
-                <th className="py-2 pr-3 font-normal">Usuário</th>
-                <th className="py-2 pr-3 font-normal">Habilitação</th>
-                {SORTABLE.map((column) => (
-                  <th
-                    key={column.key}
-                    className="py-2 pr-3 font-normal"
-                    aria-sort={
-                      sort.key === column.key ? (sort.desc ? "descending" : "ascending") : "none"
-                    }
-                  >
-                    <button
-                      type="button"
-                      className="flex items-center gap-1 hover:text-foreground"
-                      onClick={() =>
-                        setSort({
-                          key: column.key,
-                          desc: sort.key === column.key ? !sort.desc : true,
-                        })
-                      }
-                    >
-                      {column.label}
-                      {sort.key === column.key && <SortIcon className="h-3 w-3" />}
-                    </button>
-                  </th>
-                ))}
-                <th className="py-2 font-normal">Situação</th>
-              </tr>
-            </thead>
-            <tbody>
-              {visible.map((user) => (
-                <tr
-                  key={user.user_id}
-                  className="border-b border-border/40 transition last:border-0 hover:bg-surface/60"
+      {tab === "users" && (
+        <>
+          <section aria-label="Exige atenção" className="space-y-2">
+            <h2 className="flex items-center gap-2 font-mono text-xs uppercase tracking-widest text-primary">
+              <ShieldAlert className="h-4 w-4" /> Exige atenção
+            </h2>
+            <div className="grid gap-2 sm:grid-cols-3 xl:grid-cols-6">
+              {SEGMENTS.map((s) => (
+                <div
+                  key={s.id}
+                  className={`flex items-start justify-between gap-2 border p-3 transition ${
+                    segment === s.id
+                      ? "border-telemetry bg-telemetry/10"
+                      : "border-border/60 hover:border-telemetry/50"
+                  }`}
                 >
-                  <td className="py-2.5 pr-3">
-                    <button
-                      type="button"
-                      onClick={() => setSelectedId(user.user_id)}
-                      className="text-left text-foreground hover:text-telemetry"
-                    >
-                      {user.email}
-                      <span className="block text-[10px] text-muted-foreground">
-                        {user.credential ?? "—"}
-                      </span>
-                    </button>
-                  </td>
-                  <td className="py-2.5 pr-3 text-muted-foreground">
-                    {user.pilot_license ? licenseLabel[user.pilot_license] : "—"}
-                  </td>
-                  <td className="py-2.5 pr-3 text-foreground">{money(user.credits)}</td>
-                  <td className="py-2.5 pr-3 text-foreground">{money(user.spent)}</td>
-                  <td className="py-2.5 pr-3 text-muted-foreground">
-                    {user.rentals_total}
-                    {user.rentals_cancelled > 0 && ` (${user.rentals_cancelled} canc.)`}
-                  </td>
-                  <td className="py-2.5 pr-3 text-muted-foreground">{date(user.created_at)}</td>
-                  <td className="py-2.5 pr-3 text-muted-foreground">
-                    {date(user.last_sign_in_at)}
-                  </td>
-                  <td className="py-2.5">
-                    {user.suspended ? (
-                      <span className="text-warning">Suspenso</span>
-                    ) : !user.email_confirmed ? (
-                      <span className="text-muted-foreground">E-mail pendente</span>
-                    ) : user.is_admin ? (
-                      <span className="text-telemetry">Admin</span>
-                    ) : (
-                      <span className="text-foreground">Ativo</span>
-                    )}
-                  </td>
-                </tr>
+                  <button
+                    type="button"
+                    aria-pressed={segment === s.id}
+                    onClick={() => setSegment(segment === s.id ? "all" : s.id)}
+                    className="min-w-0 flex-1 text-left"
+                  >
+                    <span className="block font-display text-xl font-bold text-foreground">
+                      {counts[s.id]}
+                    </span>
+                    <span className="mt-1 block font-mono text-[11px] text-muted-foreground">
+                      {s.label}
+                    </span>
+                  </button>
+                  <InfoTip label={s.label}>{s.hint}</InfoTip>
+                </div>
               ))}
-              {visible.length === 0 && (
-                <tr>
-                  <td colSpan={8} className="py-8 text-center text-muted-foreground">
-                    Nenhum usuário encontrado.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </section>
+            </div>
+          </section>
+
+          <section aria-label="Usuários" className="glass p-5">
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+              <h2 className="font-mono text-xs uppercase tracking-widest text-primary">
+                {visible.length} de {users.length} usuários
+              </h2>
+              <div className="flex items-center gap-2">
+                <label className="flex items-center gap-2 border border-border bg-background/50 px-3 py-1.5">
+                  <Search className="h-3.5 w-3.5 text-muted-foreground" />
+                  <input
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    placeholder="Buscar e-mail ou credencial"
+                    aria-label="Buscar usuário"
+                    className="w-52 bg-transparent font-mono text-xs text-foreground focus:outline-none"
+                  />
+                </label>
+                <button
+                  type="button"
+                  onClick={() => downloadCsv(visible)}
+                  className="flex items-center gap-1.5 border border-border px-3 py-1.5 font-mono text-xs text-muted-foreground transition hover:border-telemetry hover:text-telemetry"
+                >
+                  <Download className="h-3.5 w-3.5" /> CSV
+                </button>
+              </div>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[820px] font-mono text-xs">
+                <thead>
+                  <tr className="border-b border-border text-left text-muted-foreground">
+                    <th className="py-2 pr-3 font-normal">Usuário</th>
+                    <th className="py-2 pr-3 font-normal">Habilitação</th>
+                    {SORTABLE.map((column) => (
+                      <th
+                        key={column.key}
+                        className="py-2 pr-3 font-normal"
+                        aria-sort={
+                          sort.key === column.key
+                            ? sort.desc
+                              ? "descending"
+                              : "ascending"
+                            : "none"
+                        }
+                      >
+                        <button
+                          type="button"
+                          className="flex items-center gap-1 hover:text-foreground"
+                          onClick={() =>
+                            setSort({
+                              key: column.key,
+                              desc: sort.key === column.key ? !sort.desc : true,
+                            })
+                          }
+                        >
+                          {column.label}
+                          {sort.key === column.key && <SortIcon className="h-3 w-3" />}
+                        </button>
+                      </th>
+                    ))}
+                    <th className="py-2 font-normal">Situação</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {visible.map((user) => (
+                    <tr
+                      key={user.user_id}
+                      className="border-b border-border/40 transition last:border-0 hover:bg-surface/60"
+                    >
+                      <td className="py-2.5 pr-3">
+                        <button
+                          type="button"
+                          onClick={() => setSelectedId(user.user_id)}
+                          className="text-left text-foreground hover:text-telemetry"
+                        >
+                          {user.email}
+                          <span className="block text-[10px] text-muted-foreground">
+                            {user.credential ?? "—"}
+                          </span>
+                        </button>
+                      </td>
+                      <td className="py-2.5 pr-3 text-muted-foreground">
+                        {user.pilot_license ? licenseLabel[user.pilot_license] : "—"}
+                      </td>
+                      <td className="py-2.5 pr-3 text-foreground">{money(user.credits)}</td>
+                      <td className="py-2.5 pr-3 text-foreground">{money(user.spent)}</td>
+                      <td className="py-2.5 pr-3 text-muted-foreground">
+                        {user.rentals_total}
+                        {user.rentals_cancelled > 0 && ` (${user.rentals_cancelled} canc.)`}
+                      </td>
+                      <td className="py-2.5 pr-3 text-muted-foreground">{date(user.created_at)}</td>
+                      <td className="py-2.5 pr-3 text-muted-foreground">
+                        {date(user.last_sign_in_at)}
+                      </td>
+                      <td className="py-2.5">
+                        {user.suspended ? (
+                          <span className="text-warning">Suspenso</span>
+                        ) : !user.email_confirmed ? (
+                          <span className="text-muted-foreground">E-mail pendente</span>
+                        ) : user.is_admin ? (
+                          <span className="text-telemetry">Admin</span>
+                        ) : (
+                          <span className="text-foreground">Ativo</span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                  {visible.length === 0 && (
+                    <tr>
+                      <td colSpan={8} className="py-8 text-center text-muted-foreground">
+                        Nenhum usuário encontrado.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        </>
+      )}
 
       <section aria-label="Auditoria" className="glass p-5">
         <h2 className="mb-2 font-mono text-xs uppercase tracking-widest text-primary">

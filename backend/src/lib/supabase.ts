@@ -16,7 +16,7 @@ const AUTH_ERRORS = /não autenticado|jwt/i;
 const FORBIDDEN_ERRORS = /acesso negado|conta suspensa|manutenção exige/i;
 const NOT_FOUND_ERRORS = /não encontrad|não localizado/i;
 const CONFLICT_ERRORS =
-  /indisponível|não está mais disponível|só reservas|próprio anúncio|já reservado|já iniciada/i;
+  /indisponível|não está mais disponível|só reservas|próprio anúncio|já reservado|já iniciada|já existe|já está arquivado|não está arquivado|reservas ativas|restaure o veículo/i;
 /** Regras de negócio levantadas pelas funções SQL via RAISE EXCEPTION. */
 const BUSINESS_CODE = "P0001";
 

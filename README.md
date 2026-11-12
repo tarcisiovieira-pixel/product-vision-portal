@@ -81,7 +81,7 @@ Um só portal para **reservar, rastrear e cuidar da frota**.
 | 🧭 **Centro de comando**          | Painel inicial com tudo o que importa ao piloto.                               |
 | 🎯 **Missões, carteira e perfil** | Missões, extrato de créditos, histórico e reputação do piloto.                 |
 | 🌦️ **Clima e notificações**       | Previsão por setor e avisos em tempo real.                                     |
-| 🛠️ **Gestão de frota**            | Cadastro de veículos e hangares pelo painel administrativo.                    |
+| 🛠️ **Gestão de frota**            | Cadastro, edição e arquivamento de veículos, com modelo 3D, pelo painel.       |
 
 Detalhes e decisões: [`docs/SPEC-ADENDO-DECISOES.md`](docs/SPEC-ADENDO-DECISOES.md).
 
@@ -110,6 +110,8 @@ Feito para responder o que decidir hoje, não só para listar usuários.
 | Quem precisa de ação?          | Exige atenção: e-mail pendente, nunca reservaram, inativos, saldo baixo, cancelam muito e suspensos. Cada contador filtra a tabela. |
 
 Cada indicador explica o próprio cálculo no ícone de informação. A tabela tem busca, ordenação e exportação para CSV. Ajustar créditos, alterar habilitação e suspender conta exigem motivo e ficam registrados na auditoria.
+
+**Gestão de frota.** Na aba **Frota** o administrador cadastra, edita e arquiva veículos. Cada cadastro parte de um dos seis modelos 3D de exemplo (CyberCab X2 e Sport, Apex Phantom, Valkyrie GT, Ares Heavy Truck e Starship Hopper), que preenchem a ficha com valores sugeridos e mostram uma prévia 3D ao vivo. O modelo define a categoria. Arquivar é uma exclusão lógica: o veículo some do catálogo e não aceita reservas, mas o histórico e a receita ficam intactos, e dá para restaurar. Não se arquiva nem muda a categoria de um veículo com reserva ativa. No modo demo, tudo acontece só no navegador. As regras valem no banco (migration `20261112100000_ares_vehicle_catalog.sql`), não só na tela.
 
 **Segurança.** A permissão é verificada dentro do banco em cada operação, então esconder o menu não é a proteção. Métricas e usuários só saem por funções restritas a administradores.
 
@@ -222,6 +224,7 @@ SUPABASE_TEST_URL=http://127.0.0.1:54321 SUPABASE_TEST_KEY=<chave> npx vitest ru
 # Navegador, em ambiente completo (usa o Chrome instalado)
 E2E_BASE_URL=http://localhost:8080 npm run e2e
 E2E_BASE_URL=http://localhost:8080 npm run e2e:admin
+E2E_BASE_URL=http://localhost:8080 npm run e2e:frota   # cadastro, edição e arquivamento de veículos (demo e conta real)
 E2E_BASE_URL=http://localhost:8080 npm run e2e:senha   # troca e recuperação de senha, com e-mail no Mailpit
 
 # Navegador sem criar contas, para usar contra um Supabase que não seja local

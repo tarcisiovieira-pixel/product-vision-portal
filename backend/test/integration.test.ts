@@ -600,7 +600,7 @@ describe.skipIf(!baseUrl || !key)("integração com Supabase real", () => {
         400,
       );
       expect((await post(a, "/v1/marketplace/listings", body)).statusCode).toBe(201);
-      expect((await post(a, "/v1/marketplace/listings", body)).statusCode).toBe(422);
+      expect((await post(a, "/v1/marketplace/listings", body)).statusCode).toBe(409);
     });
   });
 
@@ -844,6 +844,264 @@ describe.skipIf(!baseUrl || !key)("integração com Supabase real", () => {
       });
       expect(error).toBeNull();
       expect(await status()).toBe("available");
+    });
+
+    describe("frota: CRUD de veículos", () => {
+      const stamp = Date.now().toString(36).toUpperCase();
+      let created = "";
+      const body = (over: Record<string, unknown> = {}) => ({
+        name: "Veículo de Teste",
+        callsign: `T-${stamp}`,
+        modelKey: "cybercab_x2",
+        dailyRate: 500,
+        hangarId: hangars[0],
+        status: "available",
+        seats: 4,
+        cargoKg: 150,
+        rangeKm: 700,
+        description: "Criado pelo teste de integração",
+        reason: "Teste de integração",
+        ...over,
+      });
+      const put = (id: string, payload: object) =>
+        app.inject({
+          method: "PUT",
+          url: `/v1/admin/vehicles/${id}`,
+          headers: { authorization: `Bearer ${admin.token}` },
+          payload,
+        });
+      const rawSave = (u: User, over: Record<string, unknown> = {}) =>
+        u.c.rpc("admin_save_vehicle", {
+          _id: null,
+          _name: "Direto no banco",
+          _callsign: `D-${stamp}`,
+          _model_key: "cybercab_x2",
+          _daily_rate: 300,
+          _hangar_id: hangars[0],
+          _status: "available",
+          _seats: 2,
+          _cargo_kg: 10,
+          _range_km: 100,
+          _description: null,
+          _reason: "Teste direto",
+          ...over,
+        });
+      const adminList = async () =>
+        (await get(admin, "/v1/admin/vehicles")).json().items as {
+          id: string;
+          callsign: string;
+          deleted_at: string | null;
+          daily_rate_sol: string;
+          category: string;
+        }[];
+      const visibleToUser = async (u: User, id: string) =>
+        ((await u.c.from("vehicles").select("id").eq("id", id)).data ?? []).length === 1;
+
+      it("usuário comum não lista, cria, edita nem arquiva (API e banco direto)", async () => {
+        expect((await get(pilot, "/v1/admin/vehicles")).statusCode).toBe(403);
+        expect((await post(pilot, "/v1/admin/vehicles", body())).statusCode).toBe(403);
+        for (const [fn, args] of [
+          ["admin_list_vehicles", {}],
+          ["admin_archive_vehicle", { _id: vehicle.id, _reason: "ataque" }],
+          ["admin_restore_vehicle", { _id: vehicle.id, _reason: "ataque" }],
+        ] as const) {
+          const { error } = await pilot.c.rpc(fn, args);
+          expect(error?.message).toMatch(/Acesso negado/);
+        }
+        expect((await rawSave(pilot)).error?.message).toMatch(/Acesso negado/);
+        // Sem política de UPDATE o RLS não deixa nenhuma linha passar: 0 linhas afetadas.
+        const direct = await pilot.c
+          .from("vehicles")
+          .update({ daily_rate_sol: 1 })
+          .eq("id", vehicle.id)
+          .select();
+        expect(direct.data ?? []).toHaveLength(0);
+        const { data } = await pilot.c
+          .from("vehicles")
+          .select("daily_rate_sol")
+          .eq("id", vehicle.id)
+          .single();
+        expect(Number(data?.daily_rate_sol)).toBe(vehicle.daily_rate_sol);
+      });
+
+      it("o banco recusa dados inválidos mesmo sem passar pela API", async () => {
+        const cases: [string, Record<string, unknown>, RegExp][] = [
+          ["indicativo com espaço", { _callsign: "ab cd" }, /Indicativo inválido/],
+          ["indicativo curto", { _callsign: "AB" }, /Indicativo inválido/],
+          ["modelo inexistente", { _model_key: "nave_secreta" }, /Modelo 3D inválido/],
+          ["diária negativa", { _daily_rate: -10 }, /diária/],
+          ["diária absurda", { _daily_rate: 5_000_000 }, /diária/],
+          ["assentos zero", { _seats: 0 }, /fora da faixa/],
+          ["autonomia negativa", { _range_km: -5 }, /fora da faixa/],
+          [
+            "hangar inexistente",
+            { _hangar_id: "00000000-0000-4000-8000-000000000000" },
+            /Hangar não encontrado/,
+          ],
+          ["status em voo na criação", { _status: "in_flight" }, /em voo/],
+          ["sem motivo", { _reason: " " }, /motivo/],
+          ["descrição enorme", { _description: "x".repeat(401) }, /400 caracteres/],
+        ];
+        for (const [, over, pattern] of cases) {
+          expect((await rawSave(admin, over)).error?.message).toMatch(pattern);
+        }
+      });
+
+      it("cria pelo painel: a categoria vem do modelo e o veículo aparece para todos", async () => {
+        const res = await post(
+          admin,
+          "/v1/admin/vehicles",
+          body({ modelKey: "starship_hopper", seats: 80 }),
+        );
+        expect(res.statusCode).toBe(201);
+        created = res.json().id;
+        const row = (await adminList()).find((v) => v.id === created)!;
+        expect(row.category).toBe("interplanetary_rocket");
+        const { data } = await pilot.c.from("vehicles").select("*").eq("id", created).single();
+        expect(data).toMatchObject({
+          model_key: "starship_hopper",
+          seats: 80,
+          status: "available",
+        });
+        expect(Number(data?.o2_hours)).toBe(900);
+      });
+
+      it("indicativo repetido é conflito, inclusive em minúsculas", async () => {
+        const res = await post(
+          admin,
+          "/v1/admin/vehicles",
+          body({ callsign: `t-${stamp.toLowerCase()}` }),
+        );
+        expect(res.statusCode).toBe(409);
+      });
+
+      it("editar o preço não altera o total de reservas já feitas e vai para a auditoria", async () => {
+        const booked = await post(pilot, "/v1/rentals", {
+          ...booking(),
+          vehicleId: vehicle.id,
+          startSol: today + 700,
+          endSol: today + 702,
+        });
+        expect(booked.statusCode).toBe(201);
+        const rentalId = booked.json().id as string;
+        const totalBefore = Number(
+          (await pilot.c.from("rentals").select("total_credits").eq("id", rentalId).single()).data
+            ?.total_credits,
+        );
+
+        const row = (await adminList()).find((v) => v.id === vehicle.id)!;
+        const res = await put(vehicle.id, {
+          ...body({
+            callsign: row.callsign,
+            name: "CyberCab Reprecificado",
+            dailyRate: vehicle.daily_rate_sol + 100,
+          }),
+          hangarId: null,
+          reason: "Ajuste de tabela",
+        });
+        expect(res.statusCode).toBe(200);
+
+        const totalAfter = Number(
+          (await pilot.c.from("rentals").select("total_credits").eq("id", rentalId).single()).data
+            ?.total_credits,
+        );
+        expect(totalAfter).toBe(totalBefore);
+        const { items } = (await get(admin, "/v1/admin/audit")).json();
+        const entry = items.find(
+          (e: { action: string; details: { callsign?: string } }) => e.action === "vehicle_updated",
+        );
+        expect(entry.details.reason).toBe("Ajuste de tabela");
+        expect(entry.details.changes.daily_rate_sol).toBeDefined();
+        await post(pilot, `/v1/rentals/${rentalId}/cancel`);
+        // devolve o preço original
+        await put(vehicle.id, {
+          ...body({
+            callsign: row.callsign,
+            name: "CyberCab VTOL X2",
+            dailyRate: vehicle.daily_rate_sol,
+          }),
+          hangarId: null,
+          reason: "Restaura tabela",
+        });
+      });
+
+      it("não troca a categoria nem arquiva veículo com reserva ativa", async () => {
+        const booked = await post(pilot, "/v1/rentals", {
+          ...booking(),
+          vehicleId: vehicle.id,
+          startSol: today + 710,
+          endSol: today + 711,
+        });
+        expect(booked.statusCode).toBe(201);
+        const row = (await adminList()).find((v) => v.id === vehicle.id)!;
+        const category = await put(vehicle.id, {
+          ...body({ callsign: row.callsign, modelKey: "ares_hauler" }),
+          reason: "Tentativa de trocar categoria",
+        });
+        expect(category.statusCode).toBe(409);
+        expect(category.json().message).toMatch(/categoria/);
+        const archive = await post(admin, `/v1/admin/vehicles/${vehicle.id}/archive`, {
+          reason: "Tentativa",
+        });
+        expect(archive.statusCode).toBe(409);
+        expect(archive.json().message).toMatch(/reservas ativas/);
+        await post(pilot, `/v1/rentals/${booked.json().id}/cancel`);
+      });
+
+      it("arquivar esconde dos usuários, bloqueia reservas e restaurar devolve", async () => {
+        const archived = await post(admin, `/v1/admin/vehicles/${created}/archive`, {
+          reason: "Fora de linha",
+        });
+        expect(archived.statusCode).toBe(200);
+
+        expect(await visibleToUser(pilot, created)).toBe(false);
+        expect((await adminList()).find((v) => v.id === created)?.deleted_at).not.toBeNull();
+        const { error } = await pilot.c.rpc("book_vehicle", {
+          _vehicle_id: created,
+          _pickup: hangars[0],
+          _dropoff: hangars[1],
+          _start_sol: today + 800,
+          _end_sol: today + 801,
+        });
+        expect(error?.message).toMatch(/Veículo não encontrado|indisponível/);
+        expect(
+          (await post(admin, `/v1/admin/vehicles/${created}/archive`, { reason: "De novo" }))
+            .statusCode,
+        ).toBe(409);
+        expect((await put(created, body({ reason: "Editar arquivado" }))).statusCode).toBe(409);
+
+        expect(
+          (await post(admin, `/v1/admin/vehicles/${created}/restore`, { reason: "Voltou" }))
+            .statusCode,
+        ).toBe(200);
+        expect(await visibleToUser(pilot, created)).toBe(true);
+        expect(
+          (await post(admin, `/v1/admin/vehicles/${created}/restore`, { reason: "De novo" }))
+            .statusCode,
+        ).toBe(409);
+      });
+
+      it("a frota do painel ignora arquivados e a auditoria registra tudo", async () => {
+        const total = async () =>
+          ((await get(admin, "/v1/admin/overview")).json() as { fleet: { total: number } }).fleet
+            .total;
+        const before = await total();
+        await post(admin, `/v1/admin/vehicles/${created}/archive`, { reason: "Teste do painel" });
+        expect(await total()).toBe(before - 1);
+        await post(admin, `/v1/admin/vehicles/${created}/restore`, { reason: "Teste do painel" });
+        expect(await total()).toBe(before);
+
+        const { items } = (await get(admin, "/v1/admin/audit?limit=50")).json();
+        const actions = new Set(items.map((e: { action: string }) => e.action));
+        for (const a of [
+          "vehicle_created",
+          "vehicle_updated",
+          "vehicle_archived",
+          "vehicle_restored",
+        ]) {
+          expect(actions.has(a)).toBe(true);
+        }
+      });
     });
 
     it("admin não suspende a si mesmo", async () => {
