@@ -28,6 +28,8 @@ import {
 import { toast } from "sonner";
 import { createRental } from "@/lib/ares-actions";
 import { PageHeader, Bar, toneFor } from "@/components/PageHeader";
+import { UpsellPanel } from "@/components/UpsellPanel";
+import type { AddonKey } from "@shared/addons";
 // O viewer carrega o three.js: só baixa quando alguém abre o voo.
 const FlightChaseViewer3D = lazy(() =>
   import("@/components/FlightChaseViewer3D").then((m) => ({ default: m.FlightChaseViewer3D })),
@@ -54,6 +56,17 @@ import {
 import { isOccupied } from "@/lib/occupancy";
 
 export const Route = createFileRoute("/app/booking")({
+  // A tela Consultor IA abre a locadora já preenchida: hangares, duração e veículo indicado.
+  validateSearch: (search: Record<string, unknown>) => {
+    const out: { vehicle?: string; pickup?: string; dropoff?: string; sols?: number } = {};
+    for (const key of ["vehicle", "pickup", "dropoff"] as const) {
+      const value = search[key];
+      if (typeof value === "string" && value) out[key] = value;
+    }
+    const sols = Number(search["sols"]);
+    if (Number.isInteger(sols) && sols >= 1 && sols <= 30) out.sols = sols;
+    return out;
+  },
   head: () => ({
     meta: [
       { title: "Locadora — ARES Mobility" },
@@ -91,12 +104,17 @@ function Booking() {
       vehicles.filter((v) => v.hangar_id === id && v.status === "available").length;
     return [...hangars].sort((a, b) => free(b.id) - free(a.id))[0]?.id ?? "";
   });
-  const [pickup, setPickup] = useState(defaultHangar);
-  const [dropoff, setDropoff] = useState(defaultHangar);
+  const prefill = Route.useSearch();
+  const knownHangar = (id: string | undefined) =>
+    id && hangars.some((h) => h.id === id) ? id : undefined;
+  const [pickup, setPickup] = useState(knownHangar(prefill.pickup) ?? defaultHangar);
+  const [dropoff, setDropoff] = useState(
+    knownHangar(prefill.dropoff) ?? knownHangar(prefill.pickup) ?? defaultHangar,
+  );
   const { data: sol = DEMO_SOL } = useQuery(currentSolQuery);
   const [startInput, setStartSol] = useState<number | null>(null);
   const startSol = startInput ?? sol + 1;
-  const [sols, setSols] = useState(3);
+  const [sols, setSols] = useState(prefill.sols ?? 3);
   const [cat, setCat] = useState<Vehicle["category"] | "all">("all");
 
   // Adicionais Marcianos & Segurança
@@ -145,6 +163,21 @@ function Booking() {
     if (evaSuits > 0) rate += SPACE_ADDONS.extra_eva_suits.rate * evaSuits;
     return rate;
   }, [stormBarrierShield, silicaInsurance, extraO2Tank, neuralAutopilot, evaSuits]);
+
+  const applyAddon = (addon: AddonKey) => {
+    if (addon === "storm_barrier_shield") setStormBarrierShield(true);
+    else if (addon === "silica_insurance") setSilicaInsurance(true);
+    else if (addon === "extra_o2_tank") setExtraO2Tank(true);
+    else if (addon === "neural_autopilot_l5") setNeuralAutopilot(true);
+    else setEvaSuits((n) => Math.max(n, 1));
+  };
+  const chosenAddons = {
+    storm_barrier_shield: stormBarrierShield,
+    silica_insurance: silicaInsurance,
+    extra_o2_tank: extraO2Tank,
+    neural_autopilot_l5: neuralAutopilot,
+    extra_eva_suits: evaSuits,
+  };
 
   const book = useMutation({
     mutationFn: async (v: Vehicle) => {
@@ -487,6 +520,11 @@ function Booking() {
                   : "border-destructive/30 bg-surface/30 opacity-80"
               }`}
             >
+              {prefill.vehicle === v.id && (
+                <p className="mb-2 font-mono text-[10px] uppercase tracking-widest text-telemetry">
+                  Indicado pelo Consultor IA
+                </p>
+              )}
               <div className="flex items-center justify-between">
                 <Icon className="h-7 w-7 text-primary" />
                 <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
@@ -523,6 +561,22 @@ function Booking() {
               <div className="mt-3">
                 <Bar value={v.battery_pct} tone={toneFor(v.battery_pct)} />
               </div>
+
+              {hasLicense && okStatus && !occupied && (
+                <UpsellPanel
+                  draft={{
+                    vehicle: v,
+                    pickup: pickupHangar ?? null,
+                    dropoff: dropoffHangar ?? null,
+                    days: sols,
+                    addons: chosenAddons,
+                    storms: weather,
+                    alternatives: list,
+                    credits: profile ? Number(profile.martian_credits) : null,
+                  }}
+                  onApplyAddon={applyAddon}
+                />
+              )}
 
               <div className="mt-6 border-t pt-4">
                 <p className="font-display text-2xl font-bold">

@@ -231,3 +231,24 @@ export function analyze(input: AnalyticsInput): Insight[] {
   }
   return out.sort((a, b) => RANK[a.severity] - RANK[b.severity]);
 }
+
+/** Resumo em texto sem modelo de linguagem: serve de reserva e para o modo demo. */
+export function ruleSummary(insights: readonly Pick<Insight, "severity" | "title" | "detail">[]): {
+  summary: string;
+  priorities: string[];
+} {
+  const first = insights[0];
+  if (!first) return { summary: "Sem dados suficientes para analisar.", priorities: [] };
+  const attention = insights.filter((i) => i.severity === "alert" || i.severity === "warning");
+  const opportunities = insights.filter((i) => i.severity === "opportunity");
+  return {
+    summary:
+      first.severity === "info"
+        ? first.detail
+        : `${attention.length} ${attention.length === 1 ? "ponto de atenção" : "pontos de atenção"} e ${opportunities.length} ${opportunities.length === 1 ? "oportunidade" : "oportunidades"}. O mais importante: ${first.title.toLowerCase()}.`,
+    priorities: insights
+      .filter((i) => i.severity !== "info")
+      .slice(0, 3)
+      .map((i) => i.title),
+  };
+}

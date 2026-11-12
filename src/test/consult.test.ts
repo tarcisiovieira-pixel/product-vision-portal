@@ -160,12 +160,14 @@ describe("recomendação", () => {
     expect(result.recommendations.map((r) => r.vehicleId)).toEqual(["ok"]);
   });
 
-  it("descarta quem não tem autonomia para o trajeto", () => {
+  it("autonomia curta não elimina: pede paradas para recarga e perde para quem chega direto", () => {
     const result = recommend(
       needs({ originId: "h1", destinationId: "h2" }),
-      ctx([car({ id: "curto", range_km: 500 }), car({ id: "longo", range_km: 9000 })]),
+      ctx([car({ id: "curto", range_km: 800 }), car({ id: "longo", range_km: 9000 })]),
     );
-    expect(result.recommendations.map((r) => r.vehicleId)).toEqual(["longo"]);
+    expect(result.recommendations.map((r) => r.vehicleId)).toEqual(["longo", "curto"]);
+    expect(result.recommendations[1]!.warnings.join(" ")).toMatch(/paradas? para recarga/);
+    expect(result.recommendations[0]!.warnings.join(" ")).not.toMatch(/recarga/);
   });
 
   it("respeita a habilitação", () => {

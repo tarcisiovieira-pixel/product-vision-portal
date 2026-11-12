@@ -338,10 +338,6 @@ export function recommend(rawNeeds: Needs, ctx: ConsultContext, limit = 3): Cons
       reject("estacionados em outro hangar");
       continue;
     }
-    if (distance !== null && specs.range_km < distance) {
-      reject("com autonomia menor que o trajeto");
-      continue;
-    }
 
     const pickup = origin ?? (v.hangar_id ? (hangars.get(v.hangar_id) ?? null) : null);
     const route =
@@ -440,10 +436,21 @@ export function recommend(rawNeeds: Needs, ctx: ConsultContext, limit = 3): Cons
       score -= 10;
       warnings.push("Bateria baixa: peça para recarregar antes de sair.");
     }
-    if (route)
-      reasons.push(
-        `${route.distanceKm.toLocaleString("pt-BR")} km, dentro da autonomia de ${specs.range_km.toLocaleString("pt-BR")} km.`,
-      );
+    if (route) {
+      // Os hangares ficam a milhares de km uns dos outros: autonomia curta não elimina o
+      // veículo, mas pede paradas para recarga, e isso entra na nota e no aviso.
+      const stops = Math.max(0, Math.ceil(route.distanceKm / specs.range_km) - 1);
+      if (stops === 0) {
+        reasons.push(
+          `${route.distanceKm.toLocaleString("pt-BR")} km, dentro da autonomia de ${specs.range_km.toLocaleString("pt-BR")} km.`,
+        );
+      } else {
+        score -= Math.min(25, stops * 4);
+        warnings.push(
+          `Trajeto de ${route.distanceKm.toLocaleString("pt-BR")} km para ${specs.range_km.toLocaleString("pt-BR")} km de autonomia: conte ${stops} ${stops === 1 ? "parada" : "paradas"} para recarga.`,
+        );
+      }
+    }
 
     candidates.push({
       v,

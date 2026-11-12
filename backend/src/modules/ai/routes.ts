@@ -6,6 +6,7 @@ import {
   describeResult,
   parseNeeds,
   recommend,
+  ruleSummary,
   type ConsultContext,
   type ConsultHangar,
   type ConsultStorm,
@@ -21,9 +22,13 @@ type Mode = "llm" | "rules";
 
 /** Texto vindo do modelo: sem caracteres de controle nem marcação, com tamanho limitado. */
 const clean = (text: string, max: number) =>
-  text
-    .replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/g, "")
-    .replace(/[<>]/g, "")
+  [...text]
+    .filter((ch) => {
+      const code = ch.charCodeAt(0);
+      const control = code < 32 ? code !== 9 && code !== 10 && code !== 13 : code === 127;
+      return !control && ch !== "<" && ch !== ">";
+    })
+    .join("")
     .trim()
     .slice(0, max);
 
@@ -248,16 +253,7 @@ export function aiRoutes(
         throw new HttpError(403, "forbidden", "Acesso negado");
       }
 
-      const fallback = () => ({
-        summary:
-          body.insights[0]!.severity === "info"
-            ? body.insights[0]!.detail
-            : `${body.insights.filter((i) => i.severity === "alert" || i.severity === "warning").length} pontos de atenção e ${body.insights.filter((i) => i.severity === "opportunity").length} oportunidades. O mais importante: ${body.insights[0]!.title.toLowerCase()}.`,
-        priorities: body.insights
-          .filter((i) => i.severity !== "info")
-          .slice(0, 3)
-          .map((i) => i.title),
-      });
+      const fallback = () => ruleSummary(body.insights);
 
       const quota = await takeQuota(user, "analytics");
       if (!quota.ok || !llm) {
