@@ -4,6 +4,7 @@
 // livre e a escrever a resposta; quem escolhe veículos e calcula custos é este código,
 // sobre o catálogo real. Assim a IA nunca recomenda algo que não existe nem que o
 // cliente não pode reservar.
+import { distanceKm, greatCirclePoint } from "./geo.js";
 import { ADDON_CATALOG, type AddonKey } from "./addons.js";
 import { inferModelKey, specsOf, type ModelKey, type VehicleCategory } from "./fleet.js";
 
@@ -112,28 +113,19 @@ export const SPEED_KMH: Record<VehicleCategory, number> = {
 // ---------------------------------------------------------------------------
 // Geografia
 // ---------------------------------------------------------------------------
-const MARS_RADIUS_KM = 3389.5;
-const rad = (d: number) => (d * Math.PI) / 180;
-
-export function distanceKm(lat1: number, lng1: number, lat2: number, lng2: number): number {
-  const dLat = rad(lat2 - lat1);
-  const dLng = rad(lng2 - lng1);
-  const a =
-    Math.sin(dLat / 2) ** 2 + Math.cos(rad(lat1)) * Math.cos(rad(lat2)) * Math.sin(dLng / 2) ** 2;
-  return Math.round(MARS_RADIUS_KM * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
-}
+export { distanceKm };
 
 /** Tempestades ativas que cruzam o trajeto (amostragem ao longo do caminho). */
 export function stormsOnPath(a: ConsultHangar, b: ConsultHangar, storms: ConsultStorm[]) {
   const hits = new Map<string, number>();
-  const steps = 24;
+  // O trajeto segue o círculo máximo (o caminho mais curto na esfera), não uma reta no mapa.
+  const steps = 48;
   for (let i = 0; i <= steps; i++) {
-    const t = i / steps;
-    const lat = a.lat + (b.lat - a.lat) * t;
-    const lng = a.lng + (b.lng - a.lng) * t;
+    const p = greatCirclePoint(a, b, i / steps);
     for (const s of storms) {
-      if (s.active && distanceKm(lat, lng, s.lat, s.lng) <= s.radius_km)
+      if (s.active && distanceKm(p.lat, p.lng, s.lat, s.lng) <= s.radius_km) {
         hits.set(s.name, s.severity);
+      }
     }
   }
   return [...hits].map(([name, severity]) => ({ name, severity }));
@@ -276,6 +268,12 @@ const TOPIC_WORDS =
 
 const OFF_TOPIC_WORDS =
   /\b(brasil|brasileir\w*|flamengo|corinthians|palmeiras|futebol|copa do mundo|politic\w*|president\w*|eleic\w*|lula|bolsonaro|religiao|receita de|bitcoin|cripto\w*|acoes da bolsa|piada\w*|poema|poesia|musica|filme|serie|novela|python|javascript|programa\w* em|codigo fonte|dieta|remedio|doenca|namor\w*|horoscopo|capital d[aeo])\b/;
+
+/** O texto cita assuntos claramente fora do escopo (países, esportes, política...)? */
+export const hasOffTopicWords = (message: string) => OFF_TOPIC_WORDS.test(plain(message));
+
+/** O texto cita assuntos da plataforma ou de viagens em Marte? */
+export const hasTopicWords = (message: string) => TOPIC_WORDS.test(plain(message));
 
 /** Heurística de assunto, usada no motor de regras e como segunda opinião quando o modelo não responde. */
 export function looksOnTopic(message: string, needs: Needs): boolean {
