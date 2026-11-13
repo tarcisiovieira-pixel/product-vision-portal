@@ -304,6 +304,11 @@ describe("POST /v1/ai/consult (IA generativa)", () => {
   });
 });
 
+const fakeLLMFor = (reply: string) =>
+  fakeLlm((req) =>
+    "originCode" in (req.schema as unknown as { shape: object }).shape ? modelNeeds() : { reply },
+  );
+
 describe("escopo: só ARES e Marte", () => {
   const OFF = [
     "Quem ganhou o jogo do Flamengo ontem?",
@@ -346,6 +351,14 @@ describe("escopo: só ARES e Marte", () => {
     const a = await build(fakeLlm(() => modelNeeds({ onTopic: true })));
     const body = (await consult(a, "Quero ver o jogo do Flamengo, de Olympus a Jezero")).json();
     expect(body.offTopic).toBe(true);
+  });
+
+  it("texto do modelo que ignora o veículo indicado é trocado pelo do motor", async () => {
+    const a = await build(fakeLLMFor("Não realizamos esse tipo de viagem, sinto muito."));
+    const body = (await consult(a, "uma viagem entre duas crateras")).json();
+    expect(body.recommendations.length).toBeGreaterThan(0);
+    expect(body.reply).toContain("CC-1");
+    expect(body.reply).not.toMatch(/sinto muito/);
   });
 
   it("pedido legítimo com o modelo segue normal", async () => {
