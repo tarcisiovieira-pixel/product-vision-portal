@@ -8,6 +8,7 @@
   },
   "scripts": {
     "dev": "tsx watch src/server.ts",
+    "ai:check": "tsx scripts/ai-check.ts",
     "build": "tsc -p tsconfig.build.json",
     "start": "node dist/backend/src/server.js",
     "typecheck": "tsc --noEmit",

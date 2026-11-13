@@ -29,6 +29,17 @@ const schema = z.object({
     .trim()
     .optional()
     .transform((v) => v || undefined),
+  /** Gemini (Google AI Studio) tem camada gratuita. */
+  GEMINI_API_KEY: z
+    .string()
+    .trim()
+    .optional()
+    .transform((v) => v || undefined),
+  /** Só para testes com um servidor simulado. */
+  GEMINI_BASE_URL: z.string().url().default("https://generativelanguage.googleapis.com/v1beta"),
+  GEMINI_MODEL: z.string().trim().min(1).default("gemini-3.5-flash-lite"),
+  /** Vazio escolhe sozinho: Gemini se houver chave dele, senão Claude. */
+  AI_PROVIDER: z.enum(["gemini", "anthropic"]).optional(),
   ANTHROPIC_MODEL: z.string().trim().min(1).default("claude-opus-5-5"),
   /** Chamadas por usuário por dia, por tipo de IA, ao modelo generativo. */
   AI_DAILY_LIMIT: z.coerce.number().int().min(1).max(1000).default(30),

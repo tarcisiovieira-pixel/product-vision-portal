@@ -139,7 +139,10 @@ async function openAdminIaDemo(page) {
 
     await consult(page, "Viagem de casal, quero luxo e conforto");
     const text = await bodyText(page);
-    r.check(text.includes("Motor de regras"), "real: sem chave, selo mostra motor de regras");
+    r.check(
+      text.includes("Motor de regras") || text.includes("IA generativa"),
+      "real: o selo informa qual IA está ativa",
+    );
     const ids = await page.$$eval('[data-testid="consult-card"] h2', (h) =>
       h.map((x) => x.textContent),
     );

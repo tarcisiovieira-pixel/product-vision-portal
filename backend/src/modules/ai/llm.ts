@@ -15,7 +15,10 @@ export interface LlmRequest<T> {
 /** Falha esperada do modelo (recusa, saída inválida, indisponível): o chamador cai no motor de regras. */
 export class LlmUnavailable extends Error {}
 
+export type LlmProvider = "gemini" | "anthropic";
+
 export interface LlmClient {
+  readonly provider: LlmProvider;
   readonly model: string;
   parse<T>(request: LlmRequest<T>): Promise<T>;
 }
@@ -29,6 +32,7 @@ export function anthropicLlm(
   const model = env.ANTHROPIC_MODEL;
 
   return {
+    provider: "anthropic",
     model,
     async parse<T>({ system, user, schema, effort, maxTokens }: LlmRequest<T>): Promise<T> {
       let response;

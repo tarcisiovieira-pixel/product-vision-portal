@@ -7,7 +7,8 @@ import { supabaseUserDb, type UserDbFactory } from "./lib/supabase.js";
 import { adminRoutes } from "./modules/admin/routes.js";
 import { adminVehicleRoutes } from "./modules/admin/vehicles.js";
 import { aiRoutes } from "./modules/ai/routes.js";
-import { anthropicLlm, type LlmClient } from "./modules/ai/llm.js";
+import { type LlmClient } from "./modules/ai/llm.js";
+import { createLlm } from "./modules/ai/providers.js";
 import { healthRoutes } from "./modules/health/routes.js";
 import { maintenanceRoutes } from "./modules/maintenance/routes.js";
 import { marketplaceRoutes } from "./modules/marketplace/routes.js";
@@ -21,7 +22,7 @@ export interface BuildOptions {
   /** Injetáveis para testes. */
   verifier?: TokenVerifier;
   userDb?: UserDbFactory;
-  /** Modelo de linguagem; null desliga. Por padrão vem de ANTHROPIC_API_KEY. */
+  /** Modelo de linguagem; null desliga. Por padrão vem de GEMINI_API_KEY ou ANTHROPIC_API_KEY. */
   llm?: LlmClient | null;
 }
 
@@ -64,7 +65,7 @@ export async function buildApp({
   await app.register(marketplaceRoutes(db));
   await app.register(adminRoutes(db));
   await app.register(adminVehicleRoutes(db));
-  await app.register(aiRoutes(db, llm === undefined ? anthropicLlm(env) : llm, env));
+  await app.register(aiRoutes(db, llm === undefined ? createLlm(env) : llm, env));
 
   return app;
 }

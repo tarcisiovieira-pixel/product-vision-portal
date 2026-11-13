@@ -4,7 +4,13 @@ import { Bot, Sparkles } from "lucide-react";
 import type { Insight, InsightAction, InsightSeverity } from "@shared/analytics";
 import { adminVehiclesQuery } from "@/lib/admin-fleet";
 import type { AdminOverview, AdminUser } from "@/lib/admin";
-import { aiStatusQuery, buildAnalyticsInput, insightsFor, summarizeInsights } from "@/lib/ai";
+import {
+  aiStatusQuery,
+  buildAnalyticsInput,
+  insightsFor,
+  providerLabel,
+  summarizeInsights,
+} from "@/lib/ai";
 
 const SEVERITY: Record<InsightSeverity, { label: string; className: string }> = {
   alert: { label: "Alerta", className: "border-destructive/60 bg-destructive/10 text-destructive" },
@@ -46,7 +52,9 @@ export function AdminAi({
           title="Os achados vêm de regras sobre os indicadores. A IA generativa só escreve o resumo, com dados agregados: nenhum e-mail ou nome sai do painel."
         >
           <Sparkles className="h-3.5 w-3.5" />
-          {status?.generative ? "Resumo por IA generativa (Claude)" : "Resumo por motor de regras"}
+          {status?.generative
+            ? `Resumo por IA generativa (${providerLabel(status)})`
+            : "Resumo por motor de regras"}
         </span>
       </div>
 

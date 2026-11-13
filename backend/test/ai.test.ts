@@ -111,6 +111,7 @@ function fakeLlm(
 ): LlmClient & { calls: LlmRequest<unknown>[] } {
   const calls: LlmRequest<unknown>[] = [];
   return {
+    provider: "anthropic",
     model: "fake-model",
     calls,
     async parse<T>(req: LlmRequest<T>): Promise<T> {
@@ -160,13 +161,14 @@ describe("GET /v1/ai/status", () => {
   it("informa se a IA generativa está ativa", async () => {
     const off = await build(null);
     const res = await off.inject({ method: "GET", url: "/v1/ai/status", headers });
-    expect(res.json()).toEqual({ generative: false, model: null, dailyLimit: 5 });
+    expect(res.json()).toEqual({ generative: false, provider: null, model: null, dailyLimit: 5 });
     await off.close();
     const on = await build(fakeLlm(() => ({})));
     expect(
       (await on.inject({ method: "GET", url: "/v1/ai/status", headers })).json(),
     ).toMatchObject({
       generative: true,
+      provider: "anthropic",
       model: "fake-model",
     });
   });

@@ -169,6 +169,7 @@ export function aiRoutes(
 
     app.get("/v1/ai/status", guard, async () => ({
       generative: llm !== null,
+      provider: llm?.provider ?? null,
       model: llm?.model ?? null,
       dailyLimit: env.AI_DAILY_LIMIT,
     }));

@@ -28,10 +28,15 @@ services:
         sync: false
       - key: CORS_ORIGINS
         sync: false # URL(s) do front no Lovable, separadas por vírgula
-      # IA generativa (opcional). Sem a chave, as IAs seguem no motor de regras.
-      - key: ANTHROPIC_API_KEY
+      # IA generativa (opcional). Sem chave, as IAs seguem no motor de regras.
+      # Gemini tem camada gratuita (chave em aistudio.google.com/apikey).
+      - key: GEMINI_API_KEY
         sync: false
+      - key: GEMINI_MODEL
+        value: gemini-3.5-flash-lite # rode `npm run ai:check` na pasta backend para ver os modelos da sua chave
+      - key: ANTHROPIC_API_KEY
+        sync: false # alternativa paga; se as duas existirem, o Gemini vence (ou defina AI_PROVIDER)
       - key: ANTHROPIC_MODEL
-        value: claude-opus-5-5 # troque por claude-haiku-5-5 para gastar menos
+        value: claude-opus-5-5
       - key: AI_DAILY_LIMIT
         value: "30" # chamadas ao modelo por usuário, por dia e por tipo de IA

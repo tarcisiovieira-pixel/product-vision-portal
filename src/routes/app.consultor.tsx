@@ -5,7 +5,7 @@ import { AlertTriangle, Bot, Compass, Send, Sparkles } from "lucide-react";
 import type { ConsultContext } from "@shared/consult";
 import { ADDON_CATALOG } from "@shared/addons";
 import { PageHeader } from "@/components/PageHeader";
-import { aiStatusQuery, askConsultant, type ConsultResponse } from "@/lib/ai";
+import { aiStatusQuery, askConsultant, providerLabel, type ConsultResponse } from "@/lib/ai";
 import {
   categoryLabel,
   hangarsQuery,
@@ -101,12 +101,12 @@ function Consultor() {
           }`}
           title={
             status?.generative
-              ? "O Claude lê o seu pedido e escreve a resposta. Veículos e preços vêm do catálogo."
+              ? `${providerLabel(status)} lê o seu pedido e escreve a resposta. Veículos e preços vêm do catálogo.`
               : "Sem IA generativa: o pedido é lido por regras. As indicações são as mesmas."
           }
         >
           <Sparkles className="h-3.5 w-3.5" />
-          {status?.generative ? "IA generativa (Claude)" : "Motor de regras"}
+          {status?.generative ? `IA generativa (${providerLabel(status)})` : "Motor de regras"}
         </span>
       </PageHeader>
 

@@ -1,5 +1,5 @@
 // IAs do app. O motor de regras (pasta shared/) roda no navegador e é a base de tudo;
-// quando a API tem chave do Claude, ela só melhora a leitura do pedido e o texto da resposta.
+// quando a API tem chave de um modelo (Gemini ou Claude), ele só melhora a leitura do pedido e o texto da resposta.
 import { queryOptions } from "@tanstack/react-query";
 import { analyze, ruleSummary, type AnalyticsInput, type Insight } from "@shared/analytics";
 import { parseNeeds, recommend, type ConsultContext, type ConsultResult } from "@shared/consult";
@@ -14,8 +14,13 @@ export type AiMode = "llm" | "rules";
 
 export interface AiStatus {
   generative: boolean;
+  provider: "gemini" | "anthropic" | null;
   model: string | null;
 }
+
+/** Nome do provedor para mostrar na tela. */
+export const providerLabel = (status: AiStatus | undefined) =>
+  status?.provider === "gemini" ? "Gemini" : status?.provider === "anthropic" ? "Claude" : "IA";
 
 /** Só uma conta real, com a API configurada, pode usar a IA generativa. */
 const canUseApi = async () => apiEnabled() && !isDemoSession() && (await hasRealSession());
@@ -24,11 +29,11 @@ export const aiStatusQuery = queryOptions({
   queryKey: ["ai", "status"],
   staleTime: 5 * 60_000,
   queryFn: async (): Promise<AiStatus> => {
-    if (!(await canUseApi())) return { generative: false, model: null };
+    if (!(await canUseApi())) return { generative: false, provider: null, model: null };
     try {
       return await apiGet<AiStatus>("/v1/ai/status");
     } catch {
-      return { generative: false, model: null };
+      return { generative: false, provider: null, model: null };
     }
   },
 });
