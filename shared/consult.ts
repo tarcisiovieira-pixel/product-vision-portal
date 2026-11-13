@@ -98,6 +98,9 @@ export interface ConsultResult {
 }
 
 export const MAX_DAYS = 30;
+
+/** Horas com vírgula decimal, como o cliente lê: 24,4. */
+export const hoursLabel = (hours: number) => hours.toLocaleString("pt-BR");
 export const SPEED_KMH: Record<VehicleCategory, number> = {
   car_vtol: 320,
   space_truck: 110,
@@ -367,7 +370,9 @@ export function recommend(rawNeeds: Needs, ctx: ConsultContext, limit = 3): Cons
     }
     if (route && route.hours > 3 && v.category === "car_vtol") {
       addons.push("neural_autopilot_l5");
-      reasons.push(`Viagem de ${route.hours} h: o Piloto Automático Neural reduz o cansaço.`);
+      reasons.push(
+        `Viagem de ${hoursLabel(route.hours)} h: o Piloto Automático Neural reduz o cansaço.`,
+      );
     }
     if (route && v.category === "space_truck" && route.hours > 8) addons.push("extra_o2_tank");
 
@@ -415,7 +420,7 @@ export function recommend(rawNeeds: Needs, ctx: ConsultContext, limit = 3): Cons
         break;
       case "speed":
         score += Math.round((SPEED_KMH[v.category] / 400) * 8);
-        if (route) reasons.push(`Chega em cerca de ${route.hours} h.`);
+        if (route) reasons.push(`Chega em cerca de ${hoursLabel(route.hours)} h.`);
         break;
       case "safety":
         score += Math.round((100 - wear) / 10);

@@ -1,5 +1,5 @@
 // Resposta em texto do consultor quando não há modelo de linguagem (ou como reserva dele).
-import type { ConsultResult } from "./consult.js";
+import { hoursLabel, type ConsultResult } from "./consult.js";
 
 const brl = (n: number) => `MC$ ${n.toLocaleString("pt-BR")}`;
 
@@ -21,11 +21,12 @@ export function describeResult(
   if (best.reasons[0]) parts.push(best.reasons[0]);
   if (best.route) {
     parts.push(
-      `O trajeto tem ${best.route.distanceKm.toLocaleString("pt-BR")} km, cerca de ${best.route.hours} h.`,
+      `O trajeto tem ${best.route.distanceKm.toLocaleString("pt-BR")} km, cerca de ${hoursLabel(best.route.hours)} h.`,
     );
   }
   if (best.warnings[0]) parts.push(`Atenção: ${best.warnings[0]}`);
-  if (others.length) parts.push(`Veja também as outras ${others.length} opções abaixo.`);
+  if (others.length === 1) parts.push("Veja também a outra opção abaixo.");
+  else if (others.length > 1) parts.push(`Veja também as outras ${others.length} opções abaixo.`);
   if (result.missing.length) parts.push(`Para refinar: ${result.missing[0]}`);
   return parts.join(" ");
 }

@@ -6,6 +6,7 @@
 // em vez de vendido como opcional.
 import { ADDON_CATALOG, type AddonKey } from "./addons.js";
 import {
+  hoursLabel,
   planRoute,
   type ConsultHangar,
   type ConsultStorm,
@@ -118,7 +119,7 @@ export function suggestUpsells(draft: UpsellDraft): UpsellSuggestion[] {
       "neural_autopilot_l5",
       "info",
       "Piloto Automático Neural",
-      `Viagem de cerca de ${route.hours} h: o piloto automático evita a condução contínua.`,
+      `Viagem de cerca de ${hoursLabel(route.hours)} h: o piloto automático evita a condução contínua.`,
     );
   }
   if (route && vehicle.category === "space_truck" && route.hours > 8) {
@@ -126,7 +127,7 @@ export function suggestUpsells(draft: UpsellDraft): UpsellSuggestion[] {
       "extra_o2_tank",
       "recommended",
       "Tanque Extra de O₂",
-      `Viagem de cerca de ${route.hours} h em caminhão: margem extra de suporte de vida.`,
+      `Viagem de cerca de ${hoursLabel(route.hours)} h em caminhão: margem extra de suporte de vida.`,
     );
   }
   const o2 = vehicle.o2_hours;
