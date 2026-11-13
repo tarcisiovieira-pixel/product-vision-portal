@@ -38,6 +38,7 @@ vi.mock("@tanstack/react-router", async () => {
     createFileRoute: () => (config: any) => ({
       options: config,
       component: config.component,
+      useSearch: () => ({}),
       ...config,
     }),
     Link: ({ children, to, className }: any) => (

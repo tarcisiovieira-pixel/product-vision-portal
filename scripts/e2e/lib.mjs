@@ -21,7 +21,9 @@ export async function launch() {
   if (!executablePath) throw new Error("Chrome/Edge não encontrado. Defina CHROME_PATH.");
   return puppeteer.launch({
     executablePath,
-    headless: true,
+    // E2E_HEADED=1 abre o Chrome na tela, devagar, para acompanhar o teste.
+    headless: process.env.E2E_HEADED ? false : true,
+    slowMo: process.env.E2E_HEADED ? 120 : 0,
     args: [
       "--no-sandbox",
       "--use-angle=swiftshader",

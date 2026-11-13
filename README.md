@@ -73,15 +73,18 @@ Um só portal para **reservar, rastrear e cuidar da frota**.
 
 ### Programados
 
-| Módulo                            | O que vai fazer                                                                |
-| --------------------------------- | ------------------------------------------------------------------------------ |
-| 🤖 **Copiloto de bordo (IA)**     | GPS com assistente de voz e texto: rota, clima e alertas em linguagem natural. |
-| 📊 **Relatórios com IA**          | Resumo de custos, uso da frota e sugestões, gerado sob demanda.                |
-| 🔮 **Manutenção preditiva**       | Previsão de falhas a partir da telemetria dos veículos.                        |
-| 🧭 **Centro de comando**          | Painel inicial com tudo o que importa ao piloto.                               |
-| 🎯 **Missões, carteira e perfil** | Missões, extrato de créditos, histórico e reputação do piloto.                 |
-| 🌦️ **Clima e notificações**       | Previsão por setor e avisos em tempo real.                                     |
-| 🛠️ **Gestão de frota**            | Cadastro, edição e arquivamento de veículos, com modelo 3D, pelo painel.       |
+| Módulo                            | O que vai fazer                                                                   |
+| --------------------------------- | --------------------------------------------------------------------------------- |
+| 🤖 **Copiloto de bordo (IA)**     | GPS com assistente de voz e texto: rota, clima e alertas em linguagem natural.    |
+| 📊 **Relatórios com IA**          | Resumo de custos, uso da frota e sugestões, gerado sob demanda.                   |
+| 🔮 **Manutenção preditiva**       | Previsão de falhas a partir da telemetria dos veículos.                           |
+| 🧭 **Centro de comando**          | Painel inicial com tudo o que importa ao piloto.                                  |
+| 🎯 **Missões, carteira e perfil** | Missões, extrato de créditos, histórico e reputação do piloto.                    |
+| 🌦️ **Clima e notificações**       | Previsão por setor e avisos em tempo real.                                        |
+| 🧠 **IA de consultoria**          | O cliente conta o que precisa e a IA indica veículo, trajeto, custo e adicionais. |
+| 💡 **IA de upsell**               | Sugestões na reserva, sempre com o motivo e o custo exato.                        |
+| 📈 **IA analítica**               | No painel: o que merece decisão hoje, com resumo executivo.                       |
+| 🛠️ **Gestão de frota**            | Cadastro, edição e arquivamento de veículos, com modelo 3D, pelo painel.          |
 
 Detalhes e decisões: [`docs/SPEC-ADENDO-DECISOES.md`](docs/SPEC-ADENDO-DECISOES.md).
 
@@ -121,6 +124,22 @@ Cada indicador explica o próprio cálculo no ícone de informação. A tabela t
 insert into public.admin_users (user_id)
 select id from auth.users where email = 'email-do-admin@exemplo.com';
 ```
+
+## ◆ IA
+
+Três IAs, todas com a mesma regra: **quem decide é código testado; o modelo de linguagem só entende o texto e escreve a resposta.** Por isso elas nunca indicam um veículo que não existe, um preço errado ou algo que o cliente não pode reservar.
+
+| IA              | Onde                              | O que faz                                                                                                                                                                                                                                                                        |
+| --------------- | --------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Consultoria** | Menu **Consultor IA**             | Lê o pedido em português (pessoas, carga, origem, destino, prazo, orçamento, prioridade), confere catálogo, habilitação, saldo e clima, e indica até 3 veículos com custo exato. "Reservar este" abre a Locadora já preenchida.                                                  |
+| **Upsell**      | Cartões da **Locadora**           | Sugere adicionais e troca de veículo só com evidência (tempestade no trajeto, filtro gasto, autonomia curta), mostra o custo exato, pode ser dispensada e nunca aplica sozinha. O que o banco já exige (barreira em hangar com alerta) aparece como obrigatório, não como venda. |
+| **Analítica**   | Painel administrativo, aba **IA** | Transforma os indicadores em achados (e-mails pendentes, ociosidade, receita concentrada, clientes sumidos...), cada um com botão que leva à lista filtrada, mais um resumo executivo.                                                                                           |
+
+**Duas camadas.** O _motor de regras_ (`shared/`) funciona sempre: no demo, sem chave e se o modelo falhar. Com uma chave na API, o modelo passa a ler o pedido livre e a escrever as respostas (consultoria e resumo executivo). A tela mostra qual está ativo. Upsell usa só regras, de propósito: é rápido e auditável, e uma sugestão de venda não deve depender de texto gerado.
+
+**Segurança e custo.** O texto do cliente só entra como dado, nunca como instrução; a saída do modelo é validada, limpa e limitada, e ele não executa nenhuma ação. A analítica envia só agregados (nenhum e-mail ou nome). Cada usuário tem cota diária de chamadas ao modelo (`AI_DAILY_LIMIT`, padrão 30 por tipo), controlada no banco; esgotada, a resposta vem do motor de regras.
+
+**Provedor.** O padrão recomendado é o **Gemini** (camada gratuita do Google AI Studio): crie a chave em <https://aistudio.google.com/apikey> e defina `GEMINI_API_KEY` na API (`GEMINI_MODEL` troca o modelo). Atenção: na camada gratuita o Google pode usar o conteúdo enviado para melhorar os produtos dele, então o app só envia o texto do pedido, o catálogo e números agregados, nunca e-mail ou dados de conta. O Claude (`ANTHROPIC_API_KEY`) é a alternativa paga; com as duas chaves, o Gemini vence, ou force com `AI_PROVIDER`. Para conferir uma chave de verdade: `cd backend && GEMINI_API_KEY=... npm run ai:check`.
 
 ## ◆ Arquitetura
 

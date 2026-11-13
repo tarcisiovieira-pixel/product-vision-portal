@@ -1,2 +1,5 @@
-// Ponte para a pasta shared/ da raiz (catálogo de frota e motores das IAs).
 export * from "../../../shared/fleet.js";
+export * from "../../../shared/addons.js";
+export * from "../../../shared/consult.js";
+export * from "../../../shared/consult-reply.js";
+export * from "../../../shared/analytics.js";
