@@ -149,6 +149,7 @@ const modelNeeds = (over: Record<string, unknown> = {}) => ({
   offworld: false,
   priority: "balanced",
   luxury: false,
+  onTopic: true,
   ...over,
 });
 
@@ -300,6 +301,64 @@ describe("POST /v1/ai/consult (IA generativa)", () => {
   it("erro inesperado não é escondido", async () => {
     const a = await build(fakeLlm(() => new TypeError("bug")));
     expect((await consult(a, "Somos 3 pessoas, de Olympus para Jezero")).statusCode).toBe(500);
+  });
+});
+
+describe("escopo: só ARES e Marte", () => {
+  const OFF = [
+    "Quem ganhou o jogo do Flamengo ontem?",
+    "Me fale sobre o Brasil e a política de lá",
+    "Escreva um poema sobre o mar",
+    "Me dê uma receita de bolo de cenoura",
+    "Como programar em Python um site?",
+    "Qual é a capital da França?",
+  ];
+
+  it.each(OFF)("sem chave, recusa assunto fora do escopo: %s", async (message) => {
+    const a = await build(null);
+    const body = (await consult(a, message)).json();
+    expect(body.offTopic).toBe(true);
+    expect(body.recommendations).toEqual([]);
+    expect(body.reply).toMatch(/ARES Mobility em Marte/);
+  });
+
+  it.each([
+    "Somos 3 pessoas, de Olympus para Jezero",
+    "Quero ir para a Lua com 4 pessoas",
+    "Preciso de um veículo barato",
+    "Como funciona a barreira anti-tempestade?",
+    "Qual a diária do foguete?",
+  ])("continua atendendo o que é da plataforma: %s", async (message) => {
+    const a = await build(null);
+    expect((await consult(a, message)).json().offTopic).toBeUndefined();
+  });
+
+  it("com o modelo: onTopic=false encerra a conversa, sem indicação e sem a segunda chamada", async () => {
+    const llm = fakeLlm(() => modelNeeds({ onTopic: false }));
+    const a = await build(llm);
+    const body = (await consult(a, "me conte uma curiosidade qualquer")).json();
+    expect(body).toMatchObject({ mode: "llm", offTopic: true, recommendations: [] });
+    expect(body.reply).toMatch(/ARES Mobility em Marte/);
+    expect(llm.calls).toHaveLength(1);
+  });
+
+  it("o modelo não consegue liberar um assunto que as regras proíbem", async () => {
+    const a = await build(fakeLlm(() => modelNeeds({ onTopic: true })));
+    const body = (await consult(a, "Quero ver o jogo do Flamengo, de Olympus a Jezero")).json();
+    expect(body.offTopic).toBe(true);
+  });
+
+  it("pedido legítimo com o modelo segue normal", async () => {
+    const a = await build(
+      fakeLlm((req) =>
+        "originCode" in (req.schema as unknown as { shape: object }).shape
+          ? modelNeeds()
+          : { reply: "Recomendo o CC-1." },
+      ),
+    );
+    const body = (await consult(a, "uma viagem entre duas crateras")).json();
+    expect(body.offTopic).toBeUndefined();
+    expect(body.recommendations.length).toBeGreaterThan(0);
   });
 });
 

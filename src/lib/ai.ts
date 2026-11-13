@@ -2,7 +2,14 @@
 // quando a API tem chave de um modelo (Gemini ou Claude), ele só melhora a leitura do pedido e o texto da resposta.
 import { queryOptions } from "@tanstack/react-query";
 import { analyze, ruleSummary, type AnalyticsInput, type Insight } from "@shared/analytics";
-import { parseNeeds, recommend, type ConsultContext, type ConsultResult } from "@shared/consult";
+import {
+  looksOnTopic,
+  OFF_TOPIC_REPLY,
+  parseNeeds,
+  recommend,
+  type ConsultContext,
+  type ConsultResult,
+} from "@shared/consult";
 import { describeResult } from "@shared/consult-reply";
 import { matchesSegment, SEGMENTS, type AdminOverview, type AdminUser } from "./admin";
 import type { AdminVehicle } from "./admin-fleet";
@@ -43,13 +50,28 @@ export const aiStatusQuery = queryOptions({
 // ---------------------------------------------------------------------------
 export interface ConsultResponse extends ConsultResult {
   mode: AiMode;
+  /** O pedido não era sobre a ARES/Marte: não há indicações. */
+  offTopic?: boolean;
   /** Por que a IA generativa não foi usada, quando era esperada. */
   fallbackReason?: string;
   reply: string;
 }
 
 function localConsult(message: string, ctx: ConsultContext, reason: string): ConsultResponse {
-  const result = recommend(parseNeeds(message, ctx.hangars), ctx);
+  const needs = parseNeeds(message, ctx.hangars);
+  if (!looksOnTopic(message, needs)) {
+    return {
+      mode: "rules",
+      fallbackReason: reason,
+      offTopic: true,
+      needs,
+      recommendations: [],
+      missing: [],
+      notes: [],
+      reply: OFF_TOPIC_REPLY,
+    };
+  }
+  const result = recommend(needs, ctx);
   const names = new Map(ctx.vehicles.map((v) => [v.id, { name: v.name, callsign: v.callsign }]));
   return { mode: "rules", fallbackReason: reason, ...result, reply: describeResult(result, names) };
 }
