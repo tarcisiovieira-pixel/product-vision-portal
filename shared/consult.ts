@@ -67,6 +67,8 @@ export interface Needs {
   offworld: boolean;
   priority: Priority;
   luxury: boolean;
+  /** Categoria que a memória ou o histórico da conta indica; só desempata. */
+  preferCategory?: VehicleCategory | null;
 }
 
 export interface RoutePlan {
@@ -264,6 +266,35 @@ export function parseNeeds(input: string, hangars: ConsultHangar[]): Needs {
 }
 
 // ---------------------------------------------------------------------------
+// Escopo: a IA só conversa sobre a ARES e Marte.
+// ---------------------------------------------------------------------------
+export const OFF_TOPIC_REPLY =
+  "Só posso ajudar com viagens e locações da ARES Mobility em Marte: veículos, trajetos, reservas, preços, clima e o uso da plataforma. Conte para onde você quer ir ou o que precisa transportar.";
+
+const TOPIC_WORDS =
+  /\b(ares|marte|marcian\w*|veiculo\w*|carro\w*|cybercab|apex|valkyrie|caminha\w*|truck|foguete\w*|starship|nave\w*|vtol|reserv\w*|alug\w*|locac\w*|viage\w*|viaj\w*|trajet\w*|rota\w*|hangar\w*|frota|diaria\w*|preco\w*|custo\w*|saldo|credito\w*|mc|habilita\w*|licenca\w*|piloto|tempestade\w*|clima|poeira|adicional\w*|opcional\w*|seguro|barreira|oxigenio|bateria|autonomia|passageir\w*|carga|boarding|manutenc\w*|marketplace|plataforma|sol|sois|lua|fobos|deimos|orbita|barat\w*|economi\w*|confort\w*|luxo\w*|rapid\w*|seguranc\w*)\b/;
+
+const OFF_TOPIC_WORDS =
+  /\b(brasil|brasileir\w*|flamengo|corinthians|palmeiras|futebol|copa do mundo|politic\w*|president\w*|eleic\w*|lula|bolsonaro|religiao|receita de|bitcoin|cripto\w*|acoes da bolsa|piada\w*|poema|poesia|musica|filme|serie|novela|python|javascript|programa\w* em|codigo fonte|dieta|remedio|doenca|namor\w*|horoscopo|capital d[aeo])\b/;
+
+/** Heurística de assunto, usada no motor de regras e como segunda opinião quando o modelo não responde. */
+export function looksOnTopic(message: string, needs: Needs): boolean {
+  const text = plain(message);
+  if (OFF_TOPIC_WORDS.test(text)) return false;
+  if (
+    needs.passengers !== null ||
+    needs.cargoKg !== null ||
+    needs.originId ||
+    needs.destinationId ||
+    needs.offworld ||
+    needs.budget !== null
+  ) {
+    return true;
+  }
+  return TOPIC_WORDS.test(text);
+}
+
+// ---------------------------------------------------------------------------
 // Recomendação
 // ---------------------------------------------------------------------------
 const LUXURY_MODELS: ModelKey[] = ["apex_phantom", "valkyrie_gt", "cybercab_sport"];
@@ -437,6 +468,10 @@ export function recommend(rawNeeds: Needs, ctx: ConsultContext, limit = 3): Cons
         score += Math.round(cheapness * 6) + Math.round((100 - wear) / 20);
     }
     if (needs.luxury && LUXURY_MODELS.includes(model)) score += 10;
+    if (needs.preferCategory && v.category === needs.preferCategory) {
+      score += 6;
+      reasons.push("Combina com o que você costuma escolher.");
+    }
     if (v.battery_pct < 30) {
       score -= 10;
       warnings.push("Bateria baixa: peça para recarregar antes de sair.");

@@ -19,6 +19,7 @@
     "e2e:senha": "node scripts/e2e/senha.mjs",
     "e2e:frota": "node scripts/e2e/frota.mjs",
     "e2e:ia": "node scripts/e2e/ia.mjs",
+    "e2e:memoria": "node scripts/e2e/ia-memoria.mjs",
     "e2e:ia-gemini": "node scripts/e2e/ia-gemini.mjs",
     "check": "npm run typecheck && npm run lint && npm run test && npm run build"
   },

@@ -252,3 +252,109 @@ export function ruleSummary(insights: readonly Pick<Insight, "severity" | "title
       .map((i) => i.title),
   };
 }
+
+// ---------------------------------------------------------------------------
+// Memória da IA analítica: comparação com o último registro guardado
+// ---------------------------------------------------------------------------
+
+/** Só agregados: é isto que se guarda no histórico e o que pode seguir para o modelo. */
+export interface AnalyticsTotals {
+  users: number;
+  pendingEmail: number;
+  newUsers7d: number;
+  activeUsers30d: number;
+  suspended: number;
+  rentals: number;
+  activeRentals: number;
+  cancelledRentals: number;
+  revenue: number;
+  avgTicket: number;
+  fleetTotal: number;
+  fleetOccupied: number;
+  fleetDown: number;
+}
+
+export function totalsOf(input: AnalyticsInput): AnalyticsTotals {
+  return {
+    users: input.users.total,
+    pendingEmail: input.users.pending_email,
+    newUsers7d: input.users.new_7d,
+    activeUsers30d: input.users.active_30d,
+    suspended: input.users.suspended,
+    rentals: input.rentals.total,
+    activeRentals: input.rentals.active,
+    cancelledRentals: input.rentals.cancelled,
+    revenue: Number(input.rentals.revenue),
+    avgTicket: Number(input.rentals.avg_ticket),
+    fleetTotal: input.fleet.total,
+    fleetOccupied: input.fleet.occupied,
+    fleetDown: input.fleet.maintenance + input.fleet.storm_hold,
+  };
+}
+
+const signed = (n: number) => `${n > 0 ? "+" : ""}${n.toLocaleString("pt-BR")}`;
+
+/** Achados de tendência: o que mudou desde o último registro. */
+export function trendInsights(
+  prev: AnalyticsTotals,
+  cur: AnalyticsTotals,
+  since: string,
+): Insight[] {
+  const out: Insight[] = [];
+  const when = `desde ${since}`;
+
+  const newUsers = cur.users - prev.users;
+  if (newUsers > 0) {
+    out.push({
+      id: "trend-users",
+      severity: "info",
+      title: `${signed(newUsers)} ${newUsers === 1 ? "usuário" : "usuários"} ${when}`,
+      detail: `De ${prev.users} para ${cur.users} contas.`,
+    });
+  }
+
+  if (prev.revenue > 0) {
+    const change = (cur.revenue - prev.revenue) / prev.revenue;
+    if (Math.abs(change) >= 0.1) {
+      out.push({
+        id: "trend-revenue",
+        severity: change > 0 ? "opportunity" : "warning",
+        title: `Receita ${change > 0 ? "subiu" : "caiu"} ${Math.round(Math.abs(change) * 100)}% ${when}`,
+        detail: `De ${brl(prev.revenue)} para ${brl(cur.revenue)}.`,
+      });
+    }
+  }
+
+  if (cur.pendingEmail !== prev.pendingEmail) {
+    const down = cur.pendingEmail < prev.pendingEmail;
+    out.push({
+      id: "trend-pending",
+      severity: down ? "info" : "warning",
+      title: `E-mails pendentes ${down ? "diminuíram" : "aumentaram"} ${when}`,
+      detail: `De ${prev.pendingEmail} para ${cur.pendingEmail}.`,
+      action: { label: "Ver contas pendentes", tab: "users", segment: "pending" },
+    });
+  }
+
+  if (cur.fleetDown > prev.fleetDown) {
+    out.push({
+      id: "trend-fleet-down",
+      severity: "warning",
+      title: `Mais veículos parados ${when}`,
+      detail: `De ${prev.fleetDown} para ${cur.fleetDown} veículos em manutenção ou retidos.`,
+      action: { label: "Abrir a frota", tab: "fleet" },
+    });
+  }
+
+  const prevCancel = prev.rentals > 0 ? prev.cancelledRentals / prev.rentals : 0;
+  const curCancel = cur.rentals > 0 ? cur.cancelledRentals / cur.rentals : 0;
+  if (cur.rentals >= 5 && curCancel - prevCancel >= 0.1) {
+    out.push({
+      id: "trend-cancel",
+      severity: "warning",
+      title: `Cancelamentos aumentaram ${when}`,
+      detail: `De ${Math.round(prevCancel * 100)}% para ${Math.round(curCancel * 100)}% das reservas.`,
+    });
+  }
+  return out;
+}

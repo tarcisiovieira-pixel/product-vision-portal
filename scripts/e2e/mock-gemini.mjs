@@ -28,6 +28,8 @@ const server = http.createServer((req, res) => {
         offworld: false,
         priority: "comfort",
         luxury: true,
+        onTopic: true,
+        remember: [],
       };
     } else if (system.includes("priorities")) {
       payload = {

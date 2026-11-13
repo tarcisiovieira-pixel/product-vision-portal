@@ -14,6 +14,8 @@ const KEYS = {
   promo: "ares_active_promo",
   vehicles: "ares_demo_vehicles",
   audit: "ares_demo_audit",
+  aiMemory: "ares_demo_ai_memory",
+  aiSnapshot: "ares_demo_ai_snapshot",
 } as const;
 
 export const DEMO_USER_ID = DEMO_PROFILE.user_id;
@@ -65,6 +67,11 @@ export const readDemoVehicles = <T>() => readJson<T[] | null>(KEYS.vehicles, nul
 export const writeDemoVehicles = (vehicles: unknown[]) => writeJson(KEYS.vehicles, vehicles);
 export const readDemoAudit = <T>() => readJson<T[]>(KEYS.audit, []);
 export const writeDemoAudit = (entries: unknown[]) => writeJson(KEYS.audit, entries);
+
+/** Memória da IA no demo. null = ainda não usada (vale o padrão: ligada e vazia). */
+export const readDemoMemory = <T>() => readJson<T | null>(KEYS.aiMemory, null);
+export const writeDemoMemory = (state: unknown) => writeJson(KEYS.aiMemory, state);
+export const readDemoSnapshot = <T>() => readJson<T | null>(KEYS.aiSnapshot, null);
 
 export function clearDemoState(): void {
   if (!hasStorage()) return;

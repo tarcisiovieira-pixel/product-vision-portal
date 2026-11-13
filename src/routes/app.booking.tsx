@@ -29,6 +29,7 @@ import { toast } from "sonner";
 import { createRental } from "@/lib/ares-actions";
 import { PageHeader, Bar, toneFor } from "@/components/PageHeader";
 import { UpsellPanel } from "@/components/UpsellPanel";
+import { dismissAddon, dismissedAddons, memoryQuery } from "@/lib/ai-memory";
 import type { AddonKey } from "@shared/addons";
 // O viewer carrega o three.js: só baixa quando alguém abre o voo.
 const FlightChaseViewer3D = lazy(() =>
@@ -97,6 +98,7 @@ function Booking() {
   const { data: rentals } = useSuspenseQuery(rentalsQuery);
   const { data: profile } = useQuery(profileQuery);
   const { data: occupancy = [] } = useQuery(vehicleOccupancyQuery);
+  const { data: memory } = useQuery(memoryQuery);
 
   // Começa pelo hangar com mais veículos livres, para a tela nunca abrir sem opções.
   const [defaultHangar] = useState(() => {
@@ -573,8 +575,16 @@ function Booking() {
                     storms: weather,
                     alternatives: list,
                     credits: profile ? Number(profile.martian_credits) : null,
+                    dismissed: memory?.enabled ? dismissedAddons(memory.items) : [],
                   }}
                   onApplyAddon={applyAddon}
+                  onDismissAddon={(addon) => {
+                    if (memory?.enabled) {
+                      void dismissAddon(addon).then(() =>
+                        qc.invalidateQueries({ queryKey: ["ai", "memory"] }),
+                      );
+                    }
+                  }}
                 />
               )}
 

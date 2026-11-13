@@ -21,9 +21,12 @@ const LEVEL: Record<UpsellSuggestion["level"], { label: string; className: strin
 export function UpsellPanel({
   draft,
   onApplyAddon,
+  onDismissAddon,
 }: {
   draft: UpsellDraft;
   onApplyAddon: (addon: AddonKey) => void;
+  /** O cliente dispensou um adicional: vira memória para a IA não insistir. */
+  onDismissAddon?: (addon: AddonKey) => void;
 }) {
   const [dismissed, setDismissed] = useState<ReadonlySet<string>>(new Set());
   const suggestions = useMemo(
@@ -57,7 +60,10 @@ export function UpsellPanel({
                 <button
                   type="button"
                   aria-label={`Dispensar: ${s.title}`}
-                  onClick={() => setDismissed((prev) => new Set(prev).add(s.id))}
+                  onClick={() => {
+                    setDismissed((prev) => new Set(prev).add(s.id));
+                    if (s.addon) onDismissAddon?.(s.addon);
+                  }}
                   className="shrink-0 text-muted-foreground transition hover:text-foreground"
                 >
                   <X className="h-3.5 w-3.5" />
