@@ -75,7 +75,7 @@ Um só portal para **reservar, rastrear e cuidar da frota**.
 
 | Módulo                            | O que vai fazer                                                                   |
 | --------------------------------- | --------------------------------------------------------------------------------- |
-| 🤖 **Copiloto de bordo (IA)**     | GPS com assistente de voz e texto: rota, clima e alertas em linguagem natural.    |
+| 🤖 **Copiloto de bordo (GPS)**    | Rota, chegada, clima à frente com desvio, alertas e voz (menu Copiloto GPS).      |
 | 📊 **Relatórios com IA**          | Resumo de custos, uso da frota e sugestões, gerado sob demanda.                   |
 | 🔮 **Manutenção preditiva**       | Previsão de falhas a partir da telemetria dos veículos.                           |
 | 🧭 **Centro de comando**          | Painel inicial com tudo o que importa ao piloto.                                  |
