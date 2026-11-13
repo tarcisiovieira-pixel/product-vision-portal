@@ -5,6 +5,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Bot,
   Boxes,
+  Navigation,
   CalendarCheck,
   CalendarRange,
   KeyRound,
@@ -52,6 +53,7 @@ export const Route = createFileRoute("/app")({
 const nav = [
   { to: "/app/booking", label: "Locadora", icon: CalendarRange },
   { to: "/app/consultor", label: "Consultor IA", icon: Bot },
+  { to: "/app/copiloto", label: "Copiloto GPS", icon: Navigation },
   { to: "/app/my-rentals", label: "Minhas Reservas", icon: CalendarCheck },
   { to: "/app/hangar-3d", label: "Hangar 3D", icon: Boxes },
   { to: "/app/mars-radar", label: "Radar Marte", icon: Radar },

@@ -18,6 +18,7 @@ import { Route as AppIndexRouteImport } from './routes/app.index'
 import { Route as AppAdminRouteImport } from './routes/app.admin'
 import { Route as AppBookingRouteImport } from './routes/app.booking'
 import { Route as AppConsultorRouteImport } from './routes/app.consultor'
+import { Route as AppCopilotoRouteImport } from './routes/app.copiloto'
 import { Route as AppHangar3dRouteImport } from './routes/app.hangar-3d'
 import { Route as AppMaintenanceRouteImport } from './routes/app.maintenance'
 import { Route as AppMarketplaceRouteImport } from './routes/app.marketplace'
@@ -69,6 +70,11 @@ const AppConsultorRoute = AppConsultorRouteImport.update({
   path: '/consultor',
   getParentRoute: () => AppRoute,
 } as any)
+const AppCopilotoRoute = AppCopilotoRouteImport.update({
+  id: '/copiloto',
+  path: '/copiloto',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppHangar3dRoute = AppHangar3dRouteImport.update({
   id: '/hangar-3d',
   path: '/hangar-3d',
@@ -104,6 +110,7 @@ export interface FileRoutesByFullPath {
   '/app/admin': typeof AppAdminRoute
   '/app/booking': typeof AppBookingRoute
   '/app/consultor': typeof AppConsultorRoute
+  '/app/copiloto': typeof AppCopilotoRoute
   '/app/hangar-3d': typeof AppHangar3dRoute
   '/app/maintenance': typeof AppMaintenanceRoute
   '/app/marketplace': typeof AppMarketplaceRoute
@@ -119,6 +126,7 @@ export interface FileRoutesByTo {
   '/app/admin': typeof AppAdminRoute
   '/app/booking': typeof AppBookingRoute
   '/app/consultor': typeof AppConsultorRoute
+  '/app/copiloto': typeof AppCopilotoRoute
   '/app/hangar-3d': typeof AppHangar3dRoute
   '/app/maintenance': typeof AppMaintenanceRoute
   '/app/marketplace': typeof AppMarketplaceRoute
@@ -136,6 +144,7 @@ export interface FileRoutesById {
   '/app/admin': typeof AppAdminRoute
   '/app/booking': typeof AppBookingRoute
   '/app/consultor': typeof AppConsultorRoute
+  '/app/copiloto': typeof AppCopilotoRoute
   '/app/hangar-3d': typeof AppHangar3dRoute
   '/app/maintenance': typeof AppMaintenanceRoute
   '/app/marketplace': typeof AppMarketplaceRoute
@@ -154,6 +163,7 @@ export interface FileRouteTypes {
     | '/app/admin'
     | '/app/booking'
     | '/app/consultor'
+    | '/app/copiloto'
     | '/app/hangar-3d'
     | '/app/maintenance'
     | '/app/marketplace'
@@ -169,6 +179,7 @@ export interface FileRouteTypes {
     | '/app/admin'
     | '/app/booking'
     | '/app/consultor'
+    | '/app/copiloto'
     | '/app/hangar-3d'
     | '/app/maintenance'
     | '/app/marketplace'
@@ -185,6 +196,7 @@ export interface FileRouteTypes {
     | '/app/admin'
     | '/app/booking'
     | '/app/consultor'
+    | '/app/copiloto'
     | '/app/hangar-3d'
     | '/app/maintenance'
     | '/app/marketplace'
@@ -266,6 +278,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppConsultorRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/copiloto': {
+      id: '/app/copiloto'
+      path: '/copiloto'
+      fullPath: '/app/copiloto'
+      preLoaderRoute: typeof AppCopilotoRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/hangar-3d': {
       id: '/app/hangar-3d'
       path: '/hangar-3d'
@@ -308,6 +327,7 @@ interface AppRouteChildren {
   AppAdminRoute: typeof AppAdminRoute
   AppBookingRoute: typeof AppBookingRoute
   AppConsultorRoute: typeof AppConsultorRoute
+  AppCopilotoRoute: typeof AppCopilotoRoute
   AppHangar3dRoute: typeof AppHangar3dRoute
   AppMaintenanceRoute: typeof AppMaintenanceRoute
   AppMarketplaceRoute: typeof AppMarketplaceRoute
@@ -320,6 +340,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppAdminRoute: AppAdminRoute,
   AppBookingRoute: AppBookingRoute,
   AppConsultorRoute: AppConsultorRoute,
+  AppCopilotoRoute: AppCopilotoRoute,
   AppHangar3dRoute: AppHangar3dRoute,
   AppMaintenanceRoute: AppMaintenanceRoute,
   AppMarketplaceRoute: AppMarketplaceRoute,

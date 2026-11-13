@@ -53,6 +53,9 @@ export interface NavState {
   o2Hours: number;
   rangeLeftKm: number;
   arrivalBatteryPct: number;
+  /** Distância até a próxima parada de recarga programada (0 se chega sem recarregar). */
+  nextRechargeKm: number;
+  rechargeStopsLeft: number;
   arrivalO2Hours: number;
 }
 
@@ -75,6 +78,9 @@ export function cruiseSpeed(v: Pick<CopilotVehicle, "category" | "speed_kmh">): 
   return v.speed_kmh && v.speed_kmh > 0 ? v.speed_kmh : SPEED_KMH[v.category];
 }
 
+/** Fração da autonomia usada entre uma recarga e outra. */
+const RECHARGE_LEG_SHARE = 0.9;
+
 /** Estado de navegação e telemetria no ponto atual do trajeto. */
 export function navState(trip: CopilotTrip, v: CopilotVehicle): NavState {
   const p = clamp(Number.isFinite(trip.progress) ? trip.progress : 0, 0, 1);
@@ -90,10 +96,33 @@ export function navState(trip: CopilotTrip, v: CopilotVehicle): NavState {
   const speedKmh = cruiseSpeed(v);
   const etaHours = remainingKm / speedKmh;
   const range = specsOf({ ...v, model_key: v.model_key }).range_km;
-  const used = (doneKm / range) * 100;
-  const batteryPct = clamp(v.battery_pct - used, 0, 100);
   const o2Hours = clamp(v.o2_hours - doneKm / speedKmh, 0, 1e9);
-  const needPct = (remainingKm / range) * 100;
+
+  // Energia: os hangares ficam a milhares de km, então o trajeto é feito em trechos. As paradas de
+  // recarga são programadas com 10% de reserva; depois de cada uma a bateria volta a 100%.
+  const legKm = range * RECHARGE_LEG_SHARE;
+  const firstLegKm = (clamp(v.battery_pct, 0, 100) / 100) * legKm;
+  let batteryPct: number;
+  let nextRechargeKm: number;
+  if (doneKm < firstLegKm) {
+    batteryPct = v.battery_pct - (doneKm / range) * 100;
+    nextRechargeKm = firstLegKm - doneKm;
+  } else {
+    const into = (doneKm - firstLegKm) % legKm;
+    batteryPct = 100 - (into / range) * 100;
+    nextRechargeKm = legKm - into;
+  }
+  batteryPct = clamp(batteryPct, 0, 100);
+  const rechargeStopsLeft =
+    remainingKm > nextRechargeKm ? Math.ceil((remainingKm - nextRechargeKm) / legKm) : 0;
+  const lastLegKm =
+    rechargeStopsLeft === 0
+      ? remainingKm
+      : remainingKm - nextRechargeKm - (rechargeStopsLeft - 1) * legKm;
+  const arrivalBatteryPct =
+    rechargeStopsLeft === 0
+      ? batteryPct - (remainingKm / range) * 100
+      : 100 - (lastLegKm / range) * 100;
   const bearing = bearingDeg(position, trip.destination);
   return {
     position,
@@ -108,7 +137,9 @@ export function navState(trip: CopilotTrip, v: CopilotVehicle): NavState {
     batteryPct,
     o2Hours,
     rangeLeftKm: (batteryPct / 100) * range,
-    arrivalBatteryPct: batteryPct - needPct,
+    arrivalBatteryPct,
+    nextRechargeKm: rechargeStopsLeft === 0 ? 0 : nextRechargeKm,
+    rechargeStopsLeft,
     arrivalO2Hours: o2Hours - etaHours,
   };
 }
@@ -189,26 +220,35 @@ export function planDetour(
   const here = nav.position;
   const dest: LatLng = trip.destination;
   const approach = closestApproach(here, dest, storm.center, 96);
-  const away =
-    approach.km > 1
-      ? bearingDeg(storm.center, greatCirclePoint(here, dest, approach.t))
-      : (bearingDeg(here, dest) + 90) % 360;
-  for (const margin of [1.25, 1.6, 2.1]) {
-    const wp = destinationPoint(storm.center, away, storm.radiusKm * margin);
-    if (!legClear(here, wp, storms) || !legClear(wp, dest, storms)) continue;
-    const total =
-      distanceKm(here.lat, here.lng, wp.lat, wp.lng) +
-      distanceKm(wp.lat, wp.lng, dest.lat, dest.lng);
-    const extra = Math.max(0, total - nav.remainingKm);
-    return {
-      waypoint: wp,
-      extraKm: Math.round(extra),
-      extraMinutes: Math.round((extra / nav.speedKmh) * 60),
-      totalKm: Math.round(total),
-      avoids: storm.name,
-    };
+  const closest = greatCirclePoint(here, dest, approach.t);
+  // O contorno sai do centro da tempestade, perpendicular ao rumo da rota naquele ponto:
+  // um lado ou o outro, com folga crescente. Vale o mais curto que não cruza nenhuma tempestade.
+  const course = bearingDeg(closest, greatCirclePoint(here, dest, Math.min(1, approach.t + 0.02)));
+  let best: Detour | null = null;
+  for (const side of [90, -90]) {
+    for (const margin of [1.25, 1.6, 2.1]) {
+      const wp = destinationPoint(
+        storm.center,
+        (course + side + 360) % 360,
+        storm.radiusKm * margin,
+      );
+      if (!legClear(here, wp, storms) || !legClear(wp, dest, storms)) continue;
+      const total =
+        distanceKm(here.lat, here.lng, wp.lat, wp.lng) +
+        distanceKm(wp.lat, wp.lng, dest.lat, dest.lng);
+      if (best && total >= best.totalKm) break;
+      const extra = Math.max(0, total - nav.remainingKm);
+      best = {
+        waypoint: wp,
+        extraKm: Math.round(extra),
+        extraMinutes: Math.round((extra / nav.speedKmh) * 60),
+        totalKm: Math.round(total),
+        avoids: storm.name,
+      };
+      break; // com esta folga já deu certo neste lado
+    }
   }
-  return null;
+  return best;
 }
 
 // ---------------------------------------------------------------------------
@@ -267,6 +307,8 @@ export interface CopilotSnapshot {
   nav: NavState;
   ahead: StormAhead[];
   detour: Detour | null;
+  /** Tempestade que cobre o próprio destino: desviar não resolve, só esperar. */
+  destinationUnder: StormAhead | null;
   near: NearHangar[];
   alerts: CopilotAlert[];
 }
@@ -278,12 +320,27 @@ export function snapshot(ctx: CopilotContext): CopilotSnapshot {
   const nav = navState(trip, vehicle);
   const ahead = stormsAhead(nav, trip, storms, ctx.avoidStorms ? 2 : 1);
   const relevant = ahead.filter((s) => s.severity >= (ctx.avoidStorms ? 2 : 3));
-  const detour = relevant[0] ? planDetour(nav, trip, relevant[0], storms) : null;
+  const destinationUnder =
+    relevant.find(
+      (s) =>
+        distanceKm(trip.destination.lat, trip.destination.lng, s.center.lat, s.center.lng) <=
+        s.radiusKm,
+    ) ?? null;
+  const detour =
+    relevant[0] && !destinationUnder ? planDetour(nav, trip, relevant[0], storms) : null;
   const near = nearestHangars(nav.position, hangars, nav.rangeLeftKm);
   const alerts: CopilotAlert[] = [];
 
+  const waitAt = (near.find((n) => n.reachable && !n.hangar.storm_alert) ?? near[0])?.hangar.name;
   const first = relevant[0];
-  if (first) {
+  if (destinationUnder && !destinationUnder.inside) {
+    alerts.push({
+      id: `dest-storm:${destinationUnder.name}`,
+      severity: "critical",
+      title: `${trip.destination.name} está sob ${destinationUnder.name} (nível ${destinationUnder.severity})`,
+      detail: `Não há desvio que resolva: aguarde a tempestade passar${waitAt ? ` em ${waitAt}` : ""} antes de seguir.`,
+    });
+  } else if (first) {
     const close = first.inside || first.distanceKm <= 300;
     const how = first.inside
       ? "Você está dentro dela: reduza a velocidade e saia pelo lado mais próximo."
@@ -302,24 +359,22 @@ export function snapshot(ctx: CopilotContext): CopilotSnapshot {
     });
   }
 
-  if (nav.arrivalBatteryPct < 0) {
-    const reach = near.find((n) => n.reachable);
-    alerts.push({
-      id: "battery:short",
-      severity: "critical",
-      title: "Bateria não chega ao destino",
-      detail: `Autonomia restante ${nf(nav.rangeLeftKm)} km para ${nf(nav.remainingKm)} km de trajeto. ${
-        reach
-          ? `Pouso recomendado em ${reach.hangar.name}, a ${nf(reach.km)} km (${reach.heading}).`
-          : "Nenhum hangar ao alcance: reduza a velocidade para poupar energia."
-      }`,
-    });
-  } else if (nav.arrivalBatteryPct < 15) {
+  if (nav.batteryPct < 15) {
     alerts.push({
       id: "battery:low",
       severity: "warning",
-      title: "Bateria chega no limite",
-      detail: `Você chega com ${nf(nav.arrivalBatteryPct)}% de bateria. Considere uma parada para recarga.`,
+      title: `Bateria baixa (${nf(nav.batteryPct)}%)`,
+      detail:
+        nav.rechargeStopsLeft > 0
+          ? `Próxima parada de recarga em ${nf(nav.nextRechargeKm)} km.`
+          : `Autonomia de ${nf(nav.rangeLeftKm)} km; o destino está a ${nf(nav.remainingKm)} km.`,
+    });
+  } else if (nav.rechargeStopsLeft > 0 && nav.nextRechargeKm <= 150) {
+    alerts.push({
+      id: "recharge:soon",
+      severity: "warning",
+      title: "Parada de recarga se aproximando",
+      detail: `Em ${nf(nav.nextRechargeKm)} km, cerca de ${formatDuration(nav.nextRechargeKm / nav.speedKmh)}. Ainda ${nf(nav.rechargeStopsLeft)} ${nav.rechargeStopsLeft === 1 ? "parada" : "paradas"} no trajeto.`,
     });
   }
 
@@ -403,11 +458,11 @@ export function snapshot(ctx: CopilotContext): CopilotSnapshot {
       id: "nominal",
       severity: "info",
       title: "Rota nominal",
-      detail: `Faltam ${nf(nav.remainingKm)} km para ${trip.destination.name}. Chegada em cerca de ${formatDuration(nav.etaHours)}.`,
+      detail: `Faltam ${nf(nav.remainingKm)} km para ${trip.destination.name}. Chegada em cerca de ${formatDuration(nav.etaHours)}.${nav.rechargeStopsLeft > 0 ? ` Programe ${nf(nav.rechargeStopsLeft)} ${nav.rechargeStopsLeft === 1 ? "parada" : "paradas"} de recarga (próxima em ${nf(nav.nextRechargeKm)} km).` : ""}`,
     });
   }
   alerts.sort((a, b) => RANK[a.severity] - RANK[b.severity]);
-  return { nav, ahead, detour, near, alerts };
+  return { nav, ahead, detour, destinationUnder, near, alerts };
 }
 
 // ---------------------------------------------------------------------------
@@ -488,7 +543,7 @@ export function answerCopilot(
 ): CopilotAnswer {
   if (!isCopilotTopic(question)) return { topic: "off_topic", text: COPILOT_OFF_TOPIC };
   const topic = classifyQuestion(question) ?? "help";
-  const { nav, ahead, detour, near, alerts } = snap;
+  const { nav, ahead, detour, destinationUnder, near, alerts } = snap;
   const dest = ctx.trip.destination.name;
 
   switch (topic) {
@@ -501,13 +556,13 @@ export function answerCopilot(
             : `Faltam ${nf(nav.remainingKm)} km para ${dest}. Chegada em cerca de ${formatDuration(nav.etaHours)}, a ${nf(nav.speedKmh)} km/h.`,
       };
     case "battery": {
-      const verdict =
-        nav.arrivalBatteryPct < 0
-          ? `Atenção: não chega ao destino, faltariam ${nf(-nav.arrivalBatteryPct)}% de bateria.`
+      const plan =
+        nav.rechargeStopsLeft > 0
+          ? `Próxima parada de recarga em ${nf(nav.nextRechargeKm)} km; ainda ${nf(nav.rechargeStopsLeft)} ${nav.rechargeStopsLeft === 1 ? "parada" : "paradas"} até ${dest}.`
           : `Chegando em ${dest}, restariam cerca de ${nf(nav.arrivalBatteryPct)}%.`;
       return {
         topic,
-        text: `Bateria em ${nf(nav.batteryPct)}%, com autonomia de ${nf(nav.rangeLeftKm)} km. ${verdict}`,
+        text: `Bateria em ${nf(nav.batteryPct)}%, com autonomia de ${nf(nav.rangeLeftKm)} km. ${plan}`,
       };
     }
     case "oxygen": {
@@ -532,17 +587,25 @@ export function answerCopilot(
         ahead.length > 1
           ? ` Há mais ${ahead.length - 1} ${ahead.length === 2 ? "tempestade" : "tempestades"} depois.`
           : "";
-      const advice = detour
-        ? ` Posso desviar: +${nf(detour.extraKm)} km.`
-        : s.severity >= 3 && !s.inside
-          ? ` Sem desvio seguro: considere pousar em ${near[0]?.hangar.name ?? "o hangar mais próximo"}.`
-          : "";
+      const advice = destinationUnder
+        ? ` ${dest} está sob ${destinationUnder.name}: desviar não resolve, aguarde a tempestade passar.`
+        : detour
+          ? ` Posso desviar: +${nf(detour.extraKm)} km.`
+          : s.severity >= 3 && !s.inside
+            ? ` Sem desvio seguro: considere pousar em ${near[0]?.hangar.name ?? "o hangar mais próximo"}.`
+            : "";
       return { topic, text: `${where}${extra}${advice}` };
     }
     case "detour": {
       const severe = ahead.find((s) => s.severity >= 1);
       if (!severe)
         return { topic, text: "Não há tempestade no trajeto, então não precisa de desvio." };
+      if (destinationUnder) {
+        return {
+          topic,
+          text: `${dest} está sob ${destinationUnder.name} (nível ${destinationUnder.severity}). Desviar não resolve: aguarde a tempestade passar antes de seguir.`,
+        };
+      }
       if (severe.inside) {
         return {
           topic,

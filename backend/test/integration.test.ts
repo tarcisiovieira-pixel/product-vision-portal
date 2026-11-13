@@ -779,6 +779,8 @@ describe.skipIf(!baseUrl || !key)("integração com Supabase real", () => {
       expect((await take("consult", 2)).data).toBe(false);
       expect((await take("consult", 2)).data).toBe(false);
       expect((await take("analytics", 2)).data).toBe(true); // outro tipo, outra cota
+      expect((await take("copilot", 1)).data).toBe(true); // o copiloto tem cota própria
+      expect((await take("copilot", 1)).data).toBe(false);
       const { data } = await other.c.rpc("ai_take_quota", { _kind: "consult", _limit: 2 });
       expect(data).toBe(true); // outro usuário, outra cota
     });

@@ -14,6 +14,7 @@ import {
   type CopilotContext,
   type CopilotVehicle,
 } from "@shared/copilot";
+import { SEED_HANGARS, SEED_WEATHER } from "@/lib/ares-seed-data";
 import {
   bearingDeg,
   closestApproach,
@@ -196,6 +197,50 @@ describe("clima à frente e desvio", () => {
   });
 });
 
+describe("com as tempestades de exemplo do app", () => {
+  const seedH = SEED_HANGARS as unknown as ConsultHangar[];
+  const seedS = SEED_WEATHER as unknown as ConsultStorm[];
+  const find = (code: string) => seedH.find((h) => h.code === code)!;
+  const run = (from: string, to: string, progress: number) =>
+    snapshot({
+      trip: { origin: find(from), destination: find(to), progress },
+      vehicle: car,
+      storms: seedS,
+      hangars: seedH,
+    });
+
+  it("rota que cruza a frente de poeira de Utopia ganha desvio curto e válido", () => {
+    const snap = run("JEZ-02", "OLY-01", 0.2);
+    expect(snap.ahead[0]!.name).toMatch(/Utopia/);
+    expect(snap.detour).not.toBeNull();
+    expect(snap.detour!.extraKm).toBeGreaterThan(0);
+    expect(snap.detour!.extraKm).toBeLessThan(400);
+    expect(snap.alerts[0]!.detail).toMatch(/Desvio disponível/);
+  });
+
+  it("destino sob tempestade: não oferece desvio, manda esperar", () => {
+    const snap = run("VAL-03", "ACI-04", 0.2);
+    expect(snap.destinationUnder?.name).toMatch(/Acidalia/);
+    expect(snap.detour).toBeNull();
+    expect(snap.alerts[0]).toMatchObject({ severity: "critical" });
+    expect(snap.alerts[0]!.title).toMatch(/Acidalia Outpost está sob/);
+    const ctxSeed = {
+      trip: { origin: find("VAL-03"), destination: find("ACI-04"), progress: 0.2 },
+      vehicle: car,
+      storms: seedS,
+      hangars: seedH,
+    };
+    expect(answerCopilot("posso desviar?", ctxSeed).text).toMatch(/Desviar não resolve/);
+    expect(answerCopilot("tem tempestade?", ctxSeed).text).toMatch(/aguarde a tempestade passar/);
+  });
+
+  it("partir de dentro da tempestade é crítico", () => {
+    const snap = run("ACI-04", "OLY-01", 0);
+    expect(snap.ahead[0]!.inside).toBe(true);
+    expect(snap.alerts[0]!.severity).toBe("critical");
+  });
+});
+
 describe("alertas", () => {
   it("voo nominal: só informa", () => {
     const { alerts } = snapshot(ctx());
@@ -225,15 +270,44 @@ describe("alertas", () => {
     expect(near.severity).toBe("critical");
   });
 
-  it("bateria que não chega e oxigênio curto, com hangar ao alcance", () => {
+  it("bateria baixa e oxigênio curto", () => {
     const weak = { ...car, battery_pct: 20, o2_hours: 3 };
     const { alerts } = snapshot(ctx({ vehicle: weak }, 0.3));
     const ids = alerts.map((a) => a.id);
-    expect(ids).toContain("battery:short");
+    expect(ids).toContain("battery:low");
     expect(ids).toContain("o2:short");
     expect(alerts[0]!.severity).toBe("critical");
-    expect(alerts.find((a) => a.id === "battery:short")!.detail).toMatch(
-      /Pouso recomendado|Nenhum hangar/,
+    expect(alerts.find((a) => a.id === "battery:low")!.detail).toMatch(/recarga/);
+  });
+
+  it("autonomia curta: o trajeto vira trechos com paradas de recarga programadas", () => {
+    const short = { ...car, range_km: 1200, battery_pct: 100 };
+    const start = navState(ctx({ vehicle: short }).trip, short);
+    expect(start.rechargeStopsLeft).toBeGreaterThanOrEqual(7); // ~7.800 km / 1.080 km por trecho
+    expect(start.nextRechargeKm).toBeCloseTo(1080, 0);
+    expect(start.arrivalBatteryPct).toBeGreaterThan(0);
+
+    // depois da primeira parada, a bateria volta a 100% e a conta recomeça
+    const after = navState({ ...ctx().trip, progress: 1100 / start.totalKm }, short);
+    expect(after.batteryPct).toBeGreaterThan(95);
+    expect(after.rechargeStopsLeft).toBe(start.rechargeStopsLeft - 1);
+
+    // a bateria nunca fica negativa, em nenhum ponto da rota
+    for (let p = 0; p <= 1; p += 0.05) {
+      const n = navState({ ...ctx().trip, progress: p }, short);
+      expect(n.batteryPct).toBeGreaterThanOrEqual(0);
+      expect(n.batteryPct).toBeLessThanOrEqual(100);
+    }
+  });
+
+  it("avisa a parada de recarga quando ela se aproxima, e explica o plano na resposta", () => {
+    const short = { ...car, range_km: 1200 };
+    const close = snapshot(ctx({ vehicle: short }, 1000 / 7798));
+    expect(close.alerts.some((a) => a.id === "recharge:soon")).toBe(true);
+    const plan = answerCopilot("como está a bateria?", ctx({ vehicle: short }));
+    expect(plan.text).toMatch(/Próxima parada de recarga em [\d.]+ km; ainda \d+ paradas/);
+    expect(snapshot(ctx({ vehicle: short })).alerts[0]!.detail).toMatch(
+      /Programe \d+ paradas de recarga/,
     );
   });
 

@@ -23,9 +23,11 @@ import {
 } from "../../lib/shared.js";
 import type { UserDb, UserDbFactory } from "../../lib/supabase.js";
 import { LlmUnavailable, type LlmClient } from "./llm.js";
+import { buildCopilotContext, copilotBody, runCopilot } from "./copilot.js";
+import { loadContext } from "./context.js";
 import { loadMemory, loadProfile, memoryCandidates, persistMemory } from "./memory.js";
 
-type AiKind = "consult" | "analytics";
+type AiKind = "consult" | "analytics" | "copilot";
 type Mode = "llm" | "rules";
 
 /** Texto vindo do modelo: sem caracteres de controle nem marcação, com tamanho limitado. */
@@ -91,27 +93,6 @@ function needsFromModel(raw: z.infer<typeof needsSchema>, hangars: ConsultHangar
     offworld: raw.offworld,
     priority: raw.priority,
     luxury: raw.luxury,
-  };
-}
-
-async function loadContext(db: UserDb, userId: string): Promise<ConsultContext> {
-  const [vehicles, hangars, storms, profiles] = await Promise.all([
-    db.list("vehicles", "callsign"),
-    db.list("hangars", "name"),
-    db.list("weather_events", "severity"),
-    db.list("profiles", "created_at"),
-  ]);
-  const profile = (
-    profiles as { user_id: string; pilot_license: License; martian_credits: number }[]
-  ).find((p) => p.user_id === userId);
-  return {
-    vehicles: (vehicles as (ConsultVehicle & { deleted_at?: string | null })[]).filter(
-      (v) => !v.deleted_at,
-    ),
-    hangars: hangars as ConsultHangar[],
-    storms: storms as ConsultStorm[],
-    license: profile?.pilot_license ?? null,
-    credits: profile ? Number(profile.martian_credits) : null,
   };
 }
 
@@ -316,6 +297,26 @@ export function aiRoutes(
         memoryUsed: used,
         remembered,
       };
+    });
+
+    app.post("/v1/ai/copilot", guard, async (req) => {
+      const body = copilotBody.parse(req.body);
+      const user = db(req.user!.token);
+      const [ctx, vehicles, memory] = await Promise.all([
+        loadContext(user, req.user!.id),
+        user.list("vehicles", "callsign"),
+        loadMemory(user),
+      ]);
+      const avoidStorms =
+        memory.enabled &&
+        memory.items.some((i) => i.topic === "avoid_storms" && i.value === "true");
+      const copilot = buildCopilotContext(
+        body,
+        ctx,
+        vehicles as Record<string, unknown>[],
+        avoidStorms,
+      );
+      return runCopilot(body.message, copilot, llm, () => takeQuota(user, "copilot"));
     });
 
     app.post("/v1/ai/analytics/summary", guard, async (req) => {
