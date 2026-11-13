@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useQuery, useSuspenseQuery } from "@tanstack/react-query";
 import { ArrowDown, ArrowUp, Download, RefreshCw, Search, ShieldAlert } from "lucide-react";
+import { AdminAi } from "@/components/admin/AdminAi";
 import { AdminFleet } from "@/components/admin/AdminFleet";
 import { AdminUserDialog } from "@/components/admin/AdminUserDialog";
 import { SignupsChart, TopVehicles } from "@/components/admin/AdminCharts";
@@ -129,7 +130,7 @@ function AdminPage() {
   const { data: users } = useSuspenseQuery(adminUsersQuery);
   const { data: audit = [] } = useQuery(adminAuditQuery);
 
-  const [tab, setTab] = useState<"users" | "fleet">("users");
+  const [tab, setTab] = useState<"users" | "fleet" | "ai">("users");
   const [segment, setSegment] = useState<UserSegment>("all");
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState<{ key: SortKey; desc: boolean }>({
@@ -272,6 +273,7 @@ function AdminPage() {
           [
             ["users", "Usuários"],
             ["fleet", "Frota"],
+            ["ai", "IA"],
           ] as const
         ).map(([id, label]) => (
           <button
@@ -291,6 +293,17 @@ function AdminPage() {
         ))}
       </div>
       {tab === "fleet" && <AdminFleet />}
+
+      {tab === "ai" && (
+        <AdminAi
+          overview={overview}
+          users={users}
+          onAction={(action) => {
+            setTab(action.tab);
+            if (action.segment) setSegment(action.segment);
+          }}
+        />
+      )}
 
       {tab === "users" && (
         <>
