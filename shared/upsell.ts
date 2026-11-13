@@ -24,6 +24,8 @@ export interface UpsellDraft {
   /** Outros veículos do mesmo hangar, para sugerir uma troca. */
   alternatives?: ConsultVehicle[];
   credits?: number | null;
+  /** Adicionais que o cliente já dispensou (memória): não insistimos, salvo o que é obrigatório. */
+  dismissed?: readonly AddonKey[];
 }
 
 export type UpsellLevel = "required" | "recommended" | "info";
@@ -185,7 +187,11 @@ export function suggestUpsells(draft: UpsellDraft): UpsellSuggestion[] {
     const prev = byId.get(s.id);
     if (!prev || order[s.level] < order[prev.level]) byId.set(s.id, s);
   }
-  return [...byId.values()].sort((a, b) => order[a.level] - order[b.level]).slice(0, 4);
+  const dismissed = draft.dismissed ?? [];
+  return [...byId.values()]
+    .filter((s) => s.level === "required" || !s.addon || !dismissed.includes(s.addon))
+    .sort((a, b) => order[a.level] - order[b.level])
+    .slice(0, 4);
 }
 
 export const upsellSummary = (s: UpsellSuggestion) =>

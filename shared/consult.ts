@@ -4,6 +4,7 @@
 // livre e a escrever a resposta; quem escolhe veículos e calcula custos é este código,
 // sobre o catálogo real. Assim a IA nunca recomenda algo que não existe nem que o
 // cliente não pode reservar.
+import { distanceKm, greatCirclePoint } from "./geo.js";
 import { ADDON_CATALOG, type AddonKey } from "./addons.js";
 import { inferModelKey, specsOf, type ModelKey, type VehicleCategory } from "./fleet.js";
 
@@ -67,6 +68,8 @@ export interface Needs {
   offworld: boolean;
   priority: Priority;
   luxury: boolean;
+  /** Categoria que a memória ou o histórico da conta indica; só desempata. */
+  preferCategory?: VehicleCategory | null;
 }
 
 export interface RoutePlan {
@@ -110,28 +113,19 @@ export const SPEED_KMH: Record<VehicleCategory, number> = {
 // ---------------------------------------------------------------------------
 // Geografia
 // ---------------------------------------------------------------------------
-const MARS_RADIUS_KM = 3389.5;
-const rad = (d: number) => (d * Math.PI) / 180;
-
-export function distanceKm(lat1: number, lng1: number, lat2: number, lng2: number): number {
-  const dLat = rad(lat2 - lat1);
-  const dLng = rad(lng2 - lng1);
-  const a =
-    Math.sin(dLat / 2) ** 2 + Math.cos(rad(lat1)) * Math.cos(rad(lat2)) * Math.sin(dLng / 2) ** 2;
-  return Math.round(MARS_RADIUS_KM * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
-}
+export { distanceKm };
 
 /** Tempestades ativas que cruzam o trajeto (amostragem ao longo do caminho). */
 export function stormsOnPath(a: ConsultHangar, b: ConsultHangar, storms: ConsultStorm[]) {
   const hits = new Map<string, number>();
-  const steps = 24;
+  // O trajeto segue o círculo máximo (o caminho mais curto na esfera), não uma reta no mapa.
+  const steps = 48;
   for (let i = 0; i <= steps; i++) {
-    const t = i / steps;
-    const lat = a.lat + (b.lat - a.lat) * t;
-    const lng = a.lng + (b.lng - a.lng) * t;
+    const p = greatCirclePoint(a, b, i / steps);
     for (const s of storms) {
-      if (s.active && distanceKm(lat, lng, s.lat, s.lng) <= s.radius_km)
+      if (s.active && distanceKm(p.lat, p.lng, s.lat, s.lng) <= s.radius_km) {
         hits.set(s.name, s.severity);
+      }
     }
   }
   return [...hits].map(([name, severity]) => ({ name, severity }));
@@ -261,6 +255,41 @@ export function parseNeeds(input: string, hangars: ConsultHangar[]): Needs {
   if (needs.originId && needs.originId === needs.destinationId) needs.destinationId = null;
 
   return needs;
+}
+
+// ---------------------------------------------------------------------------
+// Escopo: a IA só conversa sobre a ARES e Marte.
+// ---------------------------------------------------------------------------
+export const OFF_TOPIC_REPLY =
+  "Só posso ajudar com viagens e locações da ARES Mobility em Marte: veículos, trajetos, reservas, preços, clima e o uso da plataforma. Conte para onde você quer ir ou o que precisa transportar.";
+
+const TOPIC_WORDS =
+  /\b(ares|marte|marcian\w*|veiculo\w*|carro\w*|cybercab|apex|valkyrie|caminha\w*|truck|foguete\w*|starship|nave\w*|vtol|reserv\w*|alug\w*|locac\w*|viage\w*|viaj\w*|trajet\w*|rota\w*|hangar\w*|frota|diaria\w*|preco\w*|custo\w*|saldo|credito\w*|mc|habilita\w*|licenca\w*|piloto|tempestade\w*|clima|poeira|adicional\w*|opcional\w*|seguro|barreira|oxigenio|bateria|autonomia|passageir\w*|carga|boarding|manutenc\w*|marketplace|plataforma|sol|sois|lua|fobos|deimos|orbita|barat\w*|economi\w*|confort\w*|luxo\w*|rapid\w*|seguranc\w*)\b/;
+
+const OFF_TOPIC_WORDS =
+  /\b(brasil|brasileir\w*|flamengo|corinthians|palmeiras|futebol|copa do mundo|politic\w*|president\w*|eleic\w*|lula|bolsonaro|religiao|receita de|bitcoin|cripto\w*|acoes da bolsa|piada\w*|poema|poesia|musica|filme|serie|novela|python|javascript|programa\w* em|codigo fonte|dieta|remedio|doenca|namor\w*|horoscopo|capital d[aeo])\b/;
+
+/** O texto cita assuntos claramente fora do escopo (países, esportes, política...)? */
+export const hasOffTopicWords = (message: string) => OFF_TOPIC_WORDS.test(plain(message));
+
+/** O texto cita assuntos da plataforma ou de viagens em Marte? */
+export const hasTopicWords = (message: string) => TOPIC_WORDS.test(plain(message));
+
+/** Heurística de assunto, usada no motor de regras e como segunda opinião quando o modelo não responde. */
+export function looksOnTopic(message: string, needs: Needs): boolean {
+  const text = plain(message);
+  if (OFF_TOPIC_WORDS.test(text)) return false;
+  if (
+    needs.passengers !== null ||
+    needs.cargoKg !== null ||
+    needs.originId ||
+    needs.destinationId ||
+    needs.offworld ||
+    needs.budget !== null
+  ) {
+    return true;
+  }
+  return TOPIC_WORDS.test(text);
 }
 
 // ---------------------------------------------------------------------------
@@ -437,6 +466,10 @@ export function recommend(rawNeeds: Needs, ctx: ConsultContext, limit = 3): Cons
         score += Math.round(cheapness * 6) + Math.round((100 - wear) / 20);
     }
     if (needs.luxury && LUXURY_MODELS.includes(model)) score += 10;
+    if (needs.preferCategory && v.category === needs.preferCategory) {
+      score += 6;
+      reasons.push("Combina com o que você costuma escolher.");
+    }
     if (v.battery_pct < 30) {
       score -= 10;
       warnings.push("Bateria baixa: peça para recarregar antes de sair.");

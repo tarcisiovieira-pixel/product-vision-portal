@@ -1349,6 +1349,20 @@ export function FlightChaseViewer3D({
         {/* Botão de Áudio e Fechar */}
         <div className="flex items-center gap-3">
           <button
+            onClick={() => {
+              onClose();
+              if (navigate) navigate({ to: "/app/copiloto", search: { vehicle: vehicle.id } });
+              else if (typeof window !== "undefined") {
+                window.location.href = `/app/copiloto?vehicle=${vehicle.id}`;
+              }
+            }}
+            title="Abrir o copiloto GPS: rota, clima à frente e alertas, por texto ou voz"
+            className="flex items-center gap-1.5 border border-telemetry/60 bg-telemetry/10 px-3 py-2 uppercase transition font-mono text-xs text-telemetry hover:bg-telemetry/20"
+          >
+            <Navigation className="h-4 w-4" />
+            <span>Copiloto GPS</span>
+          </button>
+          <button
             onClick={toggleAudio}
             title={
               audioEnabled ? "Silenciar áudio dos propulsores" : "Ativar áudio dos propulsores"

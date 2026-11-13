@@ -217,8 +217,8 @@ describe("recomendação", () => {
     const storm = {
       name: "Tempestade Teste",
       severity: 4,
-      lat: 18.5,
-      lng: -30,
+      lat: 51.1,
+      lng: 151.7,
       radius_km: 900,
       active: true,
     };

@@ -1,15 +1,17 @@
 import { useMemo, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useMutation, useQuery, useSuspenseQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { AlertTriangle, Bot, Compass, Send, Sparkles } from "lucide-react";
 import type { ConsultContext } from "@shared/consult";
 import { ADDON_CATALOG } from "@shared/addons";
+import { AiMemoryPanel } from "@/components/AiMemoryPanel";
 import { PageHeader } from "@/components/PageHeader";
 import { aiStatusQuery, askConsultant, providerLabel, type ConsultResponse } from "@/lib/ai";
 import {
   categoryLabel,
   hangarsQuery,
   profileQuery,
+  rentalsQuery,
   vehiclesQuery,
   weatherQuery,
 } from "@/lib/ares-data";
@@ -63,6 +65,8 @@ function Consultor() {
   const { data: weather } = useSuspenseQuery(weatherQuery);
   const { data: profile } = useQuery(profileQuery);
   const { data: status } = useQuery(aiStatusQuery);
+  const { data: rentals = [] } = useQuery(rentalsQuery);
+  const qc = useQueryClient();
   const [message, setMessage] = useState("");
 
   const ctx = useMemo<ConsultContext>(
@@ -76,7 +80,11 @@ function Consultor() {
     [vehicles, hangars, weather, profile],
   );
 
-  const ask = useMutation({ mutationFn: (text: string) => askConsultant(text, ctx) });
+  const ask = useMutation({
+    mutationFn: (text: string) => askConsultant(text, ctx, rentals),
+    // A conversa pode ter anotado algo novo: a lista da memória precisa refletir.
+    onSettled: () => qc.invalidateQueries({ queryKey: ["ai", "memory"] }),
+  });
   const result: ConsultResponse | undefined = ask.data;
   const vehicleById = useMemo(() => new Map(vehicles.map((v) => [v.id, v])), [vehicles]);
   const hangarById = useMemo(() => new Map(hangars.map((h) => [h.id, h])), [hangars]);
@@ -168,6 +176,20 @@ function Consultor() {
               {result.fallbackReason && result.mode === "rules" && status?.generative && (
                 <p className="font-mono text-[11px] text-muted-foreground">
                   Resposta do motor de regras: {result.fallbackReason}.
+                </p>
+              )}
+              {(result.memoryUsed?.length ?? 0) > 0 && (
+                <p className="font-mono text-[11px] text-telemetry" data-testid="memory-used">
+                  Usei da sua memória: {result.memoryUsed!.map((u) => u.label).join(" · ")}
+                </p>
+              )}
+              {(result.remembered?.length ?? 0) > 0 && (
+                <p
+                  className="font-mono text-[11px] text-muted-foreground"
+                  data-testid="memory-saved"
+                >
+                  Anotei: {result.remembered!.map((r) => r.label).join(" · ")}. Você pode apagar na
+                  Memória da IA, abaixo.
                 </p>
               )}
               {result.missing.length > 0 && result.recommendations.length > 0 && (
@@ -264,6 +286,8 @@ function Consultor() {
           )}
         </section>
       )}
+
+      <AiMemoryPanel />
     </div>
   );
 }

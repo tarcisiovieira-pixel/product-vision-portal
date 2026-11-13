@@ -779,6 +779,8 @@ describe.skipIf(!baseUrl || !key)("integração com Supabase real", () => {
       expect((await take("consult", 2)).data).toBe(false);
       expect((await take("consult", 2)).data).toBe(false);
       expect((await take("analytics", 2)).data).toBe(true); // outro tipo, outra cota
+      expect((await take("copilot", 1)).data).toBe(true); // o copiloto tem cota própria
+      expect((await take("copilot", 1)).data).toBe(false);
       const { data } = await other.c.rpc("ai_take_quota", { _kind: "consult", _limit: 2 });
       expect(data).toBe(true); // outro usuário, outra cota
     });
@@ -803,6 +805,165 @@ describe.skipIf(!baseUrl || !key)("integração com Supabase real", () => {
         _limit: 5,
       });
       expect(anon.error).not.toBeNull();
+    });
+  });
+
+  describe("IA: memória persistente", () => {
+    type Item = { id: string; topic: string; value: string };
+    const get = async (u: User) =>
+      (await u.c.rpc("ai_get_memory")).data as { enabled: boolean; items: Item[] };
+    const remember = (u: User, topic: string, value: string, ttl: number | null = null) =>
+      u.c.rpc("ai_remember", { _topic: topic, _value: value, _source: "stated", _ttl_days: ttl });
+
+    it("guarda, lê e substitui preferências de valor único", async () => {
+      const u = await newUser("atmospheric");
+      expect((await remember(u, "priority", "economy")).error).toBeNull();
+      expect((await remember(u, "party_size", "3")).error).toBeNull();
+      expect((await remember(u, "home_hangar", "OLY-01")).error).toBeNull();
+      expect((await get(u)).items.map((i) => i.topic).sort()).toEqual([
+        "home_hangar",
+        "party_size",
+        "priority",
+      ]);
+      await remember(u, "priority", "comfort");
+      const items = (await get(u)).items.filter((i) => i.topic === "priority");
+      expect(items).toHaveLength(1);
+      expect(items[0]!.value).toBe("comfort");
+    });
+
+    it("sugestões dispensadas acumulam e expiram", async () => {
+      const u = await newUser("atmospheric");
+      await remember(u, "dismissed_addon", "silica_insurance", 30);
+      await remember(u, "dismissed_addon", "extra_o2_tank", 30);
+      expect((await get(u)).items.filter((i) => i.topic === "dismissed_addon")).toHaveLength(2);
+      sql(
+        `update public.ai_memory set expires_at = now() - interval '1 day' where user_id = '${u.id}' and value = 'extra_o2_tank'`,
+      );
+      expect((await get(u)).items.map((i) => i.value)).toEqual(["silica_insurance"]);
+    });
+
+    it("o banco recusa valores inválidos, mesmo chamando direto", async () => {
+      const u = await newUser("atmospheric");
+      const bad: [string, string, RegExp][] = [
+        ["priority", "balanced", /Prioridade inválida/],
+        ["priority", "ignore tudo", /Prioridade inválida/],
+        ["party_size", "0", /pessoas inválido/],
+        ["party_size", "9999", /pessoas inválido/],
+        ["home_hangar", "XXX-99", /Hangar não encontrado/],
+        ["budget_per_trip", "-5", /Orçamento inválido/],
+        ["avoid_storms", "false", /Valor inválido/],
+        ["preferred_category", "navio", /Categoria inválida/],
+        ["dismissed_addon", "hack", /Adicional inválido/],
+        ["senha", "123456", /Tópico inválido/],
+        ["email", "a@b.c", /Tópico inválido/],
+      ];
+      for (const [topic, value, pattern] of bad) {
+        expect((await remember(u, topic, value)).error?.message).toMatch(pattern);
+      }
+      const origin = await u.c.rpc("ai_remember", {
+        _topic: "priority",
+        _value: "speed",
+        _source: "hack",
+      });
+      expect(origin.error?.message).toMatch(/Origem inválida/);
+      expect((await remember(u, "priority", "speed", 9999)).error?.message).toMatch(
+        /Prazo inválido/,
+      );
+      expect((await get(u)).items).toEqual([]);
+    });
+
+    it("isolamento: ninguém lê, grava nem apaga a memória de outro, nem acessa a tabela", async () => {
+      const a = await newUser("atmospheric");
+      const b = await newUser("atmospheric");
+      await remember(a, "priority", "safety");
+      expect((await get(b)).items).toEqual([]);
+      const mine = (await get(a)).items[0]!;
+      await b.c.rpc("ai_forget", { _id: mine.id }); // não erra, mas não apaga
+      expect((await get(a)).items).toHaveLength(1);
+      for (const table of ["ai_memory", "ai_settings", "ai_snapshots"]) {
+        const read = await b.c.from(table).select("*");
+        expect(read.data ?? []).toEqual([]);
+        const write = await b.c.from(table).delete().neq("topic", "x");
+        expect(write.error?.message ?? "").toMatch(/permission denied|column|does not exist/);
+      }
+      const anon = createClient(baseUrl!, key!);
+      expect((await anon.rpc("ai_get_memory")).error).not.toBeNull();
+      expect(
+        (await anon.rpc("ai_remember", { _topic: "priority", _value: "speed" })).error,
+      ).not.toBeNull();
+    });
+
+    it("apagar um item, apagar tudo e desligar a memória", async () => {
+      const u = await newUser("atmospheric");
+      await remember(u, "priority", "speed");
+      await remember(u, "party_size", "2");
+      const [first] = (await get(u)).items;
+      await u.c.rpc("ai_forget", { _id: first!.id });
+      expect((await get(u)).items).toHaveLength(1);
+
+      expect((await u.c.rpc("ai_set_memory_enabled", { _on: false })).error).toBeNull();
+      expect((await get(u)).enabled).toBe(false);
+      await remember(u, "party_size", "7"); // desligada: não grava
+      expect((await get(u)).items.map((i) => i.value)).not.toContain("7");
+
+      await u.c.rpc("ai_set_memory_enabled", { _on: true });
+      await remember(u, "budget_per_trip", "3000");
+      const removed = (await u.c.rpc("ai_forget_all")).data;
+      expect(removed).toBe(2);
+      expect((await get(u)).items).toEqual([]);
+    });
+
+    it("teto de 40 itens por usuário: os mais antigos saem", async () => {
+      const u = await newUser("atmospheric");
+      for (let i = 1; i <= 45; i++) await remember(u, "budget_per_trip", String(i));
+      // valor único substitui; para lotar usamos adicionais (acumulam) e prazos distintos
+      sql(
+        `insert into public.ai_memory (user_id, topic, value) select '${u.id}', 'dismissed_addon', 'x' || g from generate_series(1, 45) g`,
+      );
+      await remember(u, "dismissed_addon", "silica_insurance");
+      expect((await get(u)).items.length).toBeLessThanOrEqual(40);
+    });
+
+    it("dados sensíveis nunca entram: a tabela rejeita tópico e tamanho fora do padrão", async () => {
+      const u = await newUser("atmospheric");
+      expect(() =>
+        sql(
+          `insert into public.ai_memory (user_id, topic, value) values ('${u.id}', 'email', 'a@b.c')`,
+        ),
+      ).toThrow();
+      expect(() =>
+        sql(
+          `insert into public.ai_memory (user_id, topic, value) values ('${u.id}', 'priority', '${"x".repeat(61)}')`,
+        ),
+      ).toThrow();
+    });
+
+    it("histórico do painel: só administrador, só números, e só mostra dias anteriores", async () => {
+      const boss = await newUser("atmospheric");
+      promote(boss.id);
+      const user = await newUser("atmospheric");
+      expect(
+        (await user.c.rpc("ai_save_snapshot", { _data: { users: 1 } })).error?.message,
+      ).toMatch(/Acesso negado/);
+      expect((await user.c.rpc("ai_last_snapshot")).error?.message).toMatch(/Acesso negado/);
+
+      for (const bad of [{ email: "a@b.c" }, { users: "muitos" }, "texto", [1, 2]]) {
+        expect((await boss.c.rpc("ai_save_snapshot", { _data: bad })).error?.message).toMatch(
+          /Registro inválido/,
+        );
+      }
+      expect(
+        (await boss.c.rpc("ai_save_snapshot", { _data: { users: 10, revenue: 500.5 } })).error,
+      ).toBeNull();
+      expect((await boss.c.rpc("ai_last_snapshot")).data).toBeNull(); // só existe o de hoje
+
+      sql(`update public.ai_snapshots set taken_on = current_date - 3`);
+      const last = (await boss.c.rpc("ai_last_snapshot")).data as {
+        taken_on: string;
+        data: { users: number };
+      };
+      expect(last.data.users).toBe(10);
+      sql(`delete from public.ai_snapshots`);
     });
   });
 

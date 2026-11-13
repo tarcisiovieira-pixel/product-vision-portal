@@ -54,6 +54,16 @@ describe("consultor", () => {
     expect(api.post).not.toHaveBeenCalled();
   });
 
+  it("assunto fora do escopo: resposta fixa, sem indicações", async () => {
+    startDemoSession();
+    for (const text of ["Quem ganhou o jogo do Flamengo?", "Fale sobre o Brasil"]) {
+      const res = await askConsultant(text, ctx());
+      expect(res.offTopic).toBe(true);
+      expect(res.recommendations).toHaveLength(0);
+      expect(res.reply).toMatch(/ARES Mobility em Marte/);
+    }
+  });
+
   it("conta real usa a API", async () => {
     api.post.mockResolvedValue({
       mode: "llm",

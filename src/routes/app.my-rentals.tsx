@@ -18,6 +18,7 @@ import {
   Gift,
   Info,
   KeyRound,
+  Navigation,
   Plane,
   Radio,
   RefreshCw,
@@ -479,6 +480,18 @@ function MyRentals() {
                         <KeyRound className="h-3.5 w-3.5" />
                         <span>Chave</span>
                       </button>
+
+                      {(isInFlight || r.status === "confirmed") && (
+                        <Link
+                          to="/app/copiloto"
+                          search={{ rental: r.id }}
+                          className="cut-corner border border-telemetry/60 bg-telemetry/10 px-2.5 py-1.5 text-xs font-bold text-telemetry transition hover:bg-telemetry/20 flex items-center gap-1"
+                          title="Abrir o copiloto GPS desta viagem"
+                        >
+                          <Navigation className="h-3.5 w-3.5" />
+                          <span className="hidden lg:inline">Copiloto</span>
+                        </Link>
+                      )}
 
                       {isInFlight ? (
                         <button
