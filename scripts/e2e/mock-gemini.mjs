@@ -29,6 +29,7 @@ const server = http.createServer((req, res) => {
         priority: "comfort",
         luxury: true,
         onTopic: true,
+        remember: [],
       };
     } else if (system.includes("priorities")) {
       payload = {
