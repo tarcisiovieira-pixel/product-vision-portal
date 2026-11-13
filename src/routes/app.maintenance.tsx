@@ -157,6 +157,7 @@ function Maintenance() {
             >
               <HangarScene
                 category={currentVehicle.category}
+                modelKey={currentVehicle.model_key}
                 callsign={currentVehicle.callsign}
                 name={currentVehicle.name}
                 selectedHotspot={selectedHotspot}

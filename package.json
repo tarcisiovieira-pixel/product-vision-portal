@@ -17,6 +17,7 @@
     "e2e": "node scripts/e2e/run.mjs",
     "e2e:admin": "node scripts/e2e/admin.mjs",
     "e2e:senha": "node scripts/e2e/senha.mjs",
+    "e2e:frota": "node scripts/e2e/frota.mjs",
     "check": "npm run typecheck && npm run lint && npm run test && npm run build"
   },
   "overrides": {

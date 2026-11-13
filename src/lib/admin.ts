@@ -4,7 +4,8 @@ import { supabase } from "@/integrations/supabase/client";
 import type { Profile } from "./ares-data";
 import { DEMO_ADMIN_AUDIT, DEMO_ADMIN_OVERVIEW, DEMO_ADMIN_USERS } from "./admin-demo";
 import { apiEnabled, apiGet, apiPost } from "./api-client";
-import { isDemoSession } from "./session";
+import { demoFleetCounts } from "./admin-fleet";
+import { isDemoSession, readDemoAudit } from "./session";
 
 export interface AdminOverview {
   generated_at: string;
@@ -101,7 +102,7 @@ export const adminStatusQuery = queryOptions({
 export const adminOverviewQuery = queryOptions({
   queryKey: ["admin", "overview"],
   queryFn: async (): Promise<AdminOverview> => {
-    if (isDemoSession()) return DEMO_ADMIN_OVERVIEW;
+    if (isDemoSession()) return { ...DEMO_ADMIN_OVERVIEW, fleet: demoFleetCounts() };
     if (apiEnabled()) return apiGet<AdminOverview>("/v1/admin/overview");
     return rpc<AdminOverview>("admin_overview");
   },
@@ -128,7 +129,7 @@ export const adminUsersQuery = queryOptions({
 export const adminAuditQuery = queryOptions({
   queryKey: ["admin", "audit"],
   queryFn: async (): Promise<AdminAuditEntry[]> => {
-    if (isDemoSession()) return DEMO_ADMIN_AUDIT;
+    if (isDemoSession()) return [...readDemoAudit<AdminAuditEntry>(), ...DEMO_ADMIN_AUDIT];
     if (apiEnabled()) {
       return (await apiGet<{ items: AdminAuditEntry[] }>("/v1/admin/audit?limit=20")).items;
     }

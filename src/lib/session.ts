@@ -12,6 +12,8 @@ const KEYS = {
   maintenance: "ares_local_maintenance_logs",
   sales: "ares_marketplace_sales",
   promo: "ares_active_promo",
+  vehicles: "ares_demo_vehicles",
+  audit: "ares_demo_audit",
 } as const;
 
 export const DEMO_USER_ID = DEMO_PROFILE.user_id;
@@ -58,6 +60,11 @@ export const readDemoMaintenance = <T>() => readJson<T[]>(KEYS.maintenance, []);
 export const writeDemoMaintenance = (logs: unknown[]) => writeJson(KEYS.maintenance, logs);
 export const readDemoSales = <T>() => readJson<T[]>(KEYS.sales, []);
 export const writeDemoSales = (sales: unknown[]) => writeJson(KEYS.sales, sales);
+/** Frota editada no demo. null = ainda não editada (vale a frota de exemplo). */
+export const readDemoVehicles = <T>() => readJson<T[] | null>(KEYS.vehicles, null);
+export const writeDemoVehicles = (vehicles: unknown[]) => writeJson(KEYS.vehicles, vehicles);
+export const readDemoAudit = <T>() => readJson<T[]>(KEYS.audit, []);
+export const writeDemoAudit = (entries: unknown[]) => writeJson(KEYS.audit, entries);
 
 export function clearDemoState(): void {
   if (!hasStorage()) return;

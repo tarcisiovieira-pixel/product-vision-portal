@@ -1,6 +1,7 @@
 import { useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
+import { inferModelKey } from "@shared/fleet";
 import type { Vehicle } from "@/lib/ares-data";
 
 const HULL_COLOR = "#d4d0c8";
@@ -14,6 +15,7 @@ const OBSIDIAN_BLACK = "#101217";
 
 interface VehicleModelProps {
   category: Vehicle["category"];
+  modelKey?: string | null | undefined;
   callsign?: string | undefined;
   name?: string | undefined;
   selectedHotspot?: string | null | undefined;
@@ -84,7 +86,7 @@ function ApexPhantomVtol({
   selectedHotspot,
   onSelectHotspot,
   showHotspots,
-}: Omit<VehicleModelProps, "category">) {
+}: Omit<VehicleModelProps, "category" | "modelKey">) {
   const turbineRefs = useRef<THREE.Group[]>([]);
   const rearGlow = useRef<THREE.PointLight>(null);
 
@@ -273,7 +275,7 @@ function ValkyrieRoadsterGt({
   selectedHotspot,
   onSelectHotspot,
   showHotspots,
-}: Omit<VehicleModelProps, "category">) {
+}: Omit<VehicleModelProps, "category" | "modelKey">) {
   const rotorRefs = useRef<THREE.Group[]>([]);
   const flameRef = useRef<THREE.Mesh>(null);
 
@@ -437,7 +439,7 @@ function CyberCabVtolSport({
   selectedHotspot,
   onSelectHotspot,
   showHotspots,
-}: Omit<VehicleModelProps, "category">) {
+}: Omit<VehicleModelProps, "category" | "modelKey">) {
   const rotorRefs = useRef<THREE.Group[]>([]);
   const glowLightRef = useRef<THREE.PointLight>(null);
 
@@ -592,7 +594,7 @@ function CyberCabVtol({
   selectedHotspot,
   onSelectHotspot,
   showHotspots,
-}: Omit<VehicleModelProps, "category">) {
+}: Omit<VehicleModelProps, "category" | "modelKey">) {
   const rotorRefs = useRef<THREE.Group[]>([]);
   const glowLightRef = useRef<THREE.PointLight>(null);
 
@@ -759,7 +761,7 @@ function AresHauler({
   selectedHotspot,
   onSelectHotspot,
   showHotspots,
-}: Omit<VehicleModelProps, "category">) {
+}: Omit<VehicleModelProps, "category" | "modelKey">) {
   const thrusterPulseRef = useRef<THREE.Group>(null);
 
   useFrame(() => {
@@ -873,7 +875,7 @@ function StarshipHopper({
   selectedHotspot,
   onSelectHotspot,
   showHotspots,
-}: Omit<VehicleModelProps, "category">) {
+}: Omit<VehicleModelProps, "category" | "modelKey">) {
   const flameRef = useRef<THREE.Mesh>(null);
   const glowLight = useRef<THREE.PointLight>(null);
 
@@ -1011,75 +1013,27 @@ function StarshipHopper({
 // ---------------------------------------------------------------------
 export function VehicleModel({
   category,
+  modelKey,
   callsign,
   name,
   selectedHotspot,
   onSelectHotspot,
   showHotspots = false,
 }: VehicleModelProps) {
-  const ident = `${callsign ?? ""} ${name ?? ""}`.toLowerCase();
-
-  // 1. Linha Executiva VIP: Apex Phantom Hyper-VTOL
-  if (ident.includes("apx") || ident.includes("apex") || ident.includes("phantom")) {
-    return (
-      <ApexPhantomVtol
-        selectedHotspot={selectedHotspot}
-        onSelectHotspot={onSelectHotspot}
-        showHotspots={showHotspots}
-      />
-    );
+  const props = { selectedHotspot, onSelectHotspot, showHotspots };
+  // model_key manda; sem ele (banco antigo ou demo) o modelo é deduzido do indicativo e do nome.
+  switch (inferModelKey({ model_key: modelKey, category, callsign, name })) {
+    case "apex_phantom":
+      return <ApexPhantomVtol {...props} />;
+    case "valkyrie_gt":
+      return <ValkyrieRoadsterGt {...props} />;
+    case "cybercab_sport":
+      return <CyberCabVtolSport {...props} />;
+    case "cybercab_x2":
+      return <CyberCabVtol {...props} />;
+    case "ares_hauler":
+      return <AresHauler {...props} />;
+    case "starship_hopper":
+      return <StarshipHopper {...props} />;
   }
-
-  // 2. Linha Super Sport GT: Valkyrie Martian Roadster GT
-  if (ident.includes("valk") || ident.includes("vmt") || ident.includes("roadster")) {
-    return (
-      <ValkyrieRoadsterGt
-        selectedHotspot={selectedHotspot}
-        onSelectHotspot={onSelectHotspot}
-        showHotspots={showHotspots}
-      />
-    );
-  }
-
-  // 3. Linha Sport: CyberCab VTOL Sport
-  if (ident.includes("sport") || ident.includes("sp-03") || ident.includes("sp-")) {
-    return (
-      <CyberCabVtolSport
-        selectedHotspot={selectedHotspot}
-        onSelectHotspot={onSelectHotspot}
-        showHotspots={showHotspots}
-      />
-    );
-  }
-
-  // 4. Carro VTOL Standard (CyberCab VTOL X2)
-  if (category === "car_vtol") {
-    return (
-      <CyberCabVtol
-        selectedHotspot={selectedHotspot}
-        onSelectHotspot={onSelectHotspot}
-        showHotspots={showHotspots}
-      />
-    );
-  }
-
-  // 5. Caminhão Espacial Pesado (Ares Hauler)
-  if (category === "space_truck") {
-    return (
-      <AresHauler
-        selectedHotspot={selectedHotspot}
-        onSelectHotspot={onSelectHotspot}
-        showHotspots={showHotspots}
-      />
-    );
-  }
-
-  // 6. Foguete Interplanetário (Starship Hopper)
-  return (
-    <StarshipHopper
-      selectedHotspot={selectedHotspot}
-      onSelectHotspot={onSelectHotspot}
-      showHotspots={showHotspots}
-    />
-  );
 }

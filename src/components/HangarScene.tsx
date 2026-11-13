@@ -13,6 +13,7 @@ import type { Vehicle } from "@/lib/ares-data";
 
 export default function HangarScene({
   category,
+  modelKey,
   callsign,
   name,
   selectedHotspot,
@@ -20,6 +21,7 @@ export default function HangarScene({
   showHotspots = false,
 }: {
   category: Vehicle["category"];
+  modelKey?: string | null | undefined;
   callsign?: string | undefined;
   name?: string | undefined;
   selectedHotspot?: string | null | undefined;
@@ -84,6 +86,7 @@ export default function HangarScene({
       >
         <VehicleModel
           category={category}
+          modelKey={modelKey}
           callsign={callsign}
           name={name}
           selectedHotspot={selectedHotspot}
