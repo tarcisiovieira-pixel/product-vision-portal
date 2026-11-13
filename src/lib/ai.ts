@@ -3,6 +3,15 @@
 import { queryOptions } from "@tanstack/react-query";
 import { analyze, ruleSummary, type AnalyticsInput, type Insight } from "@shared/analytics";
 import {
+  applyMemory,
+  applyProfile,
+  extractMemory,
+  memoryLabel,
+  profileFromRentals,
+  type MemoryUse,
+  type RentalLite,
+} from "@shared/memory";
+import {
   looksOnTopic,
   OFF_TOPIC_REPLY,
   parseNeeds,
@@ -14,6 +23,7 @@ import { describeResult } from "@shared/consult-reply";
 import { matchesSegment, SEGMENTS, type AdminOverview, type AdminUser } from "./admin";
 import type { AdminVehicle } from "./admin-fleet";
 import { apiEnabled, apiGet, apiPost } from "./api-client";
+import { readMemory, remember } from "./ai-memory";
 import { hasRealSession } from "./ares-data";
 import { isDemoSession } from "./session";
 
@@ -55,39 +65,92 @@ export interface ConsultResponse extends ConsultResult {
   /** Por que a IA generativa não foi usada, quando era esperada. */
   fallbackReason?: string;
   reply: string;
+  /** A memória estava ligada nesta conta? */
+  memoryEnabled?: boolean;
+  /** O que veio da memória ou do histórico e influenciou a indicação. */
+  memoryUsed?: MemoryUse[];
+  /** O que a IA anotou desta conversa. */
+  remembered?: { topic: string; value: string; label: string }[];
 }
 
-function localConsult(message: string, ctx: ConsultContext, reason: string): ConsultResponse {
-  const needs = parseNeeds(message, ctx.hangars);
-  if (!looksOnTopic(message, needs)) {
+async function localConsult(
+  message: string,
+  ctx: ConsultContext,
+  reason: string,
+  rentals: readonly RentalLite[],
+): Promise<ConsultResponse> {
+  const parsed = parseNeeds(message, ctx.hangars);
+  if (!looksOnTopic(message, parsed)) {
     return {
       mode: "rules",
       fallbackReason: reason,
       offTopic: true,
-      needs,
+      needs: parsed,
       recommendations: [],
       missing: [],
       notes: [],
       reply: OFF_TOPIC_REPLY,
     };
   }
+
+  // Memória e histórico só preenchem o que o pedido deixou em branco.
+  const memory = await readMemory();
+  let needs = parsed;
+  let used: MemoryUse[] = [];
+  let questions: string[] = [];
+  if (memory.enabled) {
+    const withMemory = applyMemory(parsed, memory.items, ctx.hangars);
+    const categories = new Map(ctx.vehicles.map((v) => [v.id, v.category]));
+    const withHistory = applyProfile(
+      withMemory.needs,
+      profileFromRentals(rentals, categories),
+      ctx.hangars,
+    );
+    needs = withHistory.needs;
+    used = [...withMemory.used, ...withHistory.used];
+    questions = withMemory.questions;
+  }
+  const remembered: NonNullable<ConsultResponse["remembered"]> = [];
+  if (memory.enabled) {
+    for (const candidate of extractMemory(message, ctx.hangars)) {
+      if (await remember(candidate)) {
+        remembered.push({
+          ...candidate,
+          label: memoryLabel(candidate.topic, candidate.value, ctx.hangars),
+        });
+      }
+    }
+  }
+
   const result = recommend(needs, ctx);
+  result.missing = [...questions, ...result.missing];
   const names = new Map(ctx.vehicles.map((v) => [v.id, { name: v.name, callsign: v.callsign }]));
-  return { mode: "rules", fallbackReason: reason, ...result, reply: describeResult(result, names) };
+  return {
+    mode: "rules",
+    fallbackReason: reason,
+    ...result,
+    reply: describeResult(result, names),
+    memoryEnabled: memory.enabled,
+    memoryUsed: used,
+    remembered,
+  };
 }
 
 export async function askConsultant(
   message: string,
   local: ConsultContext,
+  rentals: readonly RentalLite[] = [],
 ): Promise<ConsultResponse> {
-  if (isDemoSession()) return localConsult(message, local, "modo demo");
-  if (!(await canUseApi())) return localConsult(message, local, "IA generativa não configurada");
+  if (isDemoSession()) return localConsult(message, local, "modo demo", rentals);
+  if (!(await canUseApi())) {
+    return localConsult(message, local, "IA generativa não configurada", rentals);
+  }
   try {
     return await apiPost<ConsultResponse>("/v1/ai/consult", { message });
   } catch (error) {
     // Servidor fora do ar, dormindo ou sem a migration: o motor local responde do mesmo jeito.
     const reason = error instanceof Error ? error.message : "servidor indisponível";
-    return localConsult(message, local, reason);
+    return localConsult(message, local, reason, rentals);
   }
 }
 

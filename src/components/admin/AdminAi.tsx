@@ -2,7 +2,10 @@ import { useMemo } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Bot, Sparkles } from "lucide-react";
 import type { Insight, InsightAction, InsightSeverity } from "@shared/analytics";
+import { totalsOf, trendInsights } from "@shared/analytics";
 import { adminVehiclesQuery } from "@/lib/admin-fleet";
+import { lastSnapshot, saveSnapshot } from "@/lib/ai-memory";
+import { isDemoSession } from "@/lib/session";
 import type { AdminOverview, AdminUser } from "@/lib/admin";
 import {
   aiStatusQuery,
@@ -38,8 +41,26 @@ export function AdminAi({
     () => buildAnalyticsInput(overview, users, vehicles),
     [overview, users, vehicles],
   );
-  const insights = useMemo<Insight[]>(() => insightsFor(input), [input]);
-  const summary = useMutation({ mutationFn: () => summarizeInsights(input, insights) });
+  const totals = useMemo(() => totalsOf(input), [input]);
+  // Memória do painel: compara com o último registro guardado.
+  const { data: previous } = useQuery({
+    queryKey: ["ai", "snapshot", isDemoSession()],
+    queryFn: () => lastSnapshot(totals),
+    staleTime: 5 * 60_000,
+  });
+  const insights = useMemo<Insight[]>(() => {
+    const base = insightsFor(input);
+    if (!previous) return base;
+    const since = new Date(`${previous.taken_on}T12:00:00`).toLocaleDateString("pt-BR");
+    return [...trendInsights(previous.data, totals, since), ...base];
+  }, [input, previous, totals]);
+  const summary = useMutation({
+    mutationFn: async () => {
+      const result = await summarizeInsights(input, insights);
+      await saveSnapshot(totals); // guarda os números de hoje para a próxima comparação
+      return result;
+    },
+  });
 
   return (
     <section aria-label="IA analítica" className="glass space-y-5 p-5">

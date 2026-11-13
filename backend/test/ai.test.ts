@@ -458,6 +458,20 @@ describe("memória persistente", () => {
     expect(remembered()).toEqual([]); // pedido pontual não vira hábito
   });
 
+  it("declarar uma preferência de viagem é do escopo, mesmo que o modelo hesite", async () => {
+    memoryState = { enabled: true, items: [] };
+    const a = await build(
+      fakeLlm((req) =>
+        "originCode" in (req.schema as unknown as { shape: object }).shape
+          ? modelNeeds({ onTopic: false, originCode: null, destinationCode: null })
+          : { reply: "Anotado! Recomendo o CC-1." },
+      ),
+    );
+    const body = (await consult(a, "Eu sempre prefiro conforto")).json();
+    expect(body.offTopic).toBeUndefined();
+    expect(remembered()).toEqual([{ _topic: "priority", _value: "comfort", _source: "stated" }]);
+  });
+
   it("assunto fora do escopo não grava nada", async () => {
     memoryState = { enabled: true, items: [] };
     const a = await build(null);
